@@ -1,7 +1,15 @@
-import aioboto3
-import os
+import boto3
+from fastapi import HTTPException
+from botocore.exceptions import ClientError
 
-async def upload_file_to_s3(file, bucket_name):
-    session = aioboto3.Session()
-    async with session.client("s3") as s3:
-        await s3.upload_fileobj(file, bucket_name, file.filename)
+s3 = boto3.client('s3')
+BUCKET_NAME = 'lost-gates-assets'
+
+def upload_file_to_s3(file, filename, token):
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    try:
+        s3.upload_fileobj(file, BUCKET_NAME, filename)
+    except ClientError as e:
+        raise HTTPException(status_code=400, detail=f"Error uploading file: {e}")
+    return {"message": "File uploaded successfully", "filename": filename}

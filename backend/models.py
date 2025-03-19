@@ -1,37 +1,20 @@
-""" from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel
+from typing import List
 
 class User(BaseModel):
-    id: str
     username: str
     email: str
-    hashed_password: str
-    is_developer: bool
-    steam_profile: Optional[str] = None
-    platform: Optional[str] = None
+    steam_id: str
+    pc_console_info: dict
 
 class Post(BaseModel):
-    id: str
-    user_id: str
     title: str
     description: str
-    created_at: str
-    test_event_id: Optional[str] = None
+    created_by: str
+    test_event_ids: List[str]  # Links to events
 
-class TestEvent(BaseModel):
-    id: str
-    post_id: str
-    participants: List[str]
-"""
-
-from pydantic import BaseModel, EmailStr
-
-class User(BaseModel):
-    id: str
-    username: str
-    email: EmailStr
-
-class Post(BaseModel):
-    id: str
-    title: str
-    content: str
+class Event(BaseModel):
+    event_name: str
+    event_description: str
+    scheduled_time: str
+    participants: List[str]  # List of player IDs registered

@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends
-from models import User
-from auth import verify_token
+from fastapi import APIRouter, Depends, HTTPException
+from database import get_user_from_db
+from security import verify_access_token
 
 router = APIRouter()
 
-@router.get("/", response_model=list[User], dependencies=[Depends(verify_token)])
-def get_users():
-    return [
-        {"id": "1", "username": "user1", "email": "user1@example.com"},
-        {"id": "2", "username": "user2", "email": "user2@example.com"}
-    ]
+# Route to get user profile (protected with JWT)
+@router.get("/profile")
+async def get_profile(token: str = Depends(verify_access_token)):
+    user_id = token.get("sub")
+    user = get_user_from_db(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
