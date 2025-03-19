@@ -1,11 +1,11 @@
 services:
   - type: web
-    name: mvp-backend
+    name: indie-game-tester-backend
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app:app --host 0.0.0.0 --port 8000"
-  - type: web
-    name: mvp-frontend
-    env: node
-    buildCommand: "npm install"
-    startCommand: "npm start"
+    envVars:
+      - key: SECRET_KEY
+        value: "your-secret-key"
+      - key: AWS_REGION
+        value: "us-east-1"

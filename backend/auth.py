@@ -1,24 +1,16 @@
-import boto3
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+import jwt
 import os
 
-client = boto3.client("cognito-idp", region_name="us-east-1")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
-CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
-
-def signup_user(username, password, email):
-    response = client.sign_up(
-        ClientId=CLIENT_ID,
-        Username=username,
-        Password=password,
-        UserAttributes=[{"Name": "email", "Value": email}]
-    )
-    return response
-
-def login_user(username, password):
-    response = client.initiate_auth(
-        ClientId=CLIENT_ID,
-        AuthFlow="USER_PASSWORD_AUTH",
-        AuthParameters={"USERNAME": username, "PASSWORD": password}
-    )
-    return response["AuthenticationResult"]["IdToken"]
+def verify_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")

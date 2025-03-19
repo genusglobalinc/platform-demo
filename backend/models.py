@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+""" from pydantic import BaseModel
 from typing import Optional, List
 
 class User(BaseModel):
@@ -22,3 +22,16 @@ class TestEvent(BaseModel):
     id: str
     post_id: str
     participants: List[str]
+"""
+
+from pydantic import BaseModel, EmailStr
+
+class User(BaseModel):
+    id: str
+    username: str
+    email: EmailStr
+
+class Post(BaseModel):
+    id: str
+    title: str
+    content: str

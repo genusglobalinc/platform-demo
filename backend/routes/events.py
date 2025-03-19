@@ -1,7 +1,7 @@
-from flask import Blueprint, jsonify
+from fastapi import APIRouter
 
-events_bp = Blueprint("events", __name__)
+router = APIRouter()
 
-@events_bp.route("/", methods=["GET"])
+@router.get("/")
 def get_events():
-    return jsonify({"message": "All test events"})
+    return {"events": ["Event1", "Event2"]}

@@ -1,7 +1,7 @@
-from flask import Blueprint, jsonify
+from fastapi import APIRouter
 
-posts_bp = Blueprint("posts", __name__)
+router = APIRouter()
 
-@posts_bp.route("/", methods=["GET"])
+@router.get("/")
 def get_posts():
-    return jsonify({"message": "All posts"})
+    return {"posts": ["Post1", "Post2"]}

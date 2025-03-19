@@ -1,16 +1,8 @@
-from flask import Blueprint, request, jsonify
-from auth import signup_user, login_user
+from fastapi import APIRouter, Depends, HTTPException
+from utils.security import verify_token
 
-auth_bp = Blueprint("auth", __name__)
+router = APIRouter()
 
-@auth_bp.route("/signup", methods=["POST"])
-def signup():
-    data = request.json
-    response = signup_user(data["username"], data["password"], data["email"])
-    return jsonify(response)
-
-@auth_bp.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    token = login_user(data["username"], data["password"])
-    return jsonify({"token": token})
+@router.get("/protected", dependencies=[Depends(verify_token)])
+def protected_route():
+    return {"message": "You have access to this protected route"}
