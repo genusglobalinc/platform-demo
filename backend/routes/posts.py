@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from backend.database import get_post_from_db, create_post_in_db
-from backend.security import verify_access_token
+from backend.utils.security import verify_access_token
 
 router = APIRouter()
 
