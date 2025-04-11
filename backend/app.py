@@ -135,9 +135,12 @@ async def get_all_events(token: str = Depends(oauth2_scheme)):
     events = get_all_events_from_db()
     return {"events": events}
 
-# Serve React App's index.html at root and catch-all paths
+# Serve React App's index.html at root and catch-all paths, EXCLUDING API routes
 @app.get("/{full_path:path}")
-async def serve_react_app(full_path: str = ""):
+async def serve_react_app(full_path: str):
+    if full_path.startswith(("api", "auth", "users", "posts", "events", "static")):
+        raise HTTPException(status_code=404, detail="Not a frontend route")
+
     index_file = os.path.join("frontend", "build", "index.html")
     if os.path.isfile(index_file):
         return FileResponse(index_file)
