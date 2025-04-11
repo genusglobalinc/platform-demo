@@ -1,13 +1,13 @@
 import os
+import redis  # Import redis-py instead of aioredis
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
-import aioredis  # Redis connection
-from backend.routes.users import router as users_router  # Corrected import
-from backend.routes.posts import router as posts_router  # Corrected import
-from backend.routes.events import router as events_router  # Corrected import
-from backend.routes.auth_routes import router as auth_router  # Corrected import
+from backend.routes.users import router as users_router
+from backend.routes.posts import router as posts_router
+from backend.routes.events import router as events_router
+from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import get_user_from_db
 
@@ -21,9 +21,9 @@ async def startup():
     if not redis_url:
         raise HTTPException(status_code=500, detail="Redis URL not found in environment variables")
     
-    # Initialize Redis connection using aioredis
-    redis = await aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
-    await FastAPILimiter.init(redis)
+    # Initialize Redis connection using redis-py
+    redis_client = redis.StrictRedis.from_url(redis_url, decode_responses=True)
+    await FastAPILimiter.init(redis_client)
 
 # Include routers for various routes in the app
 app.include_router(users_router, prefix="/users")
