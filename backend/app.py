@@ -17,8 +17,15 @@ from backend.routes.posts import router as posts_router
 from backend.routes.events import router as events_router
 from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
-from backend.database import get_user_from_db, get_post_from_db, create_post_in_db
-from backend.database import get_event_from_db, register_user_for_event
+from backend.database import (
+    get_user_from_db, 
+    get_post_from_db, 
+    create_post_in_db,
+    get_event_from_db, 
+    register_user_for_event,
+    get_user_profile_from_db,
+    get_all_events_from_db
+)
 
 app = FastAPI()
 
@@ -31,8 +38,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files from React build
-app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
+# Health check route
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+
+# Mount static files from React build (only if exists)
+STATIC_DIR = os.path.join("frontend", "build", "static")
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Initialize rate limiting with retries for Redis
 @app.on_event("startup")
@@ -123,12 +137,12 @@ async def get_all_events(token: str = Depends(oauth2_scheme)):
     events = get_all_events_from_db()
     return {"events": events}
 
-# Serve React App's index.html at the root path
-@app.get("/")
-async def serve_react_app():
-    file_path = os.path.join("frontend", "build", "index.html")
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
+# Serve React App's index.html at root and catch-all paths
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str = ""):
+    index_file = os.path.join("frontend", "build", "index.html")
+    if os.path.isfile(index_file):
+        return FileResponse(index_file)
     raise HTTPException(status_code=404, detail="Frontend not found")
 
 # Local dev run
