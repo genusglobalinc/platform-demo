@@ -4,7 +4,7 @@ import uuid
 from botocore.exceptions import ClientError
 
 # Set up DynamoDB client
-dynamodb = boto3.resource('dynamodb', region_name=region)
+dynamodb = boto3.resource('dynamodb', region_name=us-east-2)
 users_table = dynamodb.Table('Users')
 posts_table = dynamodb.Table('Posts')
 events_table = dynamodb.Table('Events')
