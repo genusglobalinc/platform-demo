@@ -11,12 +11,27 @@ function Register() {
 
   const handleRegister = async () => {
     try {
+      // Clear previous errors before making the request
+      setErrorMsg("");
+
       const response = await registerUser(username, email, password);
 
+      // Successful registration
       alert("Account created! Check your email to verify your account.");
-      navigate("/");
+      navigate("/"); // Redirect to home or login page
     } catch (err) {
-      setErrorMsg(err?.response?.data?.detail || "Registration failed.");
+      // Handle different types of errors here
+      if (err.response) {
+        // If we have a response object, the server responded with an error
+        setErrorMsg(err.response.data.detail || "Registration failed.");
+      } else if (err.request) {
+        // If we don't have a response, it means the request was made but no response was received
+        setErrorMsg("Network error. Please check your connection and try again.");
+      } else {
+        // Something else went wrong (e.g., setting up the request)
+        setErrorMsg("An error occurred. Please try again.");
+      }
+
       console.error("Registration error:", err);
     }
   };
@@ -25,6 +40,7 @@ function Register() {
     <div style={styles.container}>
       <h2 style={styles.title}>Create an Account</h2>
 
+      {/* Show error message if any */}
       {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
 
       <input style={styles.input} type="text" placeholder="Username" onChange={(e) => setUsername(e.target.value)} />

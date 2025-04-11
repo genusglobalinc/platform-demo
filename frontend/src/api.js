@@ -7,6 +7,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000,  // Set timeout to 10 seconds
 });
 
 export const loginUser = (username, password) => {
