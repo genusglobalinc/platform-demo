@@ -22,9 +22,7 @@ from backend.database import (
     get_post_from_db, 
     create_post_in_db,
     get_event_from_db, 
-    register_user_for_event,
-    get_user_profile_from_db,
-    get_all_events_from_db
+    register_user_for_event
 )
 
 app = FastAPI()
