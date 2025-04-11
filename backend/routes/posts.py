@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_post_from_db, create_post_in_db
 from security import verify_access_token
