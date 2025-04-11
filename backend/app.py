@@ -19,7 +19,7 @@ from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import get_user_from_db, get_post_from_db, create_post_in_db
 from backend.database import get_event_from_db, register_user_for_event
-from backend.database import get_user_profile_from_db, get_all_events_from_db
+from backend.database import get_all_events_from_db
 
 app = FastAPI()
 
