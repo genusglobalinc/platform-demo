@@ -6,8 +6,8 @@ from backend.routes.users import users_router
 from backend.routes.posts import posts_router
 from backend.routes.events import events_router
 from backend.routes.auth_routes import auth_router
-from security import create_access_token, verify_access_token
-from database import get_user_from_db
+from backend.utils.security import create_access_token, verify_access_token
+from backend.database import get_user_from_db
 
 app = FastAPI()
 
