@@ -1,34 +1,38 @@
+# FastAPI and Uvicorn for the web framework and ASGI server
 fastapi
 uvicorn[standard]
 
-# AWS / DynamoDB
+# AWS / DynamoDB for interacting with AWS services and DynamoDB
 boto3>=1.34.0
 botocore>=1.34.0
 aioboto3>=12.0.0
 
-# Auth / Security
+# Auth / Security for handling JWT authentication and password hashing
 python-jose
 passlib[bcrypt]
 python-multipart
 
-# Pydantic
+# Pydantic for data validation and serialization
 pydantic>=2.0
 
-# Environment variables
+# Environment variables for loading .env configuration files
 python-dotenv
 
-# Rate limiting (if you're using Redis or similar backend)
+# Rate limiting (if you're using Redis or similar backend for limiting requests)
 fastapi-limiter
 
-# Google Sheets / Drive
+# Google Sheets / Drive for interacting with Google Sheets and Drive API
 google-api-python-client
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
 
-# HTTP requests for APIs like Apollo
+# HTTP requests for making API calls (like Apollo)
 httpx
 requests
 
-# Optional but handy for async file serving, uploads
+# Optional but handy for async file serving and file uploads
 aiofiles
+
+# Redis for async Redis client (used for rate limiting or other Redis-based tasks)
+aioredis
