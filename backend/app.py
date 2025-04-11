@@ -2,10 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
-from backend.routes.users import users_router
-from backend.routes.posts import posts_router
-from backend.routes.events import events_router
-from backend.routes.auth_routes import auth_router
+from backend.routes.users import router as users_router  # Corrected import
+from backend.routes.posts import router as posts_router  # Corrected import
+from backend.routes.events import router as events_router  # Corrected import
+from backend.routes.auth_routes import router as auth_router  # Corrected import
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import get_user_from_db
 
@@ -107,4 +107,3 @@ async def get_all_events(token: str = Depends(oauth2_scheme)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
