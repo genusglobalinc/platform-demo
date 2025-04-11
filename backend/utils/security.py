@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import HTTPException
 from typing import Union
+from passlib.context import CryptContext
 import logging
 import os
 
@@ -56,3 +57,11 @@ def verify_access_token(token: str):
 
 def get_expiring_token(data: dict, minutes: int = 15):
     return create_access_token(data, timedelta(minutes=minutes))
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
