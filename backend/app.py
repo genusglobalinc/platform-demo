@@ -74,7 +74,7 @@ async def startup():
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
 app.include_router(events_router, prefix="/events")
-app.include_router(auth_router, prefix="/auth")
+app.include_router(auth_router, prefix="/auth/register")
 
 # OAuth2 setup for protected routes
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
