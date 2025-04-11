@@ -7,5 +7,5 @@ services:
       npm run build
     startCommand: npm start
     branch: main
-    publicDir: build  # This points to the 'build' folder after npm run build
+    publicDir: frontend/build  # This points to the 'build' folder after npm run build
     healthCheckPath: /  # Optional, specify a health check endpoint if you have one
