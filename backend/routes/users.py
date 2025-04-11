@@ -36,3 +36,12 @@ async def update_profile(update_data: UpdateProfileRequest, token: dict = Depend
 def _get_verified_token():
     from backend.utils.security import verify_access_token
     return verify_access_token
+
+@router.put("/profile")
+async def update_profile(data: dict, token: dict = Depends(lambda: _get_verified_token())):
+    user_id = token.get("sub")
+    from backend.database import update_user_display_name
+    updated = update_user_display_name(user_id, data.get("display_name"))
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Profile updated"}

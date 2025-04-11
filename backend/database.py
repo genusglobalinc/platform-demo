@@ -199,3 +199,17 @@ def create_user_in_db(user_data: dict):
     except ClientError as e:
         logging.error(f"Error creating user in DynamoDB: {e}")
         return None
+
+def update_user_display_name(user_id, new_display_name):
+    user = fake_users_db.get(user_id)
+    if user:
+        user["display_name"] = new_display_name
+        return True
+    return False
+
+def update_user_password(user_id, hashed_password):
+    user = fake_users_db.get(user_id)
+    if user:
+        user["hashed_password"] = hashed_password
+        return True
+    return False
