@@ -35,4 +35,4 @@ requests
 aiofiles
 
 # Redis for async Redis client (used for rate limiting or other Redis-based tasks)
-aioredis
+aioredis==2.0.0
