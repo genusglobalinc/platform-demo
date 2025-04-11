@@ -1,7 +1,9 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+import aioredis  # Redis connection
 from backend.routes.users import router as users_router  # Corrected import
 from backend.routes.posts import router as posts_router  # Corrected import
 from backend.routes.events import router as events_router  # Corrected import
@@ -14,8 +16,14 @@ app = FastAPI()
 # Initialize rate limiting
 @app.on_event("startup")
 async def startup():
-    # Initialize FastAPI Limiter with Redis as backend
-    await FastAPILimiter.init()
+    # Fetch the Redis URL from environment variables (set in Render)
+    redis_url = os.getenv("REDIS_URL")
+    if not redis_url:
+        raise HTTPException(status_code=500, detail="Redis URL not found in environment variables")
+    
+    # Initialize Redis connection using aioredis
+    redis = await aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
+    await FastAPILimiter.init(redis)
 
 # Include routers for various routes in the app
 app.include_router(users_router, prefix="/users")
