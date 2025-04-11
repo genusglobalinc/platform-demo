@@ -31,10 +31,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Safe-mount static files only if build exists
-build_static_path = "frontend/build/static"
-if os.path.isdir(build_static_path):
-    app.mount("/static", StaticFiles(directory=build_static_path), name="static")
+# Mount static files from React build
+app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
 
 # Initialize rate limiting with retries for Redis
 @app.on_event("startup")
@@ -125,9 +123,9 @@ async def get_all_events(token: str = Depends(oauth2_scheme)):
     events = get_all_events_from_db()
     return {"events": events}
 
-# Catch-all to serve frontend index.html
-@app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
+# Serve React App's index.html at the root path
+@app.get("/")
+async def serve_react_app():
     file_path = os.path.join("frontend", "build", "index.html")
     if os.path.exists(file_path):
         return FileResponse(file_path)
