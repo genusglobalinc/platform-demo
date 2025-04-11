@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lost-gates-mvp
+    env: node
+    buildCommand: |
+      npm install
+      cd frontend && npm run build
+    startCommand: npm start
+    branch: main
+    publicDir: build  # This points to the 'build' folder after npm run build
+    healthCheckPath: /  # Optional, specify a health check endpoint if you have one
