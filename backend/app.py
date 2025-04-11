@@ -1,9 +1,12 @@
 import os
+import asyncio
+import time
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 import redis.asyncio as aioredis  # Redis connection (using async client)
+from redis.exceptions import ConnectionError
 
 # Import routes
 from backend.routes.users import router as users_router
@@ -15,7 +18,7 @@ from backend.database import get_user_from_db
 
 app = FastAPI()
 
-# Initialize rate limiting
+# Initialize rate limiting with retries for Redis
 @app.on_event("startup")
 async def startup():
     # Fetch the Redis URL from environment variables (set in Render or local env)
@@ -23,8 +26,20 @@ async def startup():
     if not redis_url:
         raise HTTPException(status_code=500, detail="Redis URL not found in environment variables")
 
-    # Initialize Redis connection using async client
-    redis_client = aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+    # Retry logic for Redis connection with backoff and timeout handling
+    redis_client = None
+    for attempt in range(5):  # Retry 5 times
+        try:
+            # Initialize Redis connection using async client with a timeout
+            redis_client = aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10)
+            await redis_client.ping()  # Check if Redis is reachable
+            break  # Exit loop if successful
+        except (ConnectionError, TimeoutError) as e:
+            if attempt == 4:  # If the last attempt fails, raise an error
+                raise HTTPException(status_code=500, detail=f"Failed to connect to Redis: {str(e)}")
+            else:
+                # Wait before retrying
+                await asyncio.sleep(2 ** attempt)  # Exponential backoff
 
     # Initialize FastAPI limiter with the Redis client
     await FastAPILimiter.init(redis_client)
