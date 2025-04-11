@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
 
@@ -26,7 +26,7 @@ from backend.database import (
 
 app = FastAPI()
 
-# CORS middleware (adjust allow_origins in production)
+# Enable CORS (update allow_origins appropriately for production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,10 +40,15 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-# Mount static files from React build (if exists)
+# Mount static files from React build if available
 STATIC_DIR = os.path.join("frontend", "build", "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# Default route to redirect to API docs (for debugging)
+@app.get("/")
+def root():
+    return RedirectResponse(url="/docs")
 
 # Initialize rate limiting with retries for Redis
 @app.on_event("startup")
@@ -65,7 +70,7 @@ async def startup():
 
     await FastAPILimiter.init(redis_client)
 
-# Include routers
+# Include routers with their prefixes
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
 app.include_router(events_router, prefix="/events")
@@ -74,7 +79,7 @@ app.include_router(auth_router, prefix="/auth")
 # OAuth2 setup for protected routes
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-# Sample protected route for posts
+# Sample protected route for getting a post
 @app.get("/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
@@ -87,6 +92,7 @@ async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     
     return post
 
+# Sample protected route for creating a post
 @app.post("/posts", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
@@ -100,6 +106,7 @@ async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     post_id = create_post_in_db(post, user["user_id"])
     return {"message": "Post created", "post_id": post_id}
 
+# Protected route for event registration
 @app.post("/events/{post_id}/register", dependencies=[Depends(RateLimiter(times=3, seconds=60))])
 async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
@@ -113,6 +120,7 @@ async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
     registration_id = register_user_for_event(payload["sub"], post_id)
     return {"message": "Successfully registered for the event", "registration_id": registration_id}
 
+# Protected route for getting a user profile
 @app.get("/users/{user_id}/profile", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
@@ -125,19 +133,22 @@ async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
     
     return user_profile
 
+# Protected route for fetching "events" (placeholder using posts by user)
 @app.get("/events", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_all_events(token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    from backend.database import get_posts_by_user  # Placeholder for events
+    # Placeholder: using posts by user as "events" for now
+    from backend.database import get_posts_by_user  
     events = get_posts_by_user(payload["sub"])
     return {"events": events}
 
-# Serve React App's index.html for non-API routes
+# Serve React App's index.html for any non-API route
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
+    # Do not override API routes
     if full_path.startswith(("api", "auth", "users", "posts", "events", "static")):
         raise HTTPException(status_code=404, detail="Not a frontend route")
     index_file = os.path.join("frontend", "build", "index.html")
@@ -145,7 +156,7 @@ async def serve_react_app(full_path: str):
         return FileResponse(index_file)
     raise HTTPException(status_code=404, detail="Frontend not found")
 
-# Local dev run
+# Local development run
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
