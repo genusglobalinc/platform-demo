@@ -4,3 +4,4 @@ boto3
 pydantic
 python-dotenv
 aioboto3
+fastapi-limiter
