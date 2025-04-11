@@ -18,3 +18,12 @@ class Event(BaseModel):
     event_description: str
     scheduled_time: str
     participants: List[str]  # List of player IDs registered
+
+class UsernameRecoveryRequest(BaseModel):
+    user_id: str
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+
+class VerifyTokenRequest(BaseModel):
+    token: str

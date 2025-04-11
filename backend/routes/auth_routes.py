@@ -36,3 +36,32 @@ async def login(request: LoginRequest):
         raise HTTPException(status_code=500, detail="Error generating token")
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/recover-username")
+async def recover_username(data: UsernameRecoveryRequest):
+    user = get_user_by_id(data.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"username": user.get("username", None)}
+
+@router.post("/verify-email")
+async def send_verification_email(data: EmailVerificationRequest):
+    user = get_user_by_email(data.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not registered")
+
+    token = create_access_token({"sub": data.email}, timedelta(minutes=15))
+    # You'd send this via email; for now we just return it for frontend testing
+    return {"verification_token": token}
+
+@router.post("/confirm-verification")
+async def confirm_email_verification(data: VerifyTokenRequest):
+    try:
+        payload = verify_access_token(data.token)
+        email = payload.get("sub")
+        success = update_user_verification(email, True)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to verify")
+        return {"message": "Email verified"}
+    except:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")

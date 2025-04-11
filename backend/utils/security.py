@@ -52,3 +52,6 @@ def verify_access_token(token: str):
             status_code=500,
             detail="Internal server error during token validation"
         )
+
+def get_expiring_token(data: dict, minutes: int = 15):
+    return create_access_token(data, timedelta(minutes=minutes))

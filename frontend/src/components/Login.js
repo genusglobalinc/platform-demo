@@ -1,19 +1,32 @@
+// src/components/Login.js
 import React, { useState } from 'react';
-import { loginUser } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const response = await loginUser(username, password);
-      localStorage.setItem("token", response.data.token);
+      const res = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Login failed.");
+      }
+
+      localStorage.setItem("token", data.access_token);
       navigate("/feed");
     } catch (err) {
-      alert("Login failed. Please check your credentials.");
+      setErrorMsg(err.message);
+      console.error("Login error:", err);
     }
   };
 
@@ -21,32 +34,27 @@ const Login = () => {
     <div style={styles.container}>
       <h1 style={styles.title}>Welcome to Lost Gates</h1>
       <p style={styles.subText}>
-        Discover and participate in exclusive game testing events. Help shape the future of gaming by joining our community of testers and developers.
+        Discover and participate in exclusive game testing events.
       </p>
 
-      <input
-        style={styles.input}
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        style={styles.input}
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
 
+      <input style={styles.input} type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <input style={styles.input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      
       <button style={styles.button} onClick={handleLogin}>Login</button>
 
+      <p style={styles.alt}>
+        <Link to="/forgot-password" style={styles.link}>Forgot password?</Link> | 
+        <Link to="/forgot-email" style={styles.link}> Forgot email?</Link>
+      </p>
       <p style={styles.alt}>
         Don’t have an account? <Link to="/register" style={styles.link}>Create one</Link>
       </p>
     </div>
   );
 };
+
 
 const styles = {
   container: {

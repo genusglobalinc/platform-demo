@@ -1,26 +1,41 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
+import { registerUser } from '../api'; // ← import the function
 
 function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
   const handleRegister = async () => {
-    console.log("Registering:", username, email);
-    // You’d normally send this to backend
-    navigate("/feed");
+    try {
+      const response = await registerUser(username, email, password);
+
+      alert("Account created! Check your email to verify your account.");
+      navigate("/");
+    } catch (err) {
+      setErrorMsg(err?.response?.data?.detail || "Registration failed.");
+      console.error("Registration error:", err);
+    }
   };
 
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Create an Account</h2>
+
+      {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+
       <input style={styles.input} type="text" placeholder="Username" onChange={(e) => setUsername(e.target.value)} />
       <input style={styles.input} type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
       <input style={styles.input} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+
       <button style={styles.button} onClick={handleRegister}>Register</button>
-      <p style={styles.alt}>Already have an account? <Link to="/" style={styles.link}>Log in</Link></p>
+
+      <p style={styles.alt}>
+        Already have an account? <Link to="/" style={styles.link}>Log in</Link>
+      </p>
     </div>
   );
 }

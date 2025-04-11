@@ -109,3 +109,26 @@ def get_posts_by_user(user_id: str):
     except ClientError as e:
         logging.error(f"Error fetching posts by user: {e}")
         return []
+
+def get_user_by_username(username: str):
+    try:
+        response = users_table.scan(
+            FilterExpression=Key('username').eq(username)
+        )
+        items = response.get('Items', [])
+        return items[0] if items else None
+    except ClientError as e:
+        print(f"[DB] Error fetching by username: {e}")
+        return None
+
+def update_user_verification(email: str, is_verified: bool):
+    try:
+        users_table.update_item(
+            Key={'email': email},
+            UpdateExpression="SET is_verified = :v",
+            ExpressionAttributeValues={':v': is_verified}
+        )
+        return True
+    except ClientError as e:
+        print(f"[DB] Error updating verification status: {e}")
+        return False
