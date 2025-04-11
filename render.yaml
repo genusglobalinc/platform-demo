@@ -3,6 +3,7 @@ services:
     name: lost-gates-mvp
     env: node
     buildCommand: |
+      cd frontend
       npm install
       npm run build
     startCommand: npm start
