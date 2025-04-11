@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from database import get_user_from_db
-from security import verify_access_token
+from backend.database import get_user_from_db
+from backend.utils.security import verify_access_token
 
 router = APIRouter()
 
