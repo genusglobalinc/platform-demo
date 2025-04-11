@@ -2,10 +2,13 @@ import os
 import asyncio
 import time
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
-import redis.asyncio as aioredis  # Redis connection (using async client)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
 
 # Import routes
@@ -14,123 +17,122 @@ from backend.routes.posts import router as posts_router
 from backend.routes.events import router as events_router
 from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
-from backend.database import get_user_from_db
+from backend.database import get_user_from_db, get_post_from_db, create_post_in_db
+from backend.database import get_event_from_db, register_user_for_event
+from backend.database import get_user_profile_from_db, get_all_events_from_db
 
 app = FastAPI()
+
+# CORS middleware (adjust allow_origins for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Be specific in prod!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files from React build
+app.mount("/static", StaticFiles(directory="frontend/build/static"), name="static")
 
 # Initialize rate limiting with retries for Redis
 @app.on_event("startup")
 async def startup():
-    # Fetch the Redis URL from environment variables (set in Render or local env)
     redis_url = os.getenv("REDIS_URL")
     if not redis_url:
         raise HTTPException(status_code=500, detail="Redis URL not found in environment variables")
 
-    # Retry logic for Redis connection with backoff and timeout handling
     redis_client = None
-    for attempt in range(5):  # Retry 5 times
+    for attempt in range(5):
         try:
-            # Initialize Redis connection using async client with a timeout
             redis_client = aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10)
-            await redis_client.ping()  # Check if Redis is reachable
-            break  # Exit loop if successful
+            await redis_client.ping()
+            break
         except (ConnectionError, TimeoutError) as e:
-            if attempt == 4:  # If the last attempt fails, raise an error
+            if attempt == 4:
                 raise HTTPException(status_code=500, detail=f"Failed to connect to Redis: {str(e)}")
-            else:
-                # Wait before retrying
-                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+            await asyncio.sleep(2 ** attempt)
 
-    # Initialize FastAPI limiter with the Redis client
     await FastAPILimiter.init(redis_client)
 
-# Include routers for various routes
+# Include routers
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
 app.include_router(events_router, prefix="/events")
 app.include_router(auth_router, prefix="/auth")
 
-# OAuth2PasswordBearer for handling JWT tokens in protected routes
+# OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-# Routes protected by JWT authentication and rate limiting
-
+# Authenticated & rate-limited routes
 @app.get("/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
-    # Verify token and check user authentication
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    # Fetch post from database (assuming a function exists to retrieve posts)
     post = get_post_from_db(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     
     return post
 
-
 @app.post("/posts", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
-    # Verify token and check user authentication
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    # Only allow authenticated users to create posts
     user = get_user_from_db(payload["sub"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Create post logic (e.g., storing it in DynamoDB)
     post_id = create_post_in_db(post, user["id"])
     return {"message": "Post created", "post_id": post_id}
 
-
 @app.post("/events/{post_id}/register", dependencies=[Depends(RateLimiter(times=3, seconds=60))])
 async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
-    # Verify token and check user authentication
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    # Fetch event details and user information
     event = get_event_from_db(post_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Register user for the event (e.g., save registration in DynamoDB)
     registration_id = register_user_for_event(payload["sub"], post_id)
     return {"message": "Successfully registered for the event", "registration_id": registration_id}
 
-
 @app.get("/users/{user_id}/profile", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
-    # Verify token and check user authentication
     payload = verify_access_token(token)
     if not payload or payload["sub"] != user_id:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    # Fetch user profile (only the authenticated user can access their own profile)
     user_profile = get_user_profile_from_db(user_id)
     if not user_profile:
         raise HTTPException(status_code=404, detail="User profile not found")
     
     return user_profile
 
-
 @app.get("/events", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_all_events(token: str = Depends(oauth2_scheme)):
-    # Verify token and check user authentication
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    # Fetch all events (for players who are authenticated)
     events = get_all_events_from_db()
     return {"events": events}
 
-# Start the app with FastAPI's default Uvicorn ASGI server when running locally
+# Catch-all to serve frontend
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    file_path = os.path.join("frontend", "build", "index.html")
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="Frontend not found")
+
+# Local dev run
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
