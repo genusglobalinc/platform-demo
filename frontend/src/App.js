@@ -4,6 +4,10 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Feed from './components/Feed';
 import Profile from './components/Profile';
+import ForgotEmail from './components/ForgotEmail';
+import ForgotPassword from './components/ForgotPassword';
+import CreatePost from './components/CreatePost';
+import ProfileSettings from './components/ProfileSettings';
 
 function App() {
   return (
@@ -13,6 +17,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/settings" element={<ProfileSettings />} />
+        <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/forgot-email" element={<ForgotEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </Router>
   );

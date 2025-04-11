@@ -3,6 +3,8 @@ from boto3.dynamodb.conditions import Key
 import uuid
 from botocore.exceptions import ClientError
 import logging
+from passlib.context import CryptContext
+from datetime import datetime
 
 # Set up DynamoDB client
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
@@ -10,10 +12,17 @@ users_table = dynamodb.Table('Users')
 posts_table = dynamodb.Table('Posts')
 events_table = dynamodb.Table('Events')
 
+# Password hashing setup
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Function to save data to DynamoDB (generic for different tables)
+# Function to hash a password
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+# Generic function to save an item to a table
 def save_to_dynamodb(item, table_name):
     table = dynamodb.Table(table_name)
     try:
@@ -25,7 +34,6 @@ def save_to_dynamodb(item, table_name):
         logging.error(f"Error saving to DynamoDB: {e}")
         return None
 
-# Fetch user from the database using the user_id
 def get_user_from_db(user_id: str):
     try:
         logging.debug(f"Fetching user with user_id: {user_id}")
@@ -38,7 +46,6 @@ def get_user_from_db(user_id: str):
         logging.error(f"Error fetching user from DynamoDB: {e}")
         return None
 
-# Fetch post from the database using the post_id
 def get_post_from_db(post_id: str):
     try:
         logging.debug(f"Fetching post with post_id: {post_id}")
@@ -51,9 +58,8 @@ def get_post_from_db(post_id: str):
         logging.error(f"Error fetching post from DynamoDB: {e}")
         return None
 
-# Create a new post in the database
 def create_post_in_db(post_data: dict, user_id: str):
-    post_id = str(uuid.uuid4())  # Generate a new post_id
+    post_id = str(uuid.uuid4())
     post_data['post_id'] = post_id
     post_data['user_id'] = user_id
     try:
@@ -65,7 +71,6 @@ def create_post_in_db(post_data: dict, user_id: str):
         logging.error(f"Error creating post in DynamoDB: {e}")
         return None
 
-# Fetch event from the database using the event_id
 def get_event_from_db(event_id: str):
     try:
         logging.debug(f"Fetching event with event_id: {event_id}")
@@ -78,9 +83,8 @@ def get_event_from_db(event_id: str):
         logging.error(f"Error fetching event from DynamoDB: {e}")
         return None
 
-# Register a user for an event
 def register_user_for_event(user_id: str, post_id: str):
-    registration_id = str(uuid.uuid4())  # Generate a new registration ID
+    registration_id = str(uuid.uuid4())
     try:
         logging.debug(f"Registering user {user_id} for event with post_id: {post_id}")
         events_table.update_item(
@@ -94,12 +98,11 @@ def register_user_for_event(user_id: str, post_id: str):
         logging.error(f"Error registering user for event in DynamoDB: {e}")
         return None
 
-# Fetch posts for a given user
 def get_posts_by_user(user_id: str):
     try:
         logging.debug(f"Fetching posts for user_id: {user_id}")
         response = posts_table.query(
-            IndexName="user_id-index",  # Assuming there's a GSI with user_id as the partition key
+            IndexName="user_id-index",
             KeyConditionExpression=Key('user_id').eq(user_id)
         )
         posts = response.get('Items', [])
@@ -118,7 +121,7 @@ def get_user_by_username(username: str):
         items = response.get('Items', [])
         return items[0] if items else None
     except ClientError as e:
-        print(f"[DB] Error fetching by username: {e}")
+        logging.error(f"Error fetching user by username: {e}")
         return None
 
 def update_user_verification(email: str, is_verified: bool):
@@ -130,5 +133,69 @@ def update_user_verification(email: str, is_verified: bool):
         )
         return True
     except ClientError as e:
-        print(f"[DB] Error updating verification status: {e}")
+        logging.error(f"Error updating user verification status: {e}")
         return False
+
+# New helper: update/reset the password reset token
+def update_reset_token(email: str, reset_token: str):
+    try:
+        users_table.update_item(
+            Key={'email': email},
+            UpdateExpression="SET reset_token = :t",
+            ExpressionAttributeValues={":t": reset_token}
+        )
+        logging.debug(f"Updated reset token for {email}")
+        return True
+    except ClientError as e:
+        logging.error(f"Error updating reset token: {e}")
+        return False
+
+# New helper: update user's password and clear the reset token
+def update_user_password(email: str, new_password: str):
+    try:
+        users_table.update_item(
+            Key={'email': email},
+            UpdateExpression="SET password = :p, reset_token = :empty",
+            ExpressionAttributeValues={":p": new_password, ":empty": ""}
+        )
+        logging.debug(f"Password updated for {email}")
+        return True
+    except ClientError as e:
+        logging.error(f"Error updating user password: {e}")
+        return False
+
+# New helper: update user profile (for display name, social links, profile picture, etc.)
+def update_user_profile(email: str, profile_data: dict):
+    try:
+        update_expression = "SET " + ", ".join([f"{key} = :{key}" for key in profile_data.keys()])
+        expression_attribute_values = {f":{key}": value for key, value in profile_data.items()}
+        users_table.update_item(
+            Key={'email': email},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_attribute_values
+        )
+        logging.debug(f"User profile updated for {email} with data: {profile_data}")
+        return True
+    except ClientError as e:
+        logging.error(f"Error updating user profile: {e}")
+        return False
+
+# Function to create a new user in DynamoDB
+def create_user_in_db(user_data: dict):
+    user_id = str(uuid.uuid4())
+    item = {
+        "user_id": user_id,
+        "username": user_data["username"],
+        "email": user_data["email"],
+        "password": hash_password(user_data["password"]),
+        "is_verified": user_data["is_verified"],
+        "created_at": str(datetime.utcnow())
+    }
+    try:
+        logging.debug(f"Creating user with user_id: {user_id}, data: {item}")
+        users_table.put_item(Item=item)
+        logging.debug(f"User created with user_id: {user_id}")
+        return user_id
+    except ClientError as e:
+        logging.error(f"Error creating user in DynamoDB: {e}")
+        return None

@@ -1,39 +1,29 @@
-// src/components/ForgotEmail.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+// Assume you create an API endpoint for "recover-email" if needed.
 
 function ForgotEmail() {
-  const [phone, setPhone] = useState("");
-  const [msg, setMsg] = useState("");
+  const [userId, setUserId] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
-  const handleLookup = async () => {
-    try {
-      const res = await fetch("http://localhost:8000/forgot-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.detail || "Lookup failed.");
-
-      setMsg("Check your text messages for the linked email.");
-    } catch (err) {
-      setMsg(err.message);
-    }
+  const handleRecoverEmail = () => {
+    // Placeholder logic: in production, you’d call an API endpoint.
+    setMessage(`If user ID ${userId} exists, you should receive an email.`);
   };
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Forgot Email?</h2>
+      <h2 style={styles.title}>Forgot Email</h2>
       <input
         style={styles.input}
         type="text"
-        placeholder="Phone number linked to account"
-        onChange={(e) => setPhone(e.target.value)}
+        placeholder="Enter your user ID"
+        value={userId}
+        onChange={(e) => setUserId(e.target.value)}
       />
-      <button style={styles.button} onClick={handleLookup}>Send Email Info</button>
-      {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
+      <button style={styles.button} onClick={handleRecoverEmail}>Submit</button>
+      {message && <p style={styles.message}>{message}</p>}
     </div>
   );
 }
@@ -49,8 +39,8 @@ const styles = {
     boxShadow: '0 0 20px rgba(128,0,128,0.3)'
   },
   title: {
-    fontSize: '1.5rem',
-    marginBottom: '1rem',
+    fontSize: '1.75rem',
+    marginBottom: '1.5rem',
     color: '#B388EB'
   },
   input: {
@@ -71,6 +61,10 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: 'bold'
+  },
+  message: {
+    marginTop: '1rem',
+    fontSize: '1rem'
   }
 };
 

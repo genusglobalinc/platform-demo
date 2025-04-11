@@ -3,9 +3,10 @@ from jose import JWTError, jwt
 from fastapi import HTTPException
 from typing import Union
 import logging
+import os
 
-# Secret key to encode and decode JWT tokens
-SECRET_KEY = "your_secret_key_here"
+# Secret key to encode and decode JWT tokens (ensure you load it securely from env)
+SECRET_KEY = os.getenv("SECRET_KEY", "your_default_secret_key")  # Ensure this is securely managed in prod
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -24,7 +25,7 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
         to_encode.update({"exp": expire})
         
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        logging.debug(f"JWT token created: {encoded_jwt}")  # Log the generated token (be careful with sensitive data)
+        logging.debug(f"JWT token created (without sensitive data): <masked_token>")  # Avoid logging the actual token
         
         return encoded_jwt
     except Exception as e:
@@ -34,10 +35,10 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
 # Function to verify JWT token
 def verify_access_token(token: str):
     try:
-        logging.debug(f"Verifying JWT token: {token}")  # Log the token being verified (be careful with sensitive data)
+        logging.debug(f"Verifying JWT token")  # Avoid logging the actual token
         
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        logging.debug(f"Token verified successfully. Payload: {payload}")  # Log the payload
+        logging.debug(f"Token verified successfully. Payload: {payload}")  # Log the payload safely
 
         return payload
     except JWTError as e:

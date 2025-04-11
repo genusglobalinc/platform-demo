@@ -1,29 +1,54 @@
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
 
-class User(BaseModel):
+# Model for Login Request
+class LoginRequest(BaseModel):
     username: str
-    email: str
-    steam_id: str
-    pc_console_info: dict
+    password: str
 
-class Post(BaseModel):
-    title: str
-    description: str
-    created_by: str
-    test_event_ids: List[str]  # Links to events
+# Model for Token Response
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
 
-class Event(BaseModel):
-    event_name: str
-    event_description: str
-    scheduled_time: str
-    participants: List[str]  # List of player IDs registered
-
+# Model for Username Recovery Request
 class UsernameRecoveryRequest(BaseModel):
     user_id: str
 
+# Model for Email Verification Request
 class EmailVerificationRequest(BaseModel):
     email: EmailStr
 
+# Model for Token Verification Request
 class VerifyTokenRequest(BaseModel):
     token: str
+
+# Model for the User Object (for fetching user data)
+class User(BaseModel):
+    user_id: str
+    username: str
+    email: EmailStr
+    password: str  # Hashed password
+    is_verified: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        orm_mode = True
+
+# Model for User Registration (for creating a new user)
+class UserRegistration(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    is_verified: bool = False
+
+# Model for User Verification Response
+class UserVerificationResponse(BaseModel):
+    email: EmailStr
+    is_verified: bool
+
+# Model for response when user verification is successful
+class VerificationResponse(BaseModel):
+    message: str

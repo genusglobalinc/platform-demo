@@ -1,39 +1,35 @@
-// src/components/ForgotPassword.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { forgotPassword } from "../api";
+import { useNavigate } from "react-router-dom";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [msg, setMsg] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
-  const handleReset = async () => {
+  const handleForgotPassword = async () => {
     try {
-      const res = await fetch("http://localhost:8000/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.detail || "Failed");
-
-      setMsg("Reset email sent! Check your inbox.");
+      const response = await forgotPassword(email);
+      setMessage(response.data.message);
+      // Optionally, navigate to a reset password form or clear the form
     } catch (err) {
-      setMsg(err.message);
+      setMessage("Error: " + (err?.response?.data?.detail || "Could not process request."));
+      console.error("Forgot Password Error:", err);
     }
   };
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Forgot Password?</h2>
+      <h2 style={styles.title}>Forgot Password</h2>
       <input
         style={styles.input}
         type="email"
         placeholder="Enter your email"
+        value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button style={styles.button} onClick={handleReset}>Send Reset Link</button>
-      {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
+      <button style={styles.button} onClick={handleForgotPassword}>Submit</button>
+      {message && <p style={styles.message}>{message}</p>}
     </div>
   );
 }
@@ -49,8 +45,8 @@ const styles = {
     boxShadow: '0 0 20px rgba(128,0,128,0.3)'
   },
   title: {
-    fontSize: '1.5rem',
-    marginBottom: '1rem',
+    fontSize: '1.75rem',
+    marginBottom: '1.5rem',
     color: '#B388EB'
   },
   input: {
@@ -71,6 +67,10 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontWeight: 'bold'
+  },
+  message: {
+    marginTop: '1rem',
+    fontSize: '1rem'
   }
 };
 
