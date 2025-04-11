@@ -1,8 +1,34 @@
 fastapi
-uvicorn
+uvicorn[standard]
+
+# AWS / DynamoDB
 boto3>=1.34.0
 botocore>=1.34.0
 aioboto3>=12.0.0
-pydantic
+
+# Auth / Security
+python-jose
+passlib[bcrypt]
+python-multipart
+
+# Pydantic
+pydantic>=2.0
+
+# Environment variables
 python-dotenv
+
+# Rate limiting (if you're using Redis or similar backend)
 fastapi-limiter
+
+# Google Sheets / Drive
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+# HTTP requests for APIs like Apollo
+httpx
+requests
+
+# Optional but handy for async file serving, uploads
+aiofiles
