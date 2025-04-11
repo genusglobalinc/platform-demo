@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Update API_BASE_URL with your deployed backend URL (without trailing slash)
-const API_BASE_URL = 'https://lost-gates-mvp.onrender.com';
+// Use the environment variable if defined; otherwise, fallback to the deployed URL.
+const API_BASE_URL = process.env.REACT_APP_API_BASE || 'https://lost-gates-mvp.onrender.com';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,32 +10,30 @@ export const api = axios.create({
   },
 });
 
-export const loginUser = (username, password) => {
-  return api.post('/auth/token', { username, password });
-};
+// Authentication endpoints
+export const loginUser = (username, password) =>
+  api.post('/auth/token', { username, password });
 
-export const registerUser = (username, email, password) => {
-  return api.post('/auth/register', { username, email, password });
-};
+export const registerUser = (username, email, password) =>
+  api.post('/auth/register', { username, email, password });
 
-// Additional endpoints
-export const forgotPassword = (email) => {
-  return api.post('/auth/forgot-password', { email });
-};
+export const forgotPassword = (email) =>
+  api.post('/auth/forgot-password', { email });
 
-export const resetPassword = (token, new_password) => {
-  return api.post('/auth/reset-password', { token, new_password });
-};
+export const resetPassword = (token, new_password) =>
+  api.post('/auth/reset-password', { token, new_password });
 
-export const updateProfile = (profileData) => {
-  return api.put('/users/profile/update', profileData);
-};
+// Profile update endpoint (protected)
+export const updateProfile = (profileData, token) =>
+  api.put('/users/profile/update', profileData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-// For posts (create and get)
-export const createPost = (postData, token) => {
-  return api.post('/posts/create', postData, { headers: { Authorization: `Bearer ${token}` } });
-};
+// Post endpoints (create and get) (protected for creation)
+export const createPost = (postData, token) =>
+  api.post('/posts/create', postData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-export const getPost = (postId) => {
-  return api.get(`/posts/${postId}`);
-};
+export const getPost = (postId) =>
+  api.get(`/posts/${postId}`);
