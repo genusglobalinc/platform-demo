@@ -196,3 +196,43 @@ def update_user_password(user_id: str, new_password: str):
     except ClientError as e:
         logging.error(f"Password update failed for user {user_id}: {e}")
         return False
+
+def filter_posts_from_db(tab: str = "Trending", main: str = None, subs: str = None):
+    # Replace this mock data with a real DB query
+    mock_posts = [
+        {
+            "id": "1",
+            "title": "Anime Battle Royale",
+            "tags": ["Anime", "Action"],
+            "image_url": "/static/images/anime.jpg",
+            "video_url": "/static/videos/anime.mp4",
+            "likes": 120
+        },
+        {
+            "id": "2",
+            "title": "FPS Mayhem",
+            "tags": ["Gaming", "First Person Shooter"],
+            "image_url": "/static/images/fps.jpg",
+            "video_url": "/static/videos/fps.mp4",
+            "likes": 200
+        }
+    ]
+
+    # Filter by main tag
+    if main:
+        mock_posts = [post for post in mock_posts if main in post["tags"]]
+
+    # Filter by sub tag
+    if subs:
+        mock_posts = [post for post in mock_posts if subs in post["tags"]]
+
+    # Sort based on tab logic
+    if tab == "Trending":
+        mock_posts = sorted(mock_posts, key=lambda x: x["likes"], reverse=True)
+    elif tab == "Newest":
+        mock_posts = list(reversed(mock_posts))  # Fake newest
+    elif tab == "ForYou":
+        # For now just return all
+        pass
+
+    return mock_posts

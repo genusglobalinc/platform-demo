@@ -44,17 +44,16 @@ function Feed() {
   };
 
   const handleLogout = () => {
-    // Clear auth and redirect
-    localStorage.removeItem("token"); // or however you're storing auth
+    localStorage.removeItem("token");
     navigate("/login");
   };
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h2 style={styles.title}>Discover Playtests</h2>
-        <div style={styles.headerRight}>
+      {/* Navbar */}
+      <div style={styles.navbar}>
+        <h1 style={styles.brand}>ig</h1>
+        <div style={styles.navRight}>
           <button onClick={() => alert("Notifications coming soon")} style={styles.iconButton}>🔔</button>
           <img
             src="/your-profile-pic.jpg"
@@ -114,7 +113,7 @@ function Feed() {
         </div>
       )}
 
-      {/* Post Feed */}
+      {/* Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -130,7 +129,6 @@ function Feed() {
   );
 }
 
-// 💾 Reusable PostCard component
 function PostCard({ post }) {
   const [hovering, setHovering] = useState(false);
 
@@ -166,17 +164,19 @@ const styles = {
     minHeight: '100vh',
     fontFamily: 'sans-serif'
   },
-  header: {
+  navbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'wrap'
+    marginBottom: '1rem'
   },
-  title: {
+  brand: {
     fontSize: '1.5rem',
-    marginBottom: '0.5rem'
+    fontWeight: 'bold',
+    color: '#B388EB',
+    margin: 0
   },
-  headerRight: {
+  navRight: {
     display: 'flex',
     alignItems: 'center',
     gap: '1rem'
@@ -188,6 +188,13 @@ const styles = {
     color: '#fff',
     cursor: 'pointer'
   },
+  profilePic: {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    cursor: 'pointer',
+    objectFit: 'cover'
+  },
   logoutButton: {
     background: '#B388EB',
     border: 'none',
@@ -196,16 +203,9 @@ const styles = {
     cursor: 'pointer',
     color: '#1e1e1e'
   },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    cursor: 'pointer',
-    objectFit: 'cover'
-  },
   tabContainer: {
     display: 'flex',
-    margin: '1rem 0',
+    marginBottom: '1rem',
     gap: '0.5rem',
     flexWrap: 'wrap'
   },
