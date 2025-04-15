@@ -14,7 +14,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__default_rounds=12, deprecated="auto")
 
 # Logging
 logging.basicConfig(level=logging.DEBUG)
@@ -87,4 +87,3 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         logging.error(f"Password verification failed: {e}")
         print(f"Password verification failed: {e}")  # TODO: Remove later
         raise HTTPException(status_code=401, detail="Invalid credentials (verification error)")
-
