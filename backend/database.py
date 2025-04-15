@@ -172,3 +172,17 @@ def register_user_for_event(user_id: str, post_id: str):
     except ClientError as e:
         logging.error(f"Register for event failed: {e}")
         return False
+
+def update_user_password(user_id: str, new_password: str):
+    try:
+        hashed = hash_password(new_password)
+        users_table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression="SET password = :p",
+            ExpressionAttributeValues={":p": hashed}
+        )
+        logging.debug(f"Password updated for user: {user_id}")
+        return True
+    except ClientError as e:
+        logging.error(f"Password update failed for user {user_id}: {e}")
+        return False
