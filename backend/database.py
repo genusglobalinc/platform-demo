@@ -31,14 +31,14 @@ def create_user_in_db(user_data: dict):
         logging.warning(f"Username '{user_data['username']}' is already taken.")
         return None  # Or return an error message indicating username conflict
 
-    # Proceed to create the user if username is available - TODO: change is-verified back to False for email verification
+    # Proceed to create the user if username is available 
     user_id = str(uuid.uuid4())
     item = {
         "user_id": user_id,
         "username": user_data["username"],
         "email": user_data["email"],
         "password": hash_password(user_data["password"]),
-        "is_verified": user_data.get("is_verified", True),
+        "is_verified": user_data.get("is_verified", False),
         "created_at": str(datetime.utcnow())
     }
     try:

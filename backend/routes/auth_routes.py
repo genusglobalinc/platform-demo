@@ -16,16 +16,16 @@ import logging
 router = APIRouter()
 logging.basicConfig(level=logging.DEBUG)
 
-# ---------------- Models ----------------
+# ---------------- Models ---------------- 
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-class UserRegistration(BaseModel):
+class UserRegistration(BaseModel): #TODO: change is-verified back to False for email verification
     username: str
     email: EmailStr
     password: str
-    is_verified: bool = False
+    is_verified: bool = True
 
 class UsernameRecoveryRequest(BaseModel):
     user_id: str
