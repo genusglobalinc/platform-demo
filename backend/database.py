@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 from datetime import datetime
 import uuid
 import logging
-from security import hash_password
+from backend.utils.security import hash_password
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
