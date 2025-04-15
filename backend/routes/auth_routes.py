@@ -54,10 +54,12 @@ async def register_user(user_data: UserRegistration):
             logging.warning(f"Username already exists: {user_data.username}")
             raise HTTPException(status_code=400, detail="Username already exists")
         
+        # Properly hash password and insert it into the dict before saving
         hashed_password = hash_password(user_data.password)
-        user_data.password = hashed_password
+        user_dict = user_data.dict()
+        user_dict["password"] = hashed_password  # Replace plain password
 
-        user_id = create_user_in_db(user_data.dict())
+        user_id = create_user_in_db(user_dict)
         if not user_id:
             logging.error("create_user_in_db returned None")
             raise HTTPException(status_code=500, detail="Error creating user")
