@@ -50,6 +50,14 @@ def get_user_from_db(user_id: str):
         logging.error(f"Get user failed: {e}")
         return None
 
+def get_user_by_email(email: str):
+    try:
+        response = users_table.get_item(Key={'email': email})
+        return response.get('Item')
+    except ClientError as e:
+        logging.error(f"Get user by email failed: {e}")
+        return None
+
 def get_user_by_username(username: str):
     try:
         response = users_table.scan(FilterExpression=Attr('username').eq(username))
