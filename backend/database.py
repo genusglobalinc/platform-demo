@@ -25,6 +25,13 @@ def save_to_dynamodb(item, table_name):
         return None
 
 def create_user_in_db(user_data: dict):
+    # Check if username already exists using the GSI
+    existing_user = get_user_by_username(user_data["username"])
+    if existing_user:
+        logging.warning(f"Username '{user_data['username']}' is already taken.")
+        return None  # Or return an error message indicating username conflict
+
+    # Proceed to create the user if username is available
     user_id = str(uuid.uuid4())
     item = {
         "user_id": user_id,
@@ -60,7 +67,10 @@ def get_user_by_email(email: str):
 
 def get_user_by_username(username: str):
     try:
-        response = users_table.scan(FilterExpression=Attr('username').eq(username))
+        response = users_table.query(
+            IndexName='username-index',  # Use the GSI
+            KeyConditionExpression=Key('username').eq(username)
+        )
         items = response.get('Items', [])
         return items[0] if items else None
     except ClientError as e:
