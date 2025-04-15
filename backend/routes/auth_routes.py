@@ -4,6 +4,7 @@ from datetime import timedelta
 from backend.utils.security import create_access_token, verify_access_token, verify_password, hash_password
 from backend.database import (
     get_user_by_username,
+    get_user_by_email,  # Added to handle email-based queries
     get_user_from_db,
     update_user_verification,
     create_user_in_db,
@@ -107,7 +108,8 @@ async def recover_username(data: UsernameRecoveryRequest):
 @router.post("/verify-email")
 async def send_verification_email(data: EmailVerificationRequest):
     try:
-        user = get_user_by_username(data.email)  # Use get_user_by_email if available
+        # Change to use get_user_by_email for email-based lookup
+        user = get_user_by_email(data.email)  
         if not user:
             raise HTTPException(status_code=404, detail="Email not registered")
         
@@ -137,7 +139,8 @@ async def confirm_email_verification(data: VerifyTokenRequest):
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest):
     try:
-        user = get_user_by_username(request.email)  # Use get_user_by_email if needed
+        # Using get_user_by_email to retrieve user by email
+        user = get_user_by_email(request.email)  
         if not user:
             raise HTTPException(status_code=404, detail="Email not registered")
         
@@ -159,7 +162,7 @@ async def reset_password(request: ResetPasswordRequest):
         payload = verify_access_token(request.token)
         email = payload.get("sub")
         
-        user = get_user_by_username(email)
+        user = get_user_by_email(email)  # Use get_user_by_email here as well
         if not user or user.get("reset_token") != request.token:
             raise HTTPException(status_code=400, detail="Token mismatch or expired")
         
