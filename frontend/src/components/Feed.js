@@ -1,8 +1,7 @@
 // frontend/src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import PostCard from "./PostCard"; // Make sure this component exists.
-import CreatePost from "./CreatePost"; // Your create post component.
+import PostCard from "./PostCard";
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
@@ -16,6 +15,8 @@ function Feed() {
   const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formContent, setFormContent] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +32,6 @@ function Feed() {
       return;
     }
     try {
-      // Attach token to the fetch call.
       const response = await fetch(
         `/events?tab=${activeTab}&main=${selectedMain || ""}&subs=${selectedSub.join(",")}`,
         {
@@ -39,21 +39,40 @@ function Feed() {
         }
       );
       if (response.status === 401) {
-        console.error("Unauthorized: Redirecting to login.");
         navigate("/login");
         return;
       }
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       const data = await response.json();
-      // Expecting your backend to return an object with an "events" field (which is an array):
       setPosts(Array.isArray(data.events) ? data.events : []);
     } catch (err) {
       console.error("Error fetching posts:", err);
       setPosts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePostSubmit = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch("/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content: formContent }),
+      });
+
+      if (!response.ok) throw new Error("Failed to create post");
+
+      setFormContent("");
+      setShowCreateModal(false);
+      fetchPosts();
+    } catch (err) {
+      console.error("Error creating post:", err);
     }
   };
 
@@ -73,26 +92,15 @@ function Feed() {
     navigate("/login");
   };
 
-  // Callback to refresh posts when a new post is created.
-  const handlePostCreated = (newPostId) => {
-    fetchPosts();
-  };
-
   return (
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
-          <button onClick={() => alert("Notifications coming soon")} style={styles.iconButton}>
-            🔔
+          <button style={styles.createButton} onClick={() => setShowCreateModal(true)}>
+            + Create Post
           </button>
-          <img
-            src="/your-profile-pic.jpg"
-            alt="Profile"
-            style={styles.profilePic}
-            onClick={() => navigate("/profile")}
-          />
           <button onClick={handleLogout} style={styles.logoutButton}>
             Logout
           </button>
@@ -115,7 +123,7 @@ function Feed() {
         ))}
       </div>
 
-      {/* Main Genre Filters */}
+      {/* Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
@@ -149,10 +157,7 @@ function Feed() {
         </div>
       )}
 
-      {/* Create Post Section */}
-      <CreatePost token={localStorage.getItem("token")} onPostCreated={handlePostCreated} />
-
-      {/* Post Feed */}
+      {/* Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -162,14 +167,37 @@ function Feed() {
           posts.map((post) => <PostCard key={post.post_id} post={post} />)
         )}
       </div>
+
+      {/* Modal */}
+      {showCreateModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <h3 style={{ marginBottom: "1rem" }}>Create a Post</h3>
+            <textarea
+              value={formContent}
+              onChange={(e) => setFormContent(e.target.value)}
+              placeholder="What's on your mind?"
+              style={styles.textarea}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <button onClick={() => setShowCreateModal(false)} style={styles.cancelButton}>
+                Cancel
+              </button>
+              <button onClick={handlePostSubmit} style={styles.submitButton}>
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
   container: {
-    padding: "1rem",
-    background: "#121212",
+    padding: "2rem",
+    background: "#111",
     color: "#fff",
     minHeight: "100vh",
     fontFamily: "sans-serif",
@@ -178,57 +206,48 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
+    marginBottom: "1.5rem",
   },
   title: {
-    fontSize: "1.5rem",
-    marginBottom: "0.5rem",
+    fontSize: "1.8rem",
   },
   headerRight: {
     display: "flex",
-    alignItems: "center",
     gap: "1rem",
   },
-  iconButton: {
-    fontSize: "1.5rem",
-    background: "none",
+  createButton: {
+    background: "#B388EB",
+    color: "#000",
+    padding: "0.5rem 1rem",
     border: "none",
-    color: "#fff",
+    borderRadius: "6px",
+    fontWeight: "bold",
     cursor: "pointer",
   },
   logoutButton: {
-    background: "#B388EB",
-    border: "none",
-    padding: "0.4rem 0.8rem",
-    borderRadius: "8px",
+    background: "#333",
+    color: "#fff",
+    padding: "0.5rem 1rem",
+    border: "1px solid #555",
+    borderRadius: "6px",
     cursor: "pointer",
-    color: "#1e1e1e",
-  },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: "50%",
-    cursor: "pointer",
-    objectFit: "cover",
   },
   tabContainer: {
     display: "flex",
-    margin: "1rem 0",
     gap: "0.5rem",
-    flexWrap: "wrap",
+    marginBottom: "1rem",
   },
   tabButton: {
     padding: "0.5rem 1rem",
-    border: "1px solid #444",
-    background: "#1e1e1e",
+    background: "#222",
     color: "#ccc",
+    border: "none",
     borderRadius: "20px",
     cursor: "pointer",
   },
   activeTab: {
     background: "#B388EB",
-    color: "#1e1e1e",
-    fontWeight: "bold",
+    color: "#000",
   },
   filterBar: {
     display: "flex",
@@ -238,10 +257,10 @@ const styles = {
   },
   filterButton: {
     padding: "0.4rem 0.8rem",
-    border: "1px solid #555",
-    borderRadius: "15px",
     background: "#2a2a2a",
     color: "#eee",
+    border: "1px solid #444",
+    borderRadius: "15px",
     cursor: "pointer",
   },
   activeFilter: {
@@ -252,14 +271,14 @@ const styles = {
     display: "flex",
     gap: "0.5rem",
     flexWrap: "wrap",
-    marginBottom: "1rem",
+    marginBottom: "1.5rem",
   },
   subFilterButton: {
     padding: "0.3rem 0.7rem",
-    border: "1px solid #555",
-    borderRadius: "12px",
     background: "#333",
     color: "#ddd",
+    border: "1px solid #444",
+    borderRadius: "12px",
     cursor: "pointer",
   },
   activeSubFilter: {
@@ -268,8 +287,56 @@ const styles = {
   },
   feed: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: "1rem",
+  },
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    height: "100vh",
+    width: "100vw",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modal: {
+    background: "#1e1e1e",
+    padding: "2rem",
+    borderRadius: "10px",
+    width: "90%",
+    maxWidth: "500px",
+    boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)",
+  },
+  textarea: {
+    width: "100%",
+    height: "120px",
+    background: "#111",
+    color: "#fff",
+    border: "1px solid #444",
+    borderRadius: "6px",
+    padding: "0.5rem",
+    marginBottom: "1rem",
+    resize: "none",
+  },
+  submitButton: {
+    background: "#B388EB",
+    color: "#000",
+    padding: "0.5rem 1rem",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    background: "transparent",
+    color: "#ccc",
+    border: "1px solid #666",
+    padding: "0.5rem 1rem",
+    borderRadius: "6px",
+    cursor: "pointer",
   },
 };
 
