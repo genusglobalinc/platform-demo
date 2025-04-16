@@ -2,23 +2,62 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from backend.database import get_post_from_db, create_post_in_db
 from backend.utils.security import verify_access_token
+from typing import List, Union
+from pydantic import HttpUrl
 
 router = APIRouter()
 
-# Pydantic model for creating a post
-class PostCreateRequest(BaseModel):
+# Base Post Schema (Common fields for both Gaming and Anime)
+class BasePost(BaseModel):
     title: str
-    details: str
-    tags: list[str] = []  # Optional list of tags
+    tags: List[str] = []
+    studio: str
+    banner_image: HttpUrl
+    description: str
+    images: List[HttpUrl]
+
+# Gaming Post Schema (Extends BasePost)
+class GamingPost(BasePost):
+    access_instructions: Optional[str] = None
+    has_nda: bool = False
+    rewards: Optional[str] = None
+    share_post_to_socials: bool = False
+    type: str = "gaming"
+
+# Anime Post Schema (Extends BasePost)
+class AnimePost(BasePost):
+    streaming_services: List[HttpUrl]
+    trailer_url: Optional[HttpUrl] = None
+    type: str = "anime"
+
+# Post Create Request Schema
+class PostCreateRequest(BaseModel):
+    genre: str  # Either "gaming" or "anime"
+    post_data: Union[GamingPost, AnimePost]  # The actual post data (either gaming or anime data)
 
 # Endpoint to create a post (protected)
-@router.post("/create")
+@router.post("/", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def create_post(post_data: PostCreateRequest, token: dict = Depends(verify_access_token)):
     user_id = token.get("sub")
-    post_id = create_post_in_db(post_data.dict(), user_id)
+
+    # Handle Gaming Post
+    if post_data.genre == "gaming":
+        gaming_post_data = post_data.post_data  # This is an instance of GamingPost
+        post_id = create_post_in_db(gaming_post_data.dict(), user_id)
+    
+    # Handle Anime Post
+    elif post_data.genre == "anime":
+        anime_post_data = post_data.post_data  # This is an instance of AnimePost
+        post_id = create_post_in_db(anime_post_data.dict(), user_id)
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid genre specified")
+
     if not post_id:
         raise HTTPException(status_code=500, detail="Error creating post")
+    
     return {"message": "Post created", "post_id": post_id}
+
 
 # Endpoint to retrieve a post (public)
 @router.get("/{post_id}")
@@ -49,3 +88,4 @@ async def get_filtered_posts(
         raise HTTPException(status_code=500, detail=str(e))
 
     return {"posts": posts}
+

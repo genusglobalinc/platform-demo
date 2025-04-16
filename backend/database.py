@@ -120,19 +120,22 @@ def update_user_profile(email: str, profile_data: dict):
         logging.error(f"Profile update failed: {e}")
         return False
 
-def create_post_in_db(post_data: dict, user_id: str):
-    post_id = str(uuid.uuid4())
-    post_data.update({
-        'post_id': post_id,
-        'user_id': user_id
+def create_post_in_db(post_data: Union[GamingPost, AnimePost]):
+    post_id = str(uuid.uuid4())  # Generate a unique post ID
+    item = post_data.dict()  # Convert the post data into a dictionary
+    item.update({
+        'post_id': post_id,  # Add the generated post ID
+        'created_at': str(datetime.utcnow()),  # Add the current timestamp
     })
+    
+    # Save the item to DynamoDB
     try:
-        posts_table.put_item(Item=post_data)
-        logging.debug(f"Created post: {post_data}")
-        return post_id
+        response = posts_table.put_item(Item=item)
+        logging.debug(f"Created post: {item}")
+        return post_id  # Return the post ID after saving it
     except ClientError as e:
         logging.error(f"Create post failed: {e}")
-        return None
+        return None  # Return None if there was an error
 
 def get_post_from_db(post_id: str):
     try:

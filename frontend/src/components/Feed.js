@@ -17,11 +17,35 @@ function Feed() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formContent, setFormContent] = useState("");
+  const [dynamicGenres, setDynamicGenres] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
+    fetchGenres();  // Fetch the genres dynamically if needed
     fetchPosts();
   }, [activeTab, selectedMain, selectedSub]);
+
+  const fetchGenres = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No token found, redirecting to login.");
+      navigate("/login");
+      return;
+    }
+    try {
+      const response = await fetch("/genres", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 401) {
+        navigate("/login");
+        return;
+      }
+      const data = await response.json();
+      setDynamicGenres(data); // Assuming data is an object with dynamic genres
+    } catch (err) {
+      console.error("Error fetching genres:", err);
+    }
+  };
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -125,7 +149,7 @@ function Feed() {
 
       {/* Genre Filters */}
       <div style={styles.filterBar}>
-        {Object.keys(GENRES).map((main) => (
+        {Object.keys(dynamicGenres).map((main) => (
           <button
             key={main}
             onClick={() => handleMainGenre(main)}
@@ -142,7 +166,7 @@ function Feed() {
       {/* Subtype Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
-          {GENRES[selectedMain].map((sub) => (
+          {dynamicGenres[selectedMain]?.map((sub) => (
             <button
               key={sub}
               onClick={() => toggleSubtype(sub)}
@@ -300,26 +324,34 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
+    zIndex: 10,
   },
   modal: {
-    background: "#1e1e1e",
+    background: "#222",
     padding: "2rem",
     borderRadius: "10px",
-    width: "90%",
+    width: "80%",
     maxWidth: "500px",
-    boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)",
+    color: "#fff",
   },
   textarea: {
     width: "100%",
-    height: "120px",
-    background: "#111",
-    color: "#fff",
+    height: "150px",
+    padding: "1rem",
+    borderRadius: "10px",
     border: "1px solid #444",
-    borderRadius: "6px",
-    padding: "0.5rem",
     marginBottom: "1rem",
-    resize: "none",
+    background: "#333",
+    color: "#fff",
+    fontSize: "1rem",
+  },
+  cancelButton: {
+    background: "#777",
+    color: "#fff",
+    padding: "0.5rem 1rem",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
   },
   submitButton: {
     background: "#B388EB",
@@ -327,15 +359,7 @@ const styles = {
     padding: "0.5rem 1rem",
     border: "none",
     borderRadius: "6px",
-    cursor: "pointer",
     fontWeight: "bold",
-  },
-  cancelButton: {
-    background: "transparent",
-    color: "#ccc",
-    border: "1px solid #666",
-    padding: "0.5rem 1rem",
-    borderRadius: "6px",
     cursor: "pointer",
   },
 };
