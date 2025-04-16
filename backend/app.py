@@ -6,9 +6,11 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
+from starlette.requests import Request
+from fastapi_limiter.exceptions import RateLimitExceeded
 
 # Import routers
 from backend.routes.users import router as users_router
@@ -17,10 +19,10 @@ from backend.routes.events import router as events_router
 from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import (
-    get_user_from_db, 
-    get_post_from_db, 
+    get_user_from_db,
+    get_post_from_db,
     create_post_in_db,
-    get_event_from_db, 
+    get_event_from_db,
     register_user_for_event
 )
 
@@ -45,7 +47,7 @@ STATIC_DIR = os.path.join("frontend", "build", "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# UPDATED Default route: Redirect root to the login page
+# Default route: Redirect root to the login page
 @app.get("/")
 def root():
     return RedirectResponse(url="/login")
@@ -71,6 +73,14 @@ async def startup():
             await asyncio.sleep(2 ** attempt)
 
     await FastAPILimiter.init(redis_client)
+
+# Custom rate limit error handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please wait and try again."}
+    )
 
 # Include routers with their prefixes
 app.include_router(users_router, prefix="/users")
@@ -128,7 +138,7 @@ async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
     return user_profile
 
 # Protected route for fetching "events" (placeholder using posts by user)
-@app.get("/events", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@app.get("/events", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
 async def get_all_events(token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
