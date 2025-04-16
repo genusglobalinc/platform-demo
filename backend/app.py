@@ -10,7 +10,6 @@ from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
 from starlette.requests import Request
-from fastapi_limiter.exceptions import RateLimitExceeded
 
 # Import routers
 from backend.routes.users import router as users_router
