@@ -1,7 +1,6 @@
-// frontend/src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import CreatePost from "./CreatePost"; // ✅ Make sure this component exists
+import PostCard from "./PostCard";  // Ensure this component exists
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
@@ -11,13 +10,11 @@ const GENRES = {
 
 function Feed() {
   const [activeTab, setActiveTab] = useState("Trending");
-  const [selectedMain, setSelectedMain] = useState(null);
+  const [selectedMain, setSelectedMain] = useState("");
   const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreatePost, setShowCreatePost] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchPosts();
@@ -26,33 +23,29 @@ function Feed() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams({
-        tab: activeTab,
-        main: selectedMain || "",
-        subs: selectedSub.join(',')
-      }).toString();
-
-      const response = await fetch(`/api/posts?${query}`);
+      // Adjust the endpoint as needed. Replace '/events' with the correct endpoint.
+      const response = await fetch(`/events?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(',')}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      console.log("[DEBUG] Fetched posts:", data); // TODO: remove for production
-      setPosts(data || []);
+      // Ensure we always set posts to an array
+      setPosts(Array.isArray(data.events) ? data.events : []);
     } catch (err) {
-      console.error("[ERROR] Failed to fetch posts:", err);
+      console.error("Error fetching posts:", err);
       setPosts([]);
     }
     setLoading(false);
   };
 
   const handleMainGenre = (genre) => {
-    setSelectedMain(genre === selectedMain ? null : genre); // Toggle main
+    setSelectedMain(genre);
     setSelectedSub([]);
   };
 
   const toggleSubtype = (sub) => {
-    setSelectedSub(prev =>
-      prev.includes(sub)
-        ? prev.filter(s => s !== sub)
-        : [...prev, sub]
+    setSelectedSub((prev) =>
+      prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
     );
   };
 
@@ -65,29 +58,22 @@ function Feed() {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <h2 style={styles.title}>🎮 Discover Playtests</h2>
+        <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
-          <button
-            onClick={() => alert("Notifications coming soon!")}
-            style={styles.iconButton}
-          >🔔</button>
-
-          <button onClick={handleLogout} style={styles.logoutButton}>
-            Logout
-          </button>
-
-          <button
-            onClick={() => setShowCreatePost(prev => !prev)}
-            style={styles.createPostButton}
-          >
-            {showCreatePost ? "Cancel" : "Create Post"}
-          </button>
+          <button onClick={() => alert("Notifications coming soon")} style={styles.iconButton}>🔔</button>
+          <img
+            src="/your-profile-pic.jpg"
+            alt="Profile"
+            style={styles.profilePic}
+            onClick={() => navigate("/profile")}
+          />
+          <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
         </div>
       </div>
-
+      
       {/* Tabs */}
       <div style={styles.tabContainer}>
-        {TABS.map(tab => (
+        {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -101,9 +87,9 @@ function Feed() {
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Genre Filter */}
       <div style={styles.filterBar}>
-        {Object.keys(GENRES).map(main => (
+        {Object.keys(GENRES).map((main) => (
           <button
             key={main}
             onClick={() => handleMainGenre(main)}
@@ -118,7 +104,7 @@ function Feed() {
       </div>
       {selectedMain && (
         <div style={styles.subFilterBar}>
-          {GENRES[selectedMain].map(sub => (
+          {GENRES[selectedMain].map((sub) => (
             <button
               key={sub}
               onClick={() => toggleSubtype(sub)}
@@ -133,59 +119,23 @@ function Feed() {
         </div>
       )}
 
-      {/* Create Post */}
-      {showCreatePost && (
-        <CreatePost
-          token={token}
-          onPostCreated={(newPostId) => {
-            console.log("[DEBUG] Post created with ID:", newPostId); // TODO: remove
-            fetchPosts();
-            setShowCreatePost(false);
-          }}
-        />
-      )}
+      {/* Create Post Button */}
+      <button style={styles.createPostButton} onClick={() => navigate("/create-post")}>
+        Create Post
+      </button>
 
-      {/* Feed */}
+      {/* Posts Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
         ) : posts.length === 0 ? (
-          <p>No posts found for selected filters.</p>
+          <p>No posts found</p>
         ) : (
           posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.post_id} post={post} />
           ))
         )}
       </div>
-    </div>
-  );
-}
-
-// 🔄 Individual Post Component
-function PostCard({ post }) {
-  const [hovering, setHovering] = useState(false);
-
-  return (
-    <div
-      style={styles.postCard}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
-      <div style={styles.thumbnail}>
-        {!hovering ? (
-          <img src={post.image} alt={post.title} style={styles.postImage} />
-        ) : (
-          <video
-            src={post.video}
-            style={styles.videoPreview}
-            autoPlay
-            loop
-            muted
-          />
-        )}
-      </div>
-      <h3 style={styles.postTitle}>{post.title}</h3>
-      <p style={styles.postTags}>{post.tags?.join(", ")}</p>
     </div>
   );
 }
@@ -202,17 +152,16 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    marginBottom: '1rem'
+    flexWrap: 'wrap'
   },
   title: {
-    fontSize: '1.6rem',
-    fontWeight: 'bold'
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem'
   },
   headerRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem'
+    gap: '1rem'
   },
   iconButton: {
     fontSize: '1.5rem',
@@ -222,25 +171,24 @@ const styles = {
     cursor: 'pointer'
   },
   logoutButton: {
-    background: '#E74C3C',
+    background: '#B388EB',
     border: 'none',
     padding: '0.4rem 0.8rem',
     borderRadius: '8px',
     cursor: 'pointer',
-    color: '#fff'
+    color: '#121212'
   },
-  createPostButton: {
-    background: '#2ECC71',
-    border: 'none',
-    padding: '0.4rem 0.8rem',
-    borderRadius: '8px',
+  profilePic: {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
     cursor: 'pointer',
-    color: '#fff'
+    objectFit: 'cover'
   },
   tabContainer: {
     display: 'flex',
+    margin: '1rem 0',
     gap: '0.5rem',
-    marginBottom: '0.75rem',
     flexWrap: 'wrap'
   },
   tabButton: {
@@ -262,12 +210,6 @@ const styles = {
     flexWrap: 'wrap',
     marginBottom: '0.5rem'
   },
-  subFilterBar: {
-    display: 'flex',
-    gap: '0.5rem',
-    flexWrap: 'wrap',
-    marginBottom: '1rem'
-  },
   filterButton: {
     padding: '0.4rem 0.8rem',
     border: '1px solid #555',
@@ -279,6 +221,12 @@ const styles = {
   activeFilter: {
     background: '#B388EB',
     color: '#1e1e1e'
+  },
+  subFilterBar: {
+    display: 'flex',
+    gap: '0.5rem',
+    flexWrap: 'wrap',
+    marginBottom: '1rem'
   },
   subFilterButton: {
     padding: '0.3rem 0.7rem',
@@ -328,6 +276,16 @@ const styles = {
   postTags: {
     color: '#aaa',
     fontSize: '0.9rem'
+  },
+  createPostButton: {
+    padding: '0.5rem 1rem',
+    margin: '1rem 0',
+    background: '#B388EB',
+    color: '#121212',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: 'bold'
   }
 };
 
