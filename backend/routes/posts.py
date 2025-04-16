@@ -70,7 +70,7 @@ async def get_post(post_id: str):
     return post
 
 # Endpoint to get posts with optional filtering
-@router.get("/filter")
+@router.get("/filter", dependencies=[Depends(RateLimiter(times=30, seconds=60))])
 async def get_filtered_posts(
     tab: str = Query("Trending", enum=["Trending", "Newest", "ForYou"]),
     main: Optional[str] = Query(None),
@@ -88,7 +88,7 @@ async def get_filtered_posts(
     return {"posts": posts}
 
 # Endpoint to get all posts
-@router.get("/", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.get("/", dependencies=[Depends(RateLimiter(times=40, seconds=60))])
 async def get_all_posts():
     posts = get_all_posts_from_db()
     return {"posts": posts}
