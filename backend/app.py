@@ -73,14 +73,6 @@ async def startup():
 
     await FastAPILimiter.init(redis_client)
 
-# Custom rate limit error handler
-@app.exception_handler(RateLimitExceeded)
-async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "Rate limit exceeded. Please wait and try again."}
-    )
-
 # Include routers with their prefixes
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
@@ -102,7 +94,7 @@ async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     return post
 
 # Sample protected route for creating a post
-@app.post("/posts", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@app.post("/posts", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
 async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
@@ -114,7 +106,7 @@ async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     return {"message": "Post created", "post_id": post_id}
 
 # Protected route for event registration
-@app.post("/events/{post_id}/register", dependencies=[Depends(RateLimiter(times=3, seconds=60))])
+@app.post("/events/{post_id}/register", dependencies=[Depends(RateLimiter(times=300, seconds=60))])
 async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
