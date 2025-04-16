@@ -45,10 +45,10 @@ STATIC_DIR = os.path.join("frontend", "build", "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Default route to redirect to API docs (for debugging)
+# UPDATED Default route: Redirect root to the login page
 @app.get("/")
 def root():
-    return RedirectResponse(url="/docs")
+    return RedirectResponse(url="/login")
 
 # Initialize rate limiting with retries for Redis
 @app.on_event("startup")
@@ -60,7 +60,9 @@ async def startup():
     redis_client = None
     for attempt in range(5):
         try:
-            redis_client = aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10)
+            redis_client = aioredis.from_url(
+                redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10
+            )
             await redis_client.ping()
             break
         except (ConnectionError, TimeoutError) as e:
@@ -85,11 +87,9 @@ async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
     post = get_post_from_db(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    
     return post
 
 # Sample protected route for creating a post
@@ -98,11 +98,9 @@ async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
     user = get_user_from_db(payload["sub"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
     post_id = create_post_in_db(post, user["user_id"])
     return {"message": "Post created", "post_id": post_id}
 
@@ -112,11 +110,9 @@ async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
     event = get_event_from_db(post_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
     registration_id = register_user_for_event(payload["sub"], post_id)
     return {"message": "Successfully registered for the event", "registration_id": registration_id}
 
@@ -126,11 +122,9 @@ async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload or payload["sub"] != user_id:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
     user_profile = get_user_from_db(user_id)
     if not user_profile:
         raise HTTPException(status_code=404, detail="User profile not found")
-    
     return user_profile
 
 # Protected route for fetching "events" (placeholder using posts by user)
@@ -139,9 +133,7 @@ async def get_all_events(token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
-    # Placeholder: using posts by user as "events" for now
-    from backend.database import get_posts_by_user  
+    from backend.database import get_posts_by_user  # Placeholder for events retrieval
     events = get_posts_by_user(payload["sub"])
     return {"events": events}
 
