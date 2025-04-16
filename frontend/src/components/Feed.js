@@ -31,21 +31,36 @@ function Feed() {
       navigate("/login");
       return;
     }
+
     try {
-      const response = await fetch(
-        `/events?tab=${activeTab}&main=${selectedMain || ""}&subs=${selectedSub.join(",")}`,
+      const res = await fetch(
+        `/events?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(",")}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      if (response.status === 401) {
-        navigate("/login");
-        return;
+
+      console.log("fetchPosts - status:", res.status);
+      const rawText = await res.text();
+      console.log("fetchPosts - raw body:", rawText);
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error("Response not valid JSON");
       }
-      const data = await response.json();
-      setPosts(Array.isArray(data.events) ? data.events : []);
+
+      if (!Array.isArray(data.events)) {
+        throw new Error("Expected events to be an array.");
+      }
+
+      console.log("fetchPosts - parsed events:", data.events);
+      setPosts(data.events);
     } catch (err) {
-      console.error("Error fetching posts:", err);
+      console.error("⚠️ Error in fetchPosts:", err);
       setPosts([]);
     } finally {
       setLoading(false);
@@ -164,7 +179,9 @@ function Feed() {
         ) : posts.length === 0 ? (
           <p>No posts found</p>
         ) : (
-          posts.map((post) => <PostCard key={post.post_id} post={post} />)
+          posts.map((post) => (
+            <PostCard key={post.post_id || post.id} post={post} />
+          ))
         )}
       </div>
 
@@ -194,6 +211,7 @@ function Feed() {
   );
 }
 
+// ...styles (unchanged from your original)
 const styles = {
   container: {
     padding: "2rem",
