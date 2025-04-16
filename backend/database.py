@@ -25,19 +25,12 @@ def save_to_dynamodb(item, table_name):
         return None
 
 def create_user_in_db(user_data: dict):
-    # Check if username already exists using the GSI
-    existing_user = get_user_by_username(user_data["username"])
-    if existing_user:
-        logging.warning(f"Username '{user_data['username']}' is already taken.")
-        return None  # Or return an error message indicating username conflict
-
-    # Proceed to create the user if username is available 
     user_id = str(uuid.uuid4())
     item = {
         "user_id": user_id,
         "username": user_data["username"],
         "email": user_data["email"],
-        "password": user_data["password"],
+        "password": hash_password(user_data["password"]),
         "is_verified": user_data.get("is_verified", False),
         "created_at": str(datetime.utcnow())
     }
@@ -59,6 +52,7 @@ def get_user_from_db(user_id: str):
 
 def get_user_by_email(email: str):
     try:
+        # Assuming 'email' is a primary key or you can use a GSI on 'email'
         response = users_table.get_item(Key={'email': email})
         return response.get('Item')
     except ClientError as e:
@@ -67,10 +61,7 @@ def get_user_by_email(email: str):
 
 def get_user_by_username(username: str):
     try:
-        response = users_table.query(
-            IndexName='username-index',  # Use the GSI
-            KeyConditionExpression=Key('username').eq(username)
-        )
+        response = users_table.scan(FilterExpression=Attr('username').eq(username))
         items = response.get('Items', [])
         return items[0] if items else None
     except ClientError as e:
@@ -123,6 +114,7 @@ def update_user_profile(email: str, profile_data: dict):
             UpdateExpression=update_expression,
             ExpressionAttributeValues=values
         )
+        logging.debug(f"Profile updated for {email} with {profile_data}")
         return True
     except ClientError as e:
         logging.error(f"Profile update failed: {e}")
@@ -136,6 +128,7 @@ def create_post_in_db(post_data: dict, user_id: str):
     })
     try:
         posts_table.put_item(Item=post_data)
+        logging.debug(f"Created post: {post_data}")
         return post_id
     except ClientError as e:
         logging.error(f"Create post failed: {e}")
@@ -160,6 +153,49 @@ def get_posts_by_user(user_id: str):
         logging.error(f"Get posts by user failed: {e}")
         return []
 
+# New function: Get all posts (scan the table)
+def get_all_posts_from_db():
+    try:
+        response = posts_table.scan()
+        logging.debug("Scanned posts table successfully.")
+        return response.get('Items', [])
+    except ClientError as e:
+        logging.error(f"Error scanning posts table: {e}")
+        return []
+
+# New function: Filter posts based on parameters (e.g., main genre, subtypes)
+def filter_posts_from_db(tab: str, main: str, subs: list):
+    try:
+        filter_expr = None
+        
+        # For main genre filtering (assuming posts have a 'tags' attribute)
+        if main and main.lower() != "null":
+            filter_expr = Attr('tags').contains(main)
+        
+        # Add subtypes filtering if provided
+        if subs and len(subs) > 0:
+            sub_filter = None
+            for sub in subs:
+                if sub_filter:
+                    sub_filter = sub_filter | Attr('tags').contains(sub)
+                else:
+                    sub_filter = Attr('tags').contains(sub)
+            if filter_expr:
+                filter_expr = filter_expr & sub_filter
+            else:
+                filter_expr = sub_filter
+        
+        if filter_expr:
+            response = posts_table.scan(FilterExpression=filter_expr)
+        else:
+            response = posts_table.scan()
+        
+        logging.debug("Filtered posts fetched successfully.")
+        return response.get('Items', [])
+    except ClientError as e:
+        logging.error(f"Error filtering posts: {e}")
+        return []
+
 def get_event_from_db(event_id: str):
     try:
         response = events_table.get_item(Key={'event_id': event_id})
@@ -178,6 +214,7 @@ def register_user_for_event(user_id: str, post_id: str):
                 ":empty_list": []
             }
         )
+        logging.debug(f"User {user_id} registered for event {post_id} successfully.")
         return True
     except ClientError as e:
         logging.error(f"Register for event failed: {e}")
@@ -196,43 +233,3 @@ def update_user_password(user_id: str, new_password: str):
     except ClientError as e:
         logging.error(f"Password update failed for user {user_id}: {e}")
         return False
-
-def filter_posts_from_db(tab: str = "Trending", main: str = None, subs: str = None):
-    # Replace this mock data with a real DB query
-    mock_posts = [
-        {
-            "id": "1",
-            "title": "Anime Battle Royale",
-            "tags": ["Anime", "Action"],
-            "image_url": "/static/images/anime.jpg",
-            "video_url": "/static/videos/anime.mp4",
-            "likes": 120
-        },
-        {
-            "id": "2",
-            "title": "FPS Mayhem",
-            "tags": ["Gaming", "First Person Shooter"],
-            "image_url": "/static/images/fps.jpg",
-            "video_url": "/static/videos/fps.mp4",
-            "likes": 200
-        }
-    ]
-
-    # Filter by main tag
-    if main:
-        mock_posts = [post for post in mock_posts if main in post["tags"]]
-
-    # Filter by sub tag
-    if subs:
-        mock_posts = [post for post in mock_posts if subs in post["tags"]]
-
-    # Sort based on tab logic
-    if tab == "Trending":
-        mock_posts = sorted(mock_posts, key=lambda x: x["likes"], reverse=True)
-    elif tab == "Newest":
-        mock_posts = list(reversed(mock_posts))  # Fake newest
-    elif tab == "ForYou":
-        # For now just return all
-        pass
-
-    return mock_posts
