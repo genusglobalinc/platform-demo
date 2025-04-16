@@ -3,6 +3,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 from datetime import datetime
 import uuid
+from typing import Union, Optional, List, Dict
 import logging
 from backend.utils.security import hash_password
 
