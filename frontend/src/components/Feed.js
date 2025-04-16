@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
+import PostCard from "./PostCard";  // Make sure this component exists and correctly displays a post
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
@@ -17,16 +18,21 @@ function Feed() {
 
   useEffect(() => {
     fetchPosts();
+    // eslint-disable-next-line
   }, [activeTab, selectedMain, selectedSub]);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/posts?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(',')}`);
+      // IMPORTANT: Update this URL if your backend API route is different.
+      const response = await fetch(`/api/posts?tab=${activeTab}&main=${selectedMain || ""}&subs=${selectedSub.join(',')}`);
+      // Ensure the response is JSON (an array)
       const data = await response.json();
-      setPosts(data || []);
+      console.log("Posts fetched:", data);
+      // If data is not an array, try to handle or log an error.
+      setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching posts:", err);
       setPosts([]);
     }
     setLoading(false);
@@ -38,9 +44,9 @@ function Feed() {
   };
 
   const toggleSubtype = (sub) => {
-    setSelectedSub(prev => prev.includes(sub)
-      ? prev.filter(s => s !== sub)
-      : [...prev, sub]);
+    setSelectedSub((prev) =>
+      prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub]
+    );
   };
 
   const handleLogout = () => {
@@ -50,10 +56,10 @@ function Feed() {
 
   return (
     <div style={styles.container}>
-      {/* Navbar */}
-      <div style={styles.navbar}>
-        <h1 style={styles.brand}>ig</h1>
-        <div style={styles.navRight}>
+      {/* Header */}
+      <div style={styles.header}>
+        <h2 style={styles.title}>Discover Playtests</h2>
+        <div style={styles.headerRight}>
           <button onClick={() => alert("Notifications coming soon")} style={styles.iconButton}>🔔</button>
           <img
             src="/your-profile-pic.jpg"
@@ -64,7 +70,6 @@ function Feed() {
           <button onClick={handleLogout} style={styles.logoutButton}>Logout</button>
         </div>
       </div>
-
       {/* Tabs */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
@@ -80,8 +85,7 @@ function Feed() {
           </button>
         ))}
       </div>
-
-      {/* Filters */}
+      {/* Main Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
@@ -96,6 +100,7 @@ function Feed() {
           </button>
         ))}
       </div>
+      {/* Sub-Genre Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
           {GENRES[selectedMain].map((sub) => (
@@ -112,8 +117,7 @@ function Feed() {
           ))}
         </div>
       )}
-
-      {/* Feed */}
+      {/* Post Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -129,33 +133,6 @@ function Feed() {
   );
 }
 
-function PostCard({ post }) {
-  const [hovering, setHovering] = useState(false);
-
-  return (
-    <div
-      style={styles.postCard}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
-      <div style={styles.thumbnail}>
-        {!hovering && <img src={post.image} alt={post.title} style={styles.postImage} />}
-        {hovering && (
-          <video
-            src={post.video}
-            style={styles.videoPreview}
-            autoPlay
-            loop
-            muted
-          />
-        )}
-      </div>
-      <h3 style={styles.postTitle}>{post.title}</h3>
-      <p style={styles.postTags}>{post.tags.join(", ")}</p>
-    </div>
-  );
-}
-
 const styles = {
   container: {
     padding: '1rem',
@@ -164,19 +141,17 @@ const styles = {
     minHeight: '100vh',
     fontFamily: 'sans-serif'
   },
-  navbar: {
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '1rem'
+    flexWrap: 'wrap'
   },
-  brand: {
+  title: {
     fontSize: '1.5rem',
-    fontWeight: 'bold',
-    color: '#B388EB',
-    margin: 0
+    marginBottom: '0.5rem'
   },
-  navRight: {
+  headerRight: {
     display: 'flex',
     alignItems: 'center',
     gap: '1rem'
@@ -188,13 +163,6 @@ const styles = {
     color: '#fff',
     cursor: 'pointer'
   },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    cursor: 'pointer',
-    objectFit: 'cover'
-  },
   logoutButton: {
     background: '#B388EB',
     border: 'none',
@@ -203,9 +171,16 @@ const styles = {
     cursor: 'pointer',
     color: '#1e1e1e'
   },
+  profilePic: {
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    cursor: 'pointer',
+    objectFit: 'cover'
+  },
   tabContainer: {
     display: 'flex',
-    marginBottom: '1rem',
+    margin: '1rem 0',
     gap: '0.5rem',
     flexWrap: 'wrap'
   },
@@ -262,38 +237,6 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
     gap: '1rem'
-  },
-  postCard: {
-    background: '#1f1f1f',
-    borderRadius: '10px',
-    padding: '1rem',
-    transition: 'all 0.3s'
-  },
-  thumbnail: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: '10px',
-    height: '200px'
-  },
-  postImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    borderRadius: '10px'
-  },
-  videoPreview: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    borderRadius: '10px'
-  },
-  postTitle: {
-    marginTop: '0.5rem',
-    fontSize: '1.1rem'
-  },
-  postTags: {
-    color: '#aaa',
-    fontSize: '0.9rem'
   }
 };
 

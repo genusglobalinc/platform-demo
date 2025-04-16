@@ -27,3 +27,25 @@ async def get_post(post_id: str):
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
+
+from fastapi import Query
+from typing import Optional
+from backend.database import get_all_posts_from_db, filter_posts_from_db
+
+# New endpoint to get posts with optional filtering
+@router.get("/")
+async def get_filtered_posts(
+    tab: str = Query("Trending", enum=["Trending", "Newest", "ForYou"]),
+    main: Optional[str] = Query(None),
+    subs: Optional[str] = Query(None),
+):
+    """
+    Return a list of posts filtered by tab, main genre, and sub genre.
+    """
+    # Custom filtering logic here — replace with your real DB logic
+    try:
+        posts = filter_posts_from_db(tab=tab, main=main, subs=subs)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"posts": posts}

@@ -6,8 +6,8 @@ annotated-types==0.7.0
 anyio==4.9.0
 attrs==25.3.0
 bcrypt==4.3.0
-boto3==1.37.33
-botocore==1.37.33
+boto3>=1.26.0          # Updated minimum (your version 1.37.33 meets this)
+botocore>=1.29.0       # Updated minimum (your version 1.37.33 meets this)
 cffi==1.17.1
 click==8.1.8
 colorama==0.4.6
@@ -15,7 +15,7 @@ cryptography==44.0.2
 dnspython==2.7.0
 ecdsa==0.19.1
 email_validator==2.2.0
-fastapi==0.115.12
+fastapi>=0.95.0        # Your version 0.115.12 meets this requirement
 fastapi-limiter==0.1.6
 frozenlist==1.5.0
 h11==0.14.0
@@ -23,18 +23,18 @@ httptools==0.6.4
 idna==3.10
 jmespath==1.0.1
 multidict==6.4.3
-passlib[bcrypt]
+passlib[bcrypt]==1.7.4  # Ensure this version is installed
 propcache==0.3.1
 pyasn1==0.4.8
 pycparser==2.22
-pydantic==2.11.3
-pydantic_core==2.33.1
+pydantic>=1.10.0       # (Your current pydantic==2.11.3 is a major version; if you intend to use v2, you may keep it, but be aware of breaking changes)
+pydantic_core==2.33.1   # (Only required if you're using Pydantic V2 features; otherwise, v1.x may be enough)
 python-dateutil==2.9.0.post0
-python-dotenv==1.1.0
-python-jose==3.4.0
+python-dotenv==1.1.0    # (Latest release is 1.1.0)
+python-jose>=3.3.0     # Your version 3.4.0 meets this requirement
 python-multipart==0.0.20
 PyYAML==6.0.2
-redis==5.2.1
+redis>=4.5.1           # Your redis==5.2.1 satisfies this
 rsa==4.9
 s3transfer==0.11.4
 six==1.17.0
@@ -43,7 +43,7 @@ starlette==0.46.1
 typing-inspection==0.4.0
 typing_extensions==4.13.2
 urllib3==2.4.0
-uvicorn==0.34.0
+uvicorn[standard]>=0.21.0   # Your uvicorn==0.34.0 meets this requirement
 watchfiles==1.0.5
 websockets==15.0.1
 yarl==1.19.0
