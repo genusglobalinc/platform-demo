@@ -60,7 +60,7 @@ function Feed() {
       setPosts(data.posts);
     } catch (err) {
       console.error("⚠️ Error in fetchPosts:", err);
-      setPosts([]);
+      setPosts([]);  // Clear posts on error
     } finally {
       setLoading(false);
     }
