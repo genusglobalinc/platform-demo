@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
 from starlette.requests import Request
@@ -14,15 +14,12 @@ from starlette.requests import Request
 # Import routers
 from backend.routes.users import router as users_router
 from backend.routes.posts import router as posts_router
-from backend.routes.events import router as events_router
 from backend.routes.auth_routes import router as auth_router
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import (
     get_user_from_db,
     get_post_from_db,
-    create_post_in_db,
-    get_event_from_db,
-    register_user_for_event
+    create_post_in_db
 )
 
 app = FastAPI()
@@ -76,7 +73,6 @@ async def startup():
 # Include routers with their prefixes
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
-app.include_router(events_router, prefix="/events")
 app.include_router(auth_router, prefix="/auth")
 
 # OAuth2 setup for protected routes
@@ -105,18 +101,6 @@ async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     post_id = create_post_in_db(post, user["user_id"])
     return {"message": "Post created", "post_id": post_id}
 
-# Protected route for event registration
-@app.post("/events/{post_id}/register", dependencies=[Depends(RateLimiter(times=300, seconds=60))])
-async def register_for_event(post_id: str, token: str = Depends(oauth2_scheme)):
-    payload = verify_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    event = get_event_from_db(post_id)
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    registration_id = register_user_for_event(payload["sub"], post_id)
-    return {"message": "Successfully registered for the event", "registration_id": registration_id}
-
 # Protected route for getting a user profile
 @app.get("/users/{user_id}/profile", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
@@ -128,21 +112,11 @@ async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=404, detail="User profile not found")
     return user_profile
 
-# Protected route for fetching "events" (placeholder using posts by user)
-@app.get("/events", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
-async def get_all_events(token: str = Depends(oauth2_scheme)):
-    payload = verify_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    from backend.database import get_posts_by_user  # Placeholder for events retrieval
-    events = get_posts_by_user(payload["sub"])
-    return {"events": events}
-
 # Serve React App's index.html for any non-API route
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
     # Do not override API routes
-    if full_path.startswith(("api", "auth", "users", "posts", "events", "static")):
+    if full_path.startswith(("api", "auth", "users", "posts", "static")):
         raise HTTPException(status_code=404, detail="Not a frontend route")
     index_file = os.path.join("frontend", "build", "index.html")
     if os.path.isfile(index_file):

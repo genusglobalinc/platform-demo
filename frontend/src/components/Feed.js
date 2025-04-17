@@ -1,4 +1,3 @@
-// frontend/src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
@@ -34,7 +33,7 @@ function Feed() {
 
     try {
       const res = await fetch(
-        `/events?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(",")}`,
+        `/posts?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(",")}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -53,12 +52,12 @@ function Feed() {
         throw new Error("Response not valid JSON");
       }
 
-      if (!Array.isArray(data.events)) {
-        throw new Error("Expected events to be an array.");
+      if (!Array.isArray(data.posts)) {
+        throw new Error("Expected posts to be an array.");
       }
 
-      console.log("fetchPosts - parsed events:", data.events);
-      setPosts(data.events);
+      console.log("fetchPosts - parsed posts:", data.posts);
+      setPosts(data.posts);
     } catch (err) {
       console.error("⚠️ Error in fetchPosts:", err);
       setPosts([]);
@@ -72,7 +71,7 @@ function Feed() {
     if (!token) return;
 
     try {
-      const response = await fetch("/events", {
+      const response = await fetch("/posts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
