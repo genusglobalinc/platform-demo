@@ -70,7 +70,7 @@ app.include_router(auth_router, prefix="/auth")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-@app.get("/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@app.get("/api/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:

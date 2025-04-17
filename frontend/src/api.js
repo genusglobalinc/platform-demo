@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use the environment variable if defined; otherwise, fallback to the deployed URL.
-const API_BASE_URL = process.env.REACT_APP_API_BASE || 'https://lost-gates-mvp.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE || 'https://lost-gates-mvp.onrender.com/api';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
