@@ -20,7 +20,7 @@ function Feed() {
 
   useEffect(() => {
     fetchPosts();
-  }, [activeTab, selectedMain, selectedSub]);
+  }, []); // no longer depends on filters
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -32,14 +32,11 @@ function Feed() {
     }
 
     try {
-      const res = await fetch(
-        `/posts?tab=${activeTab}&main=${selectedMain}&subs=${selectedSub.join(",")}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch("/posts", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       console.log("fetchPosts - status:", res.status);
       const rawText = await res.text();
