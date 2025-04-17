@@ -58,14 +58,12 @@ async def create_post(
 
     return {"message": "Post created", "post_id": post_id}
 
-
 @router.get("/{post_id}")
 async def get_post(post_id: str):
     post = get_post_from_db(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
-
 
 @router.get("/filter", dependencies=[Depends(RateLimiter(times=30, seconds=60))])
 async def get_filtered_posts(
@@ -81,6 +79,10 @@ async def get_filtered_posts(
 
     return {"posts": posts}
 
+# 🔧 Fix here: support both /posts and /posts/
+@router.get("")
+async def get_all_posts_alias():
+    return await get_all_posts()
 
 @router.get("/", dependencies=[Depends(RateLimiter(times=40, seconds=60))])
 async def get_all_posts():
