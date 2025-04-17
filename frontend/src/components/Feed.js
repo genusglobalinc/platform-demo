@@ -33,7 +33,7 @@ function Feed() {
 
     try {
       // ⚠️ Changed from "/posts" to "/posts/" so it matches FastAPI's GET /posts/ route
-      const res = await fetch("/posts/", {
+      const res = await fetch("/api/posts/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
