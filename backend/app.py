@@ -7,9 +7,9 @@ from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
+from starlette.requests import Request
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
-from starlette.requests import Request
 
 # Import routers
 from backend.routes.users import router as users_router
@@ -24,7 +24,6 @@ from backend.database import (
 
 app = FastAPI()
 
-# Enable CORS (update allow_origins appropriately for production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,97 +32,90 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health check route
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
 
-# Mount static files from React build if available
+# Mount React's static files
 STATIC_DIR = os.path.join("frontend", "build", "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Default route: Redirect root to the login page
 @app.get("/")
 def root():
     return RedirectResponse(url="/login")
 
-# Initialize rate limiting with retries for Redis
 @app.on_event("startup")
 async def startup():
     redis_url = os.getenv("REDIS_URL")
     if not redis_url:
-        raise HTTPException(status_code=500, detail="Redis URL not found in environment variables")
+        raise HTTPException(status_code=500, detail="Redis URL not found")
 
-    redis_client = None
-    for attempt in range(5):
+    client = None
+    for i in range(5):
         try:
-            redis_client = aioredis.from_url(
-                redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10
-            )
-            await redis_client.ping()
+            client = aioredis.from_url(redis_url, encoding="utf-8", decode_responses=True, socket_timeout=10)
+            await client.ping()
             break
-        except (ConnectionError, TimeoutError) as e:
-            if attempt == 4:
-                raise HTTPException(status_code=500, detail=f"Failed to connect to Redis: {str(e)}")
-            await asyncio.sleep(2 ** attempt)
+        except (ConnectionError, TimeoutError):
+            if i == 4:
+                raise HTTPException(status_code=500, detail="Could not connect to Redis")
+            await asyncio.sleep(2 ** i)
 
-    await FastAPILimiter.init(redis_client)
+    await FastAPILimiter.init(client)
 
-# Include routers with their prefixes
 app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
 app.include_router(auth_router, prefix="/auth")
 
-# OAuth2 setup for protected routes
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-# Sample protected route for getting a post
 @app.get("/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401)
     post = get_post_from_db(post_id)
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404)
     return post
 
-# Sample protected route for creating a post
 @app.post("/posts", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
 async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401)
     user = get_user_from_db(payload["sub"])
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404)
     post_id = create_post_in_db(post, user["user_id"])
     return {"message": "Post created", "post_id": post_id}
 
-# Protected route for getting a user profile
 @app.get("/users/{user_id}/profile", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
     payload = verify_access_token(token)
     if not payload or payload["sub"] != user_id:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    user_profile = get_user_from_db(user_id)
-    if not user_profile:
-        raise HTTPException(status_code=404, detail="User profile not found")
-    return user_profile
+        raise HTTPException(status_code=401)
+    profile = get_user_from_db(user_id)
+    if not profile:
+        raise HTTPException(status_code=404)
+    return profile
 
-# Serve React App's index.html for any non-API route
+# ←――――――――――――――――――――――――――――――――――――――――――――――――――
+# Catch-all: strip leading slash before checking prefixes!
 @app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
-    # Do not override API routes
-    if full_path.startswith(("api", "auth", "users", "posts", "static")):
+async def serve_react_app(request: Request, full_path: str):
+    # Remove leading slash so we can match against "posts", "auth", etc.
+    path = request.url.path.lstrip("/")
+    # If it starts with one of these, let FastAPI return 404 (or your API router handle it)
+    if path.startswith(("api", "auth", "users", "posts", "static")):
         raise HTTPException(status_code=404, detail="Not a frontend route")
+    # Otherwise serve React's index.html
     index_file = os.path.join("frontend", "build", "index.html")
     if os.path.isfile(index_file):
         return FileResponse(index_file)
     raise HTTPException(status_code=404, detail="Frontend not found")
 
-# Local development run
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
