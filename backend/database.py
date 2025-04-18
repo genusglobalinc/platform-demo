@@ -190,16 +190,30 @@ def get_posts_by_user(user_id: str) -> List[dict]:
         logging.error(f"Get posts by user failed: {e}")
         return []
 
-def get_all_posts_from_db() -> List[dict]:
+def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[str]] = None) -> List[dict]:
     try:
         response = posts_table.scan()
         logging.debug("Scanned posts table successfully.")
-        logging.debug(f"Scan posts table response: {response}")  # Log the response
+        logging.debug(f"Scan posts table response: {response}")
         all_items = response.get('Items', [])
         
-        # Filter out old-style posts that don't have 'title' and 'description'
+        # Filter out posts without required fields
         filtered_items = [item for item in all_items if 'title' in item and 'description' in item]
+
+        # Filter by post_type if provided
+        if post_type:
+            filtered_items = [item for item in filtered_items if item.get('post_type') == post_type]
+
+        # Filter by tags if provided
+        if tags:
+            # Match if ANY tag in the item's tags is in the provided tag list
+            filtered_items = [
+                item for item in filtered_items
+                if 'tags' in item and any(tag in item['tags'] for tag in tags)
+            ]
+
         return filtered_items
+
     except ClientError as e:
         logging.error(f"Error scanning posts table: {e}")
         return []

@@ -76,29 +76,31 @@ export default function Feed() {
     const payload = {
       genre: (selectedMain || "Gaming").toLowerCase(),
       post_data: {
-        title: formFields.title,
-        description: formFields.description,
+        title: formFields.title.trim(),
+        description: formFields.description.trim(),
         tags: selectedSub,
       },
     };
 
     if (formFields.studio.trim()) {
-      payload.post_data.studio = formFields.studio;
+      payload.post_data.studio = formFields.studio.trim();
     }
     if (formFields.banner_image.trim()) {
-      payload.post_data.banner_image = formFields.banner_image;
+      payload.post_data.banner_image = formFields.banner_image.trim();
     }
+
     const images = formFields.images
       .split(",")
-      .map((u) => u.trim())
+      .map((img) => img.trim())
       .filter(Boolean);
     if (images.length > 0) {
       payload.post_data.images = images;
     }
+
     if (selectedMain === "Anime") {
       const services = formFields.streaming_services
         .split(",")
-        .map((u) => u.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
       if (services.length > 0) {
         payload.post_data.streaming_services = services;

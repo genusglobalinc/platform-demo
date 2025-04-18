@@ -106,8 +106,12 @@ async def get_filtered_posts(
 
 
 @router.get("")
-async def get_all_posts_alias():
-    posts = get_all_posts_from_db()
+async def get_all_posts_alias(
+    genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
+    tags: Optional[str] = Query(None, description="Comma-separated list of tags"),
+):
+    tag_list = tags.split(",") if tags else []
+    posts = get_all_posts_from_db(post_type=genre, tags=tag_list if tags else None)
 
     # Ensure that all posts are serialized correctly before returning
     serialized_posts = json.dumps(posts, default=str)  # Convert objects like datetime to strings
@@ -118,8 +122,12 @@ async def get_all_posts_alias():
     "/",
     dependencies=[Depends(RateLimiter(times=40, seconds=60))]
 )
-async def get_all_posts():
-    posts = get_all_posts_from_db()
+async def get_all_posts(
+    genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
+    tags: Optional[str] = Query(None, description="Comma-separated list of tags"),
+):
+    tag_list = tags.split(",") if tags else []
+    posts = get_all_posts_from_db(post_type=genre, tags=tag_list if tags else None)
 
     # Ensure all posts are serialized correctly
     serialized_posts = json.dumps(posts, default=str)  # Convert any non-serializable data
