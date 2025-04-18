@@ -16,11 +16,20 @@ function Feed() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formContent, setFormContent] = useState("");
+  const [formFields, setFormFields] = useState({
+    title: "",
+    studio: "",
+    banner_image: "",
+    description: "",
+    images: "",
+    streaming_services: "",
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchPosts();
-  }, []); // no longer depends on filters
+  }, []);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -32,7 +41,6 @@ function Feed() {
     }
 
     try {
-      // ⚠️ Changed from "/posts" to "/posts/" so it matches FastAPI's GET /posts/ route
       const res = await fetch("/posts/", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -54,11 +62,10 @@ function Feed() {
         throw new Error("Expected posts to be an array.");
       }
 
-      console.log("fetchPosts - parsed posts:", data.posts);
       setPosts(data.posts);
     } catch (err) {
       console.error("⚠️ Error in fetchPosts:", err);
-      setPosts([]);  // Clear posts on error
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -68,11 +75,21 @@ function Feed() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    // Ensure the genre is selected
     if (!selectedMain) {
       console.error("Please select a genre.");
       return;
     }
+
+    const postData = {
+      content: formContent,
+      genre: selectedMain,
+      subgenres: selectedSub,
+      ...formFields,
+      images: formFields.images.split(",").map((img) => img.trim()),
+      streaming_services: selectedMain === "Anime"
+        ? formFields.streaming_services.split(",").map((s) => s.trim())
+        : undefined,
+    };
 
     try {
       const response = await fetch("/posts/", {
@@ -81,13 +98,7 @@ function Feed() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          post_data: {
-            content: formContent,
-            genre: selectedMain,
-            subgenres: selectedSub,  // Include selected subgenres
-          },
-        }),
+        body: JSON.stringify({ post_data: postData }),
       });
 
       if (!response.ok) throw new Error("Failed to create post");
@@ -95,6 +106,14 @@ function Feed() {
       setFormContent("");
       setSelectedMain("");
       setSelectedSub([]);
+      setFormFields({
+        title: "",
+        studio: "",
+        banner_image: "",
+        description: "",
+        images: "",
+        streaming_services: "",
+      });
       setShowCreateModal(false);
       fetchPosts();
     } catch (err) {
@@ -104,7 +123,7 @@ function Feed() {
 
   const handleMainGenre = (genre) => {
     setSelectedMain(genre);
-    setSelectedSub([]); // Reset subgenres when main genre changes
+    setSelectedSub([]);
   };
 
   const toggleSubtype = (sub) => {
@@ -120,7 +139,6 @@ function Feed() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
@@ -133,7 +151,6 @@ function Feed() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
           <button
@@ -149,7 +166,6 @@ function Feed() {
         ))}
       </div>
 
-      {/* Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
@@ -165,7 +181,6 @@ function Feed() {
         ))}
       </div>
 
-      {/* Subtype Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
           {GENRES[selectedMain].map((sub) => (
@@ -183,7 +198,6 @@ function Feed() {
         </div>
       )}
 
-      {/* Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -196,11 +210,11 @@ function Feed() {
         )}
       </div>
 
-      {/* Modal */}
       {showCreateModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
             <h3 style={{ marginBottom: "1rem" }}>Create a Post</h3>
+
             <textarea
               value={formContent}
               onChange={(e) => setFormContent(e.target.value)}
@@ -208,7 +222,29 @@ function Feed() {
               style={styles.textarea}
             />
 
-            {/* Genre Selection */}
+            {["title", "studio", "banner_image", "description", "images"].map((field) => (
+              <input
+                key={field}
+                type="text"
+                placeholder={field.replace("_", " ").toUpperCase()}
+                value={formFields[field]}
+                onChange={(e) => setFormFields({ ...formFields, [field]: e.target.value })}
+                style={styles.textInput}
+              />
+            ))}
+
+            {selectedMain === "Anime" && (
+              <input
+                type="text"
+                placeholder="Streaming Services (comma separated)"
+                value={formFields.streaming_services}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, streaming_services: e.target.value })
+                }
+                style={styles.textInput}
+              />
+            )}
+
             <div style={styles.filterBar}>
               {Object.keys(GENRES).map((main) => (
                 <button
@@ -224,7 +260,6 @@ function Feed() {
               ))}
             </div>
 
-            {/* Subtype Filters */}
             {selectedMain && (
               <div style={styles.subFilterBar}>
                 {GENRES[selectedMain].map((sub) => (
@@ -257,7 +292,6 @@ function Feed() {
   );
 }
 
-// ...styles (unchanged from your original)
 const styles = {
   container: {
     padding: "2rem",
@@ -384,6 +418,15 @@ const styles = {
     padding: "0.5rem",
     marginBottom: "1rem",
     resize: "none",
+  },
+  textInput: {
+    width: "100%",
+    padding: "0.5rem",
+    marginBottom: "0.75rem",
+    background: "#1c1c1c",
+    color: "#fff",
+    border: "1px solid #444",
+    borderRadius: "6px",
   },
   submitButton: {
     background: "#B388EB",
