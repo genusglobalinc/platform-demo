@@ -13,7 +13,7 @@ const PostCard = ({ post }) => {
       <div style={styles.thumbnail}>
         {/* If not hovering, display the image; otherwise, display the video */}
         {!hovering && post.image ? (
-          <img src={post.image} alt={post.title} style={styles.image} />
+          <img src={post.image} alt={post.title || "Post image"} style={styles.image} />
         ) : (
           post.video && (
             <video
@@ -26,11 +26,16 @@ const PostCard = ({ post }) => {
           )
         )}
       </div>
-      <h3 style={styles.title}>{post.title}</h3>
-      {post.tags && (
-        <p style={styles.tags}>
-          {post.tags.join(", ")}
-        </p>
+
+      {/* Optional title */}
+      {post.title && <h3 style={styles.title}>{post.title}</h3>}
+
+      {/* Main post content */}
+      {post.content && <p style={styles.content}>{post.content}</p>}
+
+      {/* Tags if present */}
+      {post.tags && post.tags.length > 0 && (
+        <p style={styles.tags}>{post.tags.join(", ")}</p>
       )}
     </div>
   );
@@ -68,9 +73,15 @@ const styles = {
     fontSize: "1.1rem",
     color: "#fff",
   },
+  content: {
+    fontSize: "1rem",
+    color: "#ccc",
+    marginTop: "0.5rem",
+  },
   tags: {
     fontSize: "0.9rem",
     color: "#aaa",
+    marginTop: "0.3rem",
   },
 };
 
