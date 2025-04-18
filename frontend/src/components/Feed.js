@@ -72,56 +72,52 @@ function Feed() {
   };
 
   const handlePostSubmit = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-  
-    // Only title and description are required
-    if (!formFields.title || !formFields.description) {
-      console.error("Title and Description are required fields.");
+    if (!token) {
+      alert("No token found");
       return;
     }
   
     const postData = {
       content: formContent,
-      genre: selectedMain ? selectedMain : "", // If genre is empty, send an empty string
-      subgenres: selectedSub.length > 0 ? selectedSub : [], // Send an empty array if no subgenres
+      genre: selectedMain || "Anime", // Required field
+      subgenres: selectedSub.length > 0 ? selectedSub : [],
       title: formFields.title,
       description: formFields.description,
-      studio: formFields.studio || "", // Send empty string if studio is not provided
-      banner_image: formFields.banner_image || "", // Empty string for missing banner_image
-      images: formFields.images ? formFields.images.split(",").map((img) => img.trim()) : [], // Ensure images is an empty array if not provided
-      streaming_services: selectedMain === "Anime" && formFields.streaming_services ? formFields.streaming_services.split(",").map((s) => s.trim()) : [], // Only send streaming_services if main genre is Anime
+      studio: formFields.studio || null,
+      banner_image: formFields.banner_image || "https://via.placeholder.com/600x200", // Must be a valid URL
+      images: formFields.images
+        ? formFields.images.split(",").map((img) => img.trim())
+        : [],
+      streaming_services:
+        selectedMain === "Anime" && formFields.streaming_services
+          ? formFields.streaming_services.split(",").map((s) => s.trim())
+          : [],
     };
   
     try {
-      const response = await fetch("/posts/", {
+      const response = await fetch(`/posts/?token=${token}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ post_data: postData }),
+        body: JSON.stringify(postData),
       });
   
-      if (!response.ok) throw new Error("Failed to create post");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to create post", errorData);
+        alert(`Error: ${response.status} - ${errorData.detail?.[0]?.msg || "Unknown error"}`);
+        return;
+      }
   
-      setFormContent("");
-      setSelectedMain("");
-      setSelectedSub([]);
-      setFormFields({
-        title: "",
-        studio: "",
-        banner_image: "",
-        description: "",
-        images: "",
-        streaming_services: "",
-      });
-      setShowCreateModal(false);
-      fetchPosts();
-    } catch (err) {
-      console.error("Error creating post:", err);
+      const result = await response.json();
+      console.log("Post created successfully:", result);
+      alert("Post created successfully!");
+    } catch (error) {
+      console.error("Error creating post", error);
+      alert("An error occurred while creating the post.");
     }
-  }; 
+  };  
 
   const handleMainGenre = (genre) => {
     setSelectedMain(genre);
