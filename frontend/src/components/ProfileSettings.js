@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getProfileData, updateProfile } from "./api"; // ✅ use your shared api helpers
+import { getProfileData, updateProfile } from "../api";
+ // ✅ use your shared api helpers
 
 const profilePics = ["pic1", "pic2", "pic3"];
 
