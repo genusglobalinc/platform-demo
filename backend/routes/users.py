@@ -1,47 +1,39 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from pydantic import BaseModel, EmailStr
-from backend.database import get_user_from_db, update_user_profile
+# backend/routes/user.py
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from typing import Optional, List, Dict
 import logging
 
-router = APIRouter()
+from backend.database import get_user_from_db, update_user_profile
+from backend.utils.security import verify_access_token
+
+router = APIRouter(prefix="/users", tags=["Users"])
 logging.basicConfig(level=logging.DEBUG)
 
-# Existing endpoint to retrieve user profile
+class UpdateProfileRequest(BaseModel):
+    display_name: Optional[str] = None
+    social_links: Optional[Dict[str, str]] = None
+    profile_picture: Optional[str] = None
+
 @router.get("/profile")
-async def get_profile(token: dict = Depends(lambda: _get_verified_token())):
+async def get_profile(token: dict = Depends(verify_access_token)):
     user_id = token.get("sub")
-    from backend.database import get_user_from_db
+    logging.debug(f"Fetching profile for user_id: {user_id}")
     user = get_user_from_db(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-# New model for profile update request
-class UpdateProfileRequest(BaseModel):
-    email: EmailStr  # Using email as the key for identifying the user
-    display_name: str = None
-    social_links: dict = None
-    profile_picture: str = None
-
-# New endpoint for updating user profile
-@router.put("/profile/update")
-async def update_profile(update_data: UpdateProfileRequest, token: dict = Depends(lambda: _get_verified_token())):
-    # Optionally, check if the token's email matches update_data.email
-    updated = update_user_profile(update_data.email, update_data.dict(exclude_unset=True))
-    if not updated:
+@router.put("/profile")
+async def update_profile(
+    update_data: UpdateProfileRequest,
+    token: dict = Depends(verify_access_token)
+):
+    user_id = token.get("sub")
+    updates = update_data.dict(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    success = update_user_profile(user_id, updates)
+    if not success:
         raise HTTPException(status_code=500, detail="Error updating profile")
     return {"message": "Profile updated successfully"}
-
-# Helper function to get verified token; avoids circular import
-def _get_verified_token():
-    from backend.utils.security import verify_access_token
-    return verify_access_token
-
-@router.put("/profile")
-async def update_profile(data: dict, token: dict = Depends(lambda: _get_verified_token())):
-    user_id = token.get("sub")
-    from backend.database import update_user_display_name
-    updated = update_user_display_name(user_id, data.get("display_name"))
-    if not updated:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "Profile updated"}
