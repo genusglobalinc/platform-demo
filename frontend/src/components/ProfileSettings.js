@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+const profilePics = ["pic1", "pic2", "pic3"];
+
 const ProfileSettings = () => {
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [socialLinks, setSocialLinks] = useState("");
+  const [selectedPic, setSelectedPic] = useState("");
   const [status, setStatus] = useState("");
 
   const token = localStorage.getItem("token");
@@ -18,7 +20,9 @@ const ProfileSettings = () => {
         });
         setProfile(res.data);
         setDisplayName(res.data.display_name || "");
-      } catch (err) {
+        setSocialLinks(res.data.social_links || "");
+        setSelectedPic(res.data.profile_picture || profilePics[0]);
+      } catch {
         setStatus("Failed to load profile");
       }
     };
@@ -27,72 +31,94 @@ const ProfileSettings = () => {
 
   const updateProfile = async () => {
     try {
-      await axios.put(
-        "/users/profile",
-        { display_name: displayName },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put("/users/profile", {
+        display_name: displayName,
+        social_links: socialLinks,
+        profile_picture: selectedPic
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStatus("Profile updated!");
-    } catch (err) {
+    } catch {
       setStatus("Error updating profile.");
-    }
-  };
-
-  const changePassword = async () => {
-    try {
-      await axios.post(
-        "/auth/change-password",
-        { old_password: oldPassword, new_password: newPassword },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setStatus("Password changed!");
-    } catch (err) {
-      setStatus("Error changing password.");
     }
   };
 
   if (!profile) return <div>Loading profile...</div>;
 
   return (
-    <div style={{ padding: "1rem", maxWidth: "600px", margin: "auto" }}>
-      <h2>Profile Settings</h2>
-      <p><strong>Username:</strong> {profile.username}</p>
-      <p><strong>Email:</strong> {profile.email}</p>
+    <div style={{ padding: "2rem", maxWidth: "600px", margin: "auto", color: "#eee" }}>
+      <h2 style={{ color: "#B388EB" }}>Profile Settings</h2>
 
-      <hr />
-
-      <h3>Update Display Name</h3>
+      <label>Display Name</label>
       <input
         type="text"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
-        placeholder="Display Name"
-        style={{ width: "100%", padding: "0.5rem", marginBottom: "1rem" }}
+        style={inputStyle}
       />
-      <button onClick={updateProfile}>Save Display Name</button>
 
-      <hr />
-
-      <h3>Change Password</h3>
+      <label>Social Links (comma separated)</label>
       <input
-        type="password"
-        placeholder="Old Password"
-        value={oldPassword}
-        onChange={(e) => setOldPassword(e.target.value)}
-        style={{ width: "100%", padding: "0.5rem", marginBottom: "0.5rem" }}
+        type="text"
+        value={socialLinks}
+        onChange={(e) => setSocialLinks(e.target.value)}
+        style={inputStyle}
       />
-      <input
-        type="password"
-        placeholder="New Password"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        style={{ width: "100%", padding: "0.5rem", marginBottom: "1rem" }}
-      />
-      <button onClick={changePassword}>Change Password</button>
 
-      <p style={{ marginTop: "1rem", color: "green" }}>{status}</p>
+      <p style={{ marginTop: "1rem" }}>Choose a Profile Picture:</p>
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        {profilePics.map((pic) => (
+          <div
+            key={pic}
+            style={{
+              ...picStyle,
+              border: selectedPic === pic ? "3px solid #B388EB" : "2px solid #444"
+            }}
+            onClick={() => setSelectedPic(pic)}
+          >
+            {pic.toUpperCase()}
+          </div>
+        ))}
+      </div>
+
+      <button onClick={updateProfile} style={buttonStyle}>Save Changes</button>
+      <p style={{ marginTop: "1rem", color: "lightgreen" }}>{status}</p>
     </div>
   );
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "0.75rem",
+  marginBottom: "1rem",
+  borderRadius: "6px",
+  border: "1px solid #444",
+  background: "#1e1e1e",
+  color: "#fff"
+};
+
+const buttonStyle = {
+  padding: "0.75rem 1.5rem",
+  background: "#B388EB",
+  color: "#121212",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "bold"
+};
+
+const picStyle = {
+  width: 60,
+  height: 60,
+  borderRadius: "50%",
+  background: "#333",
+  color: "#B388EB",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  fontWeight: "bold"
 };
 
 export default ProfileSettings;

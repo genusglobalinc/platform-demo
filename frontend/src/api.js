@@ -14,8 +14,15 @@ export const api = axios.create({
 export const loginUser = (username, password) =>
   api.post('/auth/token', { username, password });
 
-export const registerUser = (username, email, password) =>
-  api.post('/auth/register', { username, email, password });
+export const registerUser = (username, email, password, display_name, social_links, profile_picture) =>
+  api.post('/auth/register', {
+    username,
+    email,
+    password,
+    display_name,
+    social_links,
+    profile_picture,
+  });
 
 export const forgotPassword = (email) =>
   api.post('/auth/forgot-password', { email });
