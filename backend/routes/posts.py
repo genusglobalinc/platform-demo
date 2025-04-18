@@ -10,7 +10,7 @@ from backend.database import (
 from backend.utils.security import verify_access_token
 from fastapi_limiter.depends import RateLimiter
 
-router = APIRouter(prefix="/posts", tags=["Posts"])
+router = APIRouter(tags=["Posts"])  # removes prefix!
 
 # ---------- Schemas ----------
 
