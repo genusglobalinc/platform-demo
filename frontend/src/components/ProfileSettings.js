@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { getProfileData, updateProfile } from "./api"; // ✅ use your shared api helpers
 
 const profilePics = ["pic1", "pic2", "pic3"];
 
@@ -10,33 +10,27 @@ const ProfileSettings = () => {
   const [selectedPic, setSelectedPic] = useState("");
   const [status, setStatus] = useState("");
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setProfile(res.data);
-        setDisplayName(res.data.display_name || "");
-        setSocialLinks(res.data.social_links || "");
-        setSelectedPic(res.data.profile_picture || profilePics[0]);
-      } catch {
+        const data = await getProfileData(); // ✅ pulls from api.js
+        setProfile(data);
+        setDisplayName(data.display_name || "");
+        setSocialLinks(data.social_links || "");
+        setSelectedPic(data.profile_picture || profilePics[0]);
+      } catch (err) {
         setStatus("Failed to load profile");
       }
     };
     fetchProfile();
-  }, [token]);
+  }, []);
 
-  const updateProfile = async () => {
+  const handleUpdate = async () => {
     try {
-      await axios.put("/users/profile", {
+      await updateProfile({
         display_name: displayName,
         social_links: socialLinks,
         profile_picture: selectedPic
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setStatus("Profile updated!");
     } catch {
@@ -82,7 +76,7 @@ const ProfileSettings = () => {
         ))}
       </div>
 
-      <button onClick={updateProfile} style={buttonStyle}>Save Changes</button>
+      <button onClick={handleUpdate} style={buttonStyle}>Save Changes</button>
       <p style={{ marginTop: "1rem", color: "lightgreen" }}>{status}</p>
     </div>
   );

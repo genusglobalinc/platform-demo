@@ -43,15 +43,16 @@ export const getProfileData = async () => {
   if (!token) {
     throw new Error("No token found");
   }
-  
-  const res = await axios.get(`${API_BASE_URL}/profile`, {
+
+  const res = await api.get('/users/profile', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
-  
+
   return res.data;
 };
+
 
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData) => {
