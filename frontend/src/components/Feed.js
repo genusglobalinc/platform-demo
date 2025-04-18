@@ -11,8 +11,8 @@ const GENRES = {
 
 export default function Feed() {
   const [activeTab, setActiveTab] = useState("Trending");
-  const [selectedMain, setSelectedMain] = useState("");
-  const [selectedSub, setSelectedSub] = useState([]);
+  const [selectedMain, setSelectedMain] = useState(""); // Main genre
+  const [selectedSub, setSelectedSub] = useState([]); // Sub genres (tags)
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -27,6 +27,7 @@ export default function Feed() {
 
   const navigate = useNavigate();
 
+  // Fetch posts based on genre and tags
   useEffect(() => {
     fetchPosts();
   }, [selectedMain, selectedSub]);
@@ -173,7 +174,7 @@ export default function Feed() {
             key={main}
             onClick={() => {
               setSelectedMain(main);
-              setSelectedSub([]);
+              setSelectedSub([]); // Clear sub-genres when changing the main genre
             }}
             style={{
               ...styles.filterButton,
