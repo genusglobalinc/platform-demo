@@ -204,9 +204,8 @@ def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[s
         if post_type:
             filtered_items = [item for item in filtered_items if item.get('post_type') == post_type]
 
-        # Filter by tags if provided
+        # Double filter: If tags are provided, filter posts with any of the tags in the provided list
         if tags:
-            # Match if ANY tag in the item's tags is in the provided tag list
             filtered_items = [
                 item for item in filtered_items
                 if 'tags' in item and any(tag in item['tags'] for tag in tags)
