@@ -104,7 +104,7 @@ function Feed() {
 
   const handleMainGenre = (genre) => {
     setSelectedMain(genre);
-    setSelectedSub([]);
+    setSelectedSub([]); // Reset subgenres when main genre changes
   };
 
   const toggleSubtype = (sub) => {
