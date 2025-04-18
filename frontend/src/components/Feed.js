@@ -1,4 +1,3 @@
-// src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
@@ -9,154 +8,165 @@ const GENRES = {
   Gaming: ["MMO", "First Person Shooter", "Hero Battler"],
 };
 
-export default function Feed() {
+function Feed() {
   const [activeTab, setActiveTab] = useState("Trending");
   const [selectedMain, setSelectedMain] = useState("");
   const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formContent, setFormContent] = useState("");
   const [formFields, setFormFields] = useState({
     title: "",
-    description: "",
     studio: "",
     banner_image: "",
+    description: "",
     images: "",
     streaming_services: "",
   });
 
   const navigate = useNavigate();
 
-  // Fetch feed on mount
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  /** Fetches posts via GET /posts/ */
-  async function fetchPosts() {
+  const fetchPosts = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
     if (!token) {
+      console.error("No token found, redirecting to login.");
       navigate("/login");
       return;
     }
+
     try {
       const res = await fetch("/posts/", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      const body = await res.json();
-      if (!Array.isArray(body.posts)) throw new Error("Invalid response");
-      setPosts(body.posts);
+
+      console.log("fetchPosts - status:", res.status);
+      const rawText = await res.text();
+      console.log("fetchPosts - raw body:", rawText);
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error("Response not valid JSON.");
+      }
+
+      if (!Array.isArray(data.posts)) {
+        throw new Error("Expected posts to be an array.");
+      }
+
+      setPosts(data.posts);
     } catch (err) {
-      console.error("Error loading posts:", err);
+      console.error("⚠️ Error in fetchPosts:", err);
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  /** Handles the POST /posts/ call */
-  async function handlePostSubmit() {
+  const handlePostSubmit = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Not logged in");
-      return;
-    }
-    // Only title & description required
-    if (!formFields.title.trim() || !formFields.description.trim()) {
-      alert("Title and Description are required.");
+      alert("No token found, please login again.");
+      navigate("/login");
       return;
     }
 
-    // Build payload to satisfy Pydantic
-    const payload = {
-      genre: selectedMain || "Gaming",
-      post_data: {
-        title: formFields.title,
-        tags: selectedSub,
-        studio: formFields.studio || "",
-        banner_image:
-          formFields.banner_image ||
-          "https://via.placeholder.com/600x200", // must be valid URL
-        description: formFields.description,
-        images:
-          formFields.images
-            .split(",")
-            .map((u) => u.trim())
-            .filter(Boolean) || [
-            "https://via.placeholder.com/400x200",
-          ],
-        // Only for Anime posts
-        ...(selectedMain === "Anime" && {
-          streaming_services:
-            formFields.streaming_services
-              .split(",")
-              .map((u) => u.trim())
-              .filter(Boolean) || [],
-        }),
-      },
+    if (!formFields.title || !formFields.description) {
+      alert("Please fill in both Title and Description.");
+      return;
+    }
+
+    const postData = {
+      content: formContent,
+      genre: selectedMain || "",
+      subgenres: selectedSub,
+      title: formFields.title,
+      description: formFields.description,
+      studio: formFields.studio || "",
+      banner_image: formFields.banner_image || "",
+      images: formFields.images
+        ? formFields.images.split(",").map((i) => i.trim())
+        : [],
+      streaming_services:
+        selectedMain === "Anime" && formFields.streaming_services
+          ? formFields.streaming_services.split(",").map((s) => s.trim())
+          : [],
     };
 
     try {
-      const res = await fetch("/posts/", {
+      const res = await fetch(`/posts/?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ post_data: postData, genre: selectedMain }),
       });
+
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || res.statusText);
+        console.error("Create post failed:", err);
+        alert(`Error: ${err.detail?.[0]?.msg || res.statusText}`);
+        return;
       }
-      await res.json();
-      setShowCreateModal(false);
-      // reset form
+
+      setFormContent("");
+      setSelectedMain("");
+      setSelectedSub([]);
       setFormFields({
         title: "",
-        description: "",
         studio: "",
         banner_image: "",
+        description: "",
         images: "",
         streaming_services: "",
       });
-      setSelectedMain("");
-      setSelectedSub([]);
+      setShowCreateModal(false);
       fetchPosts();
-    } catch (err) {
-      console.error("Create post failed:", err);
-      alert("Failed to create post: " + err.message);
+    } catch (e) {
+      console.error("Error creating post:", e);
+      alert("An unexpected error occurred.");
     }
-  }
+  };
+
+  const handleMainGenre = (genre) => {
+    setSelectedMain(genre);
+    setSelectedSub([]);
+  };
+
+  const toggleSubtype = (sub) => {
+    setSelectedSub((prev) =>
+      prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
+    );
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
-        <h2 style={styles.title}>Discover Playtests</h2>
-        <div style={styles.headerRight}>
-          <button
-            style={styles.createButton}
-            onClick={() => setShowCreateModal(true)}
-          >
-            + Create Post
-          </button>
-          <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} style={styles.logoutButton}>
-            Logout
-          </button>
-        </div>
+        <h2>Feed</h2>
+        <button onClick={handleLogout}>Logout</button>
       </div>
 
-      {/* Tabs */}
-      <div style={styles.tabContainer}>
+      <div style={styles.tabs}>
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              ...styles.tabButton,
-              ...(activeTab === tab ? styles.activeTab : {}),
+              ...styles.tab,
+              ...(tab === activeTab ? styles.activeTab : {}),
             }}
           >
             {tab}
@@ -164,125 +174,112 @@ export default function Feed() {
         ))}
       </div>
 
-      {/* Genre Filters */}
-      <div style={styles.filterBar}>
-        {Object.keys(GENRES).map((main) => (
-          <button
-            key={main}
-            onClick={() => { setSelectedMain(main); setSelectedSub([]); }}
-            style={{
-              ...styles.filterButton,
-              ...(selectedMain === main ? styles.activeFilter : {}),
-            }}
-          >
-            {main}
-          </button>
-        ))}
+      <div style={styles.createSection}>
+        <button onClick={() => setShowCreateModal(true)}>Create Post</button>
       </div>
 
-      {/* Subtype Filters */}
-      {selectedMain && (
-        <div style={styles.subFilterBar}>
-          {GENRES[selectedMain].map((sub) => (
-            <button
-              key={sub}
-              onClick={() =>
-                setSelectedSub((prev) =>
-                  prev.includes(sub)
-                    ? prev.filter((s) => s !== sub)
-                    : [...prev, sub]
-                )
+      {showCreateModal && (
+        <div style={styles.modal}>
+          <textarea
+            placeholder="Post content..."
+            value={formContent}
+            onChange={(e) => setFormContent(e.target.value)}
+            style={styles.textarea}
+          />
+
+          <input
+            placeholder="Title *"
+            value={formFields.title}
+            onChange={(e) =>
+              setFormFields({ ...formFields, title: e.target.value })
+            }
+          />
+          <input
+            placeholder="Description *"
+            value={formFields.description}
+            onChange={(e) =>
+              setFormFields({ ...formFields, description: e.target.value })
+            }
+          />
+          <input
+            placeholder="Studio"
+            value={formFields.studio}
+            onChange={(e) =>
+              setFormFields({ ...formFields, studio: e.target.value })
+            }
+          />
+          <input
+            placeholder="Banner Image URL"
+            value={formFields.banner_image}
+            onChange={(e) =>
+              setFormFields({ ...formFields, banner_image: e.target.value })
+            }
+          />
+          <input
+            placeholder="Image URLs (comma separated)"
+            value={formFields.images}
+            onChange={(e) =>
+              setFormFields({ ...formFields, images: e.target.value })
+            }
+          />
+          {selectedMain === "Anime" && (
+            <input
+              placeholder="Streaming Services (comma separated)"
+              value={formFields.streaming_services}
+              onChange={(e) =>
+                setFormFields({
+                  ...formFields,
+                  streaming_services: e.target.value,
+                })
               }
-              style={{
-                ...styles.subFilterButton,
-                ...(selectedSub.includes(sub)
-                  ? styles.activeSubFilter
-                  : {}),
-              }}
-            >
-              {sub}
-            </button>
-          ))}
+            />
+          )}
+
+          <div>
+            <h4>Main Genre</h4>
+            {Object.keys(GENRES).map((main) => (
+              <button
+                key={main}
+                onClick={() => handleMainGenre(main)}
+                style={{
+                  margin: 4,
+                  background: selectedMain === main ? "lightblue" : "white",
+                }}
+              >
+                {main}
+              </button>
+            ))}
+          </div>
+
+          {selectedMain && (
+            <div>
+              <h4>Subgenres</h4>
+              {GENRES[selectedMain].map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => toggleSubtype(sub)}
+                  style={{
+                    margin: 4,
+                    background: selectedSub.includes(sub)
+                      ? "lightgreen"
+                      : "white",
+                  }}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <button onClick={handlePostSubmit}>Submit</button>
+          <button onClick={() => setShowCreateModal(false)}>Cancel</button>
         </div>
       )}
 
-      {/* Feed */}
-      <div style={styles.feed}>
-        {loading
-          ? <p>Loading...</p>
-          : posts.length === 0
-            ? <p>No posts found</p>
-            : posts.map((post) => (
-                <PostCard key={post.post_id} post={post} />
-              ))}
-      </div>
-
-      {/* Create‑Post Modal */}
-      {showCreateModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h3>Create a Post</h3>
-
-            {/* Title & Description */}
-            <input
-              style={styles.textInput}
-              placeholder="Title *"
-              value={formFields.title}
-              onChange={(e) =>
-                setFormFields({ ...formFields, title: e.target.value })
-              }
-            />
-            <textarea
-              style={{ ...styles.textInput, height: 80 }}
-              placeholder="Description *"
-              value={formFields.description}
-              onChange={(e) =>
-                setFormFields({ ...formFields, description: e.target.value })
-              }
-            />
-
-            {/* Optional fields */}
-            {["studio", "banner_image", "images"].map((fld) => (
-              <input
-                key={fld}
-                style={styles.textInput}
-                placeholder={fld.replace("_", " ").toUpperCase()}
-                value={formFields[fld]}
-                onChange={(e) =>
-                  setFormFields({ ...formFields, [fld]: e.target.value })
-                }
-              />
-            ))}
-
-            {/* Anime only */}
-            {selectedMain === "Anime" && (
-              <input
-                style={styles.textInput}
-                placeholder="Streaming Services (comma separated)"
-                value={formFields.streaming_services}
-                onChange={(e) =>
-                  setFormFields({
-                    ...formFields,
-                    streaming_services: e.target.value,
-                  })
-                }
-              />
-            )}
-
-            {/* Controls */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button
-                style={styles.cancelButton}
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </button>
-              <button style={styles.submitButton} onClick={handlePostSubmit}>
-                Post
-              </button>
-            </div>
-          </div>
-        </div>
+      {loading ? (
+        <p>Loading posts...</p>
+      ) : (
+        posts.map((post) => <PostCard key={post.id} post={post} />)
       )}
     </div>
   );
@@ -290,113 +287,43 @@ export default function Feed() {
 
 const styles = {
   container: {
-    padding: 24,
-    background: "#111",
-    color: "#fff",
-    minHeight: "100vh",
-    fontFamily: "sans-serif",
+    padding: 20,
+    fontFamily: "Arial, sans-serif",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 10,
   },
-  title: { fontSize: 24 },
-  headerRight: { display: "flex", gap: 8 },
-  createButton: {
-    background: "#B388EB",
-    color: "#000",
-    padding: "8px 16px",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  logoutButton: {
-    background: "#333",
-    color: "#fff",
-    padding: "8px 16px",
-    border: "1px solid #555",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  tabContainer: { display: "flex", gap: 8, marginBottom: 16 },
-  tabButton: {
-    padding: "6px 12px",
-    background: "#222",
-    color: "#ccc",
-    border: "none",
-    borderRadius: 20,
-    cursor: "pointer",
-  },
-  activeTab: { background: "#B388EB", color: "#000" },
-  filterBar: { display: "flex", gap: 8, margin: "12px 0" },
-  filterButton: {
-    padding: "4px 8px",
-    background: "#2a2a2a",
-    color: "#eee",
-    border: "1px solid #444",
-    borderRadius: 15,
-    cursor: "pointer",
-  },
-  activeFilter: { background: "#B388EB", color: "#000" },
-  subFilterBar: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
-  subFilterButton: {
-    padding: "4px 8px",
-    background: "#333",
-    color: "#ddd",
-    border: "1px solid #444",
-    borderRadius: 12,
-    cursor: "pointer",
-  },
-  activeSubFilter: { background: "#B388EB", color: "#000" },
-  feed: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-    gap: 16,
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0, left: 0,
-    width: "100%",
-    height: "100%",
-    background: "rgba(0,0,0,0.7)",
+  tabs: {
     display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
+    gap: 10,
+    marginBottom: 10,
+  },
+  tab: {
+    padding: "6px 12px",
+    border: "1px solid gray",
+    borderRadius: 4,
+    background: "white",
+    cursor: "pointer",
+  },
+  activeTab: {
+    background: "lightgray",
+  },
+  createSection: {
+    marginBottom: 20,
   },
   modal: {
-    background: "#1e1e1e",
-    padding: 24,
-    borderRadius: 10,
-    width: "90%",
-    maxWidth: 500,
+    border: "1px solid black",
+    padding: 10,
+    marginBottom: 20,
+    background: "#f7f7f7",
   },
-  textInput: {
+  textarea: {
     width: "100%",
-    padding: 8,
-    marginBottom: 12,
-    background: "#1c1c1c",
-    color: "#fff",
-    border: "1px solid #444",
-    borderRadius: 6,
-  },
-  cancelButton: {
-    background: "transparent",
-    color: "#ccc",
-    border: "1px solid #666",
-    padding: "8px 16px",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  submitButton: {
-    background: "#B388EB",
-    color: "#000",
-    padding: "8px 16px",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-    fontWeight: "bold",
+    height: 60,
+    marginBottom: 10,
   },
 };
+
+export default Feed;
