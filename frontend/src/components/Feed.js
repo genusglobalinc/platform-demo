@@ -1,4 +1,3 @@
-// src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
@@ -183,7 +182,7 @@ export default function Feed() {
             key={main}
             onClick={() => {
               setSelectedMain(main);
-              setSelectedSub([]);
+              setSelectedSub([]); // Reset tags when genre is changed
             }}
             style={{
               ...styles.filterButton,
@@ -272,7 +271,7 @@ export default function Feed() {
                     key={main}
                     onClick={() => {
                       setSelectedMain(main);
-                      setSelectedSub([]);
+                      setSelectedSub([]); // Reset tags when genre is changed
                     }}
                     style={{
                       ...styles.filterButton,
@@ -356,102 +355,111 @@ const styles = {
     alignItems: "center",
     marginBottom: 24,
   },
-  title: { fontSize: 24 },
-  headerRight: { display: "flex", gap: 8 },
+  title: { fontSize: 28, margin: 0 },
+  headerRight: { display: "flex", gap: 16 },
   createButton: {
-    background: "#B388EB",
-    color: "#000",
+    background: "#5C6BC0",
     padding: "8px 16px",
+    color: "#fff",
+    borderRadius: 8,
     border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
   },
   logoutButton: {
-    background: "#333",
-    color: "#fff",
+    background: "#E57373",
     padding: "8px 16px",
-    border: "1px solid #555",
-    borderRadius: 6,
-    cursor: "pointer",
-  },
-  tabContainer: { display: "flex", gap: 8, marginBottom: 16 },
-  tabButton: {
-    padding: "6px 12px",
-    background: "#222",
-    color: "#ccc",
+    color: "#fff",
+    borderRadius: 8,
     border: "none",
-    borderRadius: 20,
-    cursor: "pointer",
   },
-  activeTab: { background: "#B388EB", color: "#000" },
-  filterBar: { display: "flex", gap: 8, margin: "12px 0" },
-  filterButton: {
-    padding: "4px 8px",
-    background: "#2a2a2a",
-    color: "#eee",
-    border: "1px solid #444",
-    borderRadius: 15,
-    cursor: "pointer",
+  tabContainer: {
+    display: "flex",
+    marginBottom: 16,
+    gap: 16,
   },
-  activeFilter: { background: "#B388EB", color: "#000" },
-  subFilterBar: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
-  subFilterButton: {
-    padding: "4px 8px",
+  tabButton: {
+    padding: "8px 16px",
     background: "#333",
-    color: "#ddd",
-    border: "1px solid #444",
-    borderRadius: 12,
+    border: "none",
+    borderRadius: 8,
     cursor: "pointer",
   },
-  activeSubFilter: { background: "#B388EB", color: "#000" },
+  activeTab: {
+    background: "#5C6BC0",
+  },
+  filterBar: {
+    display: "flex",
+    gap: 12,
+    marginBottom: 16,
+  },
+  filterButton: {
+    padding: "6px 12px",
+    background: "#333",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  activeFilter: {
+    background: "#5C6BC0",
+  },
+  subFilterBar: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 16,
+  },
+  subFilterButton: {
+    padding: "6px 12px",
+    background: "#444",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  activeSubFilter: {
+    background: "#5C6BC0",
+  },
   feed: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
     gap: 16,
   },
   modalOverlay: {
     position: "fixed",
     top: 0,
     left: 0,
-    width: "100%",
-    height: "100%",
-    background: "rgba(0,0,0,0.7)",
+    right: 0,
+    bottom: 0,
+    background: "rgba(0, 0, 0, 0.7)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
   },
   modal: {
-    background: "#1e1e1e",
+    background: "#222",
     padding: 24,
-    borderRadius: 10,
-    width: "90%",
-    maxWidth: 500,
+    borderRadius: 8,
+    width: "400px",
+    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.5)",
   },
   textInput: {
     width: "100%",
-    padding: 8,
-    marginBottom: 12,
-    background: "#1c1c1c",
+    padding: "8px 16px",
+    background: "#333",
     color: "#fff",
     border: "1px solid #444",
-    borderRadius: 6,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   cancelButton: {
-    background: "transparent",
-    color: "#ccc",
-    border: "1px solid #666",
+    background: "#E57373",
     padding: "8px 16px",
-    borderRadius: 6,
-    cursor: "pointer",
+    color: "#fff",
+    borderRadius: 8,
+    border: "none",
   },
   submitButton: {
-    background: "#B388EB",
-    color: "#000",
+    background: "#5C6BC0",
     padding: "8px 16px",
+    color: "#fff",
+    borderRadius: 8,
     border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-    fontWeight: "bold",
   },
 };
