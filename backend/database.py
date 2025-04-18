@@ -190,7 +190,11 @@ def get_all_posts_from_db() -> List[dict]:
         response = posts_table.scan()
         logging.debug("Scanned posts table successfully.")
         logging.debug(f"Scan posts table response: {response}")  # Log the response
-        return response.get('Items', [])
+        all_items = response.get('Items', [])
+        
+        # Filter out old-style posts that don't have 'title' and 'description'
+        filtered_items = [item for item in all_items if 'title' in item and 'description' in item]
+        return filtered_items
     except ClientError as e:
         logging.error(f"Error scanning posts table: {e}")
         return []
