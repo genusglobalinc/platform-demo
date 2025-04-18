@@ -6,6 +6,7 @@ import uuid
 from typing import Optional, List
 import logging
 from backend.utils.security import hash_password
+from fastapi.encoders import jsonable_encoder  # <-- Added this
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
@@ -158,7 +159,8 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     logging.debug(f"Attempting to save post to DB. Data: {post_data}")
 
     try:
-        response = posts_table.put_item(Item=post_data)
+        serialized_data = jsonable_encoder(post_data)  # <-- Use encoder here
+        response = posts_table.put_item(Item=serialized_data)
         logging.debug(f"Post saved successfully. Response: {response}")
         return post_id
     except ClientError as e:
@@ -166,8 +168,6 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     except Exception as e:
         logging.exception(f"[Exception] Unexpected error while saving post: {e}")
     return None
-
-
 
 def get_post_from_db(post_id: str) -> Optional[dict]:
     try:
