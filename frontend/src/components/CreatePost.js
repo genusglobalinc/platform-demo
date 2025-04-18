@@ -1,53 +1,52 @@
-// frontend/src/components/CreatePost.js
 import React, { useState } from "react";
 import axios from "axios";
 
 const CreatePost = ({ token, onPostCreated }) => {
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState(""); // Tags input
-  const [studio, setStudio] = useState(""); // Studio input
-  const [bannerImage, setBannerImage] = useState(""); // Banner image URL
-  const [description, setDescription] = useState(""); // Post description
-  const [images, setImages] = useState(""); // List of image URLs
-  const [genre, setGenre] = useState("gaming"); // Default genre
-  const [accessInstructions, setAccessInstructions] = useState(""); // Optional for gaming posts
-  const [hasNda, setHasNda] = useState(false); // Optional for gaming posts
-  const [rewards, setRewards] = useState(""); // Optional for gaming posts
-  const [sharePostToSocials, setSharePostToSocials] = useState(false); // Optional for gaming posts
-  const [streamingServices, setStreamingServices] = useState(""); // Optional for anime posts
-  const [trailerUrl, setTrailerUrl] = useState(""); // Optional for anime posts
+  const [tags, setTags] = useState("");
+  const [subgenres, setSubgenres] = useState(""); // NEW
+  const [studio, setStudio] = useState("");
+  const [bannerImage, setBannerImage] = useState("");
+  const [description, setDescription] = useState("");
+  const [images, setImages] = useState("");
+  const [genre, setGenre] = useState("gaming");
+  const [accessInstructions, setAccessInstructions] = useState("");
+  const [hasNda, setHasNda] = useState(false);
+  const [rewards, setRewards] = useState("");
+  const [sharePostToSocials, setSharePostToSocials] = useState(false);
+  const [streamingServices, setStreamingServices] = useState("");
+  const [trailerUrl, setTrailerUrl] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !tags || !studio || !bannerImage || !description || !images) {
-      setError("All fields are required.");
+    if (!title || !tags || !subgenres || !studio || !bannerImage || !description || !images) {
+      setError("All required fields must be filled.");
       return;
     }
 
     const postData = {
-      genre, // 'gaming' or 'anime'
-      post_data: genre === "gaming" ? {
+      genre,
+      post_data: {
         title,
-        tags: tags.split(","),
+        tags: tags.split(",").map(tag => tag.trim()),
+        subgenres: subgenres.split(",").map(sg => sg.trim()),
         studio,
         banner_image: bannerImage,
         description,
-        images: images.split(","),
-        access_instructions: accessInstructions,
-        has_nda: hasNda,
-        rewards,
-        share_post_to_socials: sharePostToSocials,
-      } : {
-        title,
-        tags: tags.split(","),
-        studio,
-        banner_image: bannerImage,
-        description,
-        images: images.split(","),
-        streaming_services: streamingServices.split(","),
-        trailer_url: trailerUrl,
+        images: images.split(",").map(img => img.trim()),
+        ...(genre === "gaming"
+          ? {
+              access_instructions: accessInstructions,
+              has_nda: hasNda,
+              rewards,
+              share_post_to_socials: sharePostToSocials,
+            }
+          : {
+              streaming_services: streamingServices.split(",").map(s => s.trim()),
+              trailer_url: trailerUrl,
+            }),
       },
     };
 
@@ -65,6 +64,7 @@ const CreatePost = ({ token, onPostCreated }) => {
       if (response.data?.post_id) {
         setTitle("");
         setTags("");
+        setSubgenres(""); // Reset
         setStudio("");
         setBannerImage("");
         setDescription("");
@@ -79,6 +79,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         onPostCreated?.(response.data.post_id);
       }
     } catch (err) {
+      console.error(err);
       setError("Failed to create post.");
     }
   };
@@ -87,7 +88,7 @@ const CreatePost = ({ token, onPostCreated }) => {
     <form onSubmit={handleSubmit} className="create-post-form">
       <h2>Create Post</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
-      
+
       <input
         type="text"
         placeholder="Title"
@@ -100,6 +101,13 @@ const CreatePost = ({ token, onPostCreated }) => {
         placeholder="Tags (comma-separated)"
         value={tags}
         onChange={(e) => setTags(e.target.value)}
+        required
+      />
+      <input
+        type="text"
+        placeholder="Subgenres (comma-separated)"
+        value={subgenres}
+        onChange={(e) => setSubgenres(e.target.value)}
         required
       />
       <input
@@ -124,21 +132,19 @@ const CreatePost = ({ token, onPostCreated }) => {
       />
       <input
         type="text"
-        placeholder="Images URLs (comma-separated)"
+        placeholder="Image URLs (comma-separated)"
         value={images}
         onChange={(e) => setImages(e.target.value)}
         required
       />
-      
-      <div>
-        <label>
-          Genre:
-          <select value={genre} onChange={(e) => setGenre(e.target.value)}>
-            <option value="gaming">Gaming</option>
-            <option value="anime">Anime</option>
-          </select>
-        </label>
-      </div>
+
+      <label>
+        Genre:
+        <select value={genre} onChange={(e) => setGenre(e.target.value)}>
+          <option value="gaming">Gaming</option>
+          <option value="anime">Anime</option>
+        </select>
+      </label>
 
       {genre === "gaming" && (
         <>
