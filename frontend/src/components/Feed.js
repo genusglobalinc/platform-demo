@@ -68,6 +68,12 @@ function Feed() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    // Ensure the genre is selected
+    if (!selectedMain) {
+      console.error("Please select a genre.");
+      return;
+    }
+
     try {
       const response = await fetch("/posts/", {
         method: "POST",
@@ -75,12 +81,20 @@ function Feed() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content: formContent }),
+        body: JSON.stringify({
+          post_data: {
+            content: formContent,
+            genre: selectedMain,
+            subgenres: selectedSub,  // Include selected subgenres
+          },
+        }),
       });
 
       if (!response.ok) throw new Error("Failed to create post");
 
       setFormContent("");
+      setSelectedMain("");
+      setSelectedSub([]);
       setShowCreateModal(false);
       fetchPosts();
     } catch (err) {
@@ -193,6 +207,41 @@ function Feed() {
               placeholder="What's on your mind?"
               style={styles.textarea}
             />
+
+            {/* Genre Selection */}
+            <div style={styles.filterBar}>
+              {Object.keys(GENRES).map((main) => (
+                <button
+                  key={main}
+                  onClick={() => handleMainGenre(main)}
+                  style={{
+                    ...styles.filterButton,
+                    ...(selectedMain === main ? styles.activeFilter : {}),
+                  }}
+                >
+                  {main}
+                </button>
+              ))}
+            </div>
+
+            {/* Subtype Filters */}
+            {selectedMain && (
+              <div style={styles.subFilterBar}>
+                {GENRES[selectedMain].map((sub) => (
+                  <button
+                    key={sub}
+                    onClick={() => toggleSubtype(sub)}
+                    style={{
+                      ...styles.subFilterButton,
+                      ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
+                    }}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
               <button onClick={() => setShowCreateModal(false)} style={styles.cancelButton}>
                 Cancel
