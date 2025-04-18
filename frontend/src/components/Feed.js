@@ -27,12 +27,10 @@ export default function Feed() {
 
   const navigate = useNavigate();
 
-  // Fetch feed on mount
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  /** Fetches posts via GET /posts/ */
   async function fetchPosts() {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -55,20 +53,17 @@ export default function Feed() {
     }
   }
 
-  /** Handles the POST /posts/ call */
   async function handlePostSubmit() {
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Not logged in");
       return;
     }
-    // Only title & description required
     if (!formFields.title.trim() || !formFields.description.trim()) {
       alert("Title and Description are required.");
       return;
     }
 
-    // Build payload to satisfy Pydantic
     const payload = {
       genre: (selectedMain || "Gaming").toLowerCase(),
       post_data: {
@@ -76,15 +71,13 @@ export default function Feed() {
         tags: selectedSub,
         studio: formFields.studio || "",
         banner_image:
-          formFields.banner_image ||
-          "https://via.placeholder.com/600x200", // must be valid URL
+          formFields.banner_image || "https://via.placeholder.com/600x200",
         description: formFields.description,
         images:
           formFields.images
             .split(",")
             .map((u) => u.trim())
             .filter(Boolean) || [],
-        // Only for Anime posts
         ...(selectedMain === "Anime" && {
           streaming_services:
             formFields.streaming_services
@@ -110,7 +103,6 @@ export default function Feed() {
       }
       await res.json();
       setShowCreateModal(false);
-      // reset form
       setFormFields({
         title: "",
         description: "",
@@ -130,7 +122,6 @@ export default function Feed() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
@@ -152,7 +143,6 @@ export default function Feed() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
           <button
@@ -168,7 +158,6 @@ export default function Feed() {
         ))}
       </div>
 
-      {/* Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
@@ -187,7 +176,6 @@ export default function Feed() {
         ))}
       </div>
 
-      {/* Subtype Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
           {GENRES[selectedMain].map((sub) => (
@@ -211,7 +199,6 @@ export default function Feed() {
         </div>
       )}
 
-      {/* Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -222,13 +209,11 @@ export default function Feed() {
         )}
       </div>
 
-      {/* Create‑Post Modal */}
       {showCreateModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
             <h3>Create a Post</h3>
 
-            {/* Title & Description */}
             <input
               style={styles.textInput}
               placeholder="Title *"
@@ -246,7 +231,6 @@ export default function Feed() {
               }
             />
 
-            {/* Optional fields */}
             {["studio", "banner_image", "images"].map((fld) => (
               <input
                 key={fld}
@@ -259,7 +243,55 @@ export default function Feed() {
               />
             ))}
 
-            {/* Anime only */}
+            {/* Genre selector inside modal */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", marginBottom: 4 }}>
+                Genre (required)
+              </label>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                {Object.keys(GENRES).map((main) => (
+                  <button
+                    key={main}
+                    onClick={() => {
+                      setSelectedMain(main);
+                      setSelectedSub([]);
+                    }}
+                    style={{
+                      ...styles.filterButton,
+                      ...(selectedMain === main ? styles.activeFilter : {}),
+                    }}
+                  >
+                    {main}
+                  </button>
+                ))}
+              </div>
+
+              {selectedMain && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {GENRES[selectedMain].map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() =>
+                        setSelectedSub((prev) =>
+                          prev.includes(sub)
+                            ? prev.filter((s) => s !== sub)
+                            : [...prev, sub]
+                        )
+                      }
+                      style={{
+                        ...styles.subFilterButton,
+                        ...(selectedSub.includes(sub)
+                          ? styles.activeSubFilter
+                          : {}),
+                      }}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {selectedMain === "Anime" && (
               <input
                 style={styles.textInput}
@@ -274,7 +306,6 @@ export default function Feed() {
               />
             )}
 
-            {/* Controls */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button
                 style={styles.cancelButton}
@@ -362,7 +393,8 @@ const styles = {
   },
   modalOverlay: {
     position: "fixed",
-    top: 0, left: 0,
+    top: 0,
+    left: 0,
     width: "100%",
     height: "100%",
     background: "rgba(0,0,0,0.7)",
