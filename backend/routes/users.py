@@ -7,7 +7,7 @@ import logging
 from backend.database import get_user_from_db, update_user_profile
 from backend.utils.security import verify_access_token
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(tags=["Users"])  # ⬅️ remove `prefix="/users"`
 logging.basicConfig(level=logging.DEBUG)
 
 class UpdateProfileRequest(BaseModel):
@@ -15,7 +15,7 @@ class UpdateProfileRequest(BaseModel):
     social_links: Optional[Dict[str, str]] = None
     profile_picture: Optional[str] = None
 
-@router.get("/users/profile")
+@router.get("/profile")
 async def get_profile(token: dict = Depends(verify_access_token)):
     user_id = token.get("sub")
     logging.debug(f"Fetching profile for user_id: {user_id}")
@@ -24,7 +24,7 @@ async def get_profile(token: dict = Depends(verify_access_token)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.put("/users/profile")
+@router.put("/profile")
 async def update_profile(
     update_data: UpdateProfileRequest,
     token: dict = Depends(verify_access_token)
