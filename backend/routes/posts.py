@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, HttpUrl
 from typing import List, Union, Optional
-from pydantic.json import pydantic_encoder
 import json
 
 from backend.database import (
@@ -17,7 +16,7 @@ from fastapi_limiter.depends import RateLimiter
 # This will read the bearer token from the Authorization header for us
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
-router = APIRouter(tags=["Posts"])  # prefix is applied when you include this router in app
+router = APIRouter(tags=["Posts"])
 
 # ---------- Schemas ----------
 
@@ -53,7 +52,7 @@ class PostCreateRequest(BaseModel):
 )
 async def create_post(
     post_data: PostCreateRequest,
-    token: str = Depends(oauth2_scheme),           # <-- pull token from header
+    token: str = Depends(oauth2_scheme),
 ):
     payload = verify_access_token(token)
     user_id = payload.get("sub")
@@ -62,7 +61,7 @@ async def create_post(
     if genre not in ["gaming", "anime"]:
         raise HTTPException(status_code=400, detail="Invalid genre specified")
 
-    # ✅ Ensure serializable payload before sending to DynamoDB
+    # Ensure serializable payload before sending to DynamoDB
     serialized_post_data = post_data.post_data.model_dump()
 
     post_id = create_post_in_db(serialized_post_data, user_id)
@@ -99,7 +98,11 @@ async def get_filtered_posts(
 
 @router.get("")
 async def get_all_posts_alias():
-    return {"posts": get_all_posts_from_db()}
+    posts = get_all_posts_from_db()
+
+    # Ensure that all posts are serialized correctly before returning
+    serialized_posts = json.dumps(posts, default=str)  # Convert objects like datetime to strings
+    return {"posts": json.loads(serialized_posts)}  # Convert the serialized string back to a JSON object
 
 
 @router.get(
@@ -108,4 +111,8 @@ async def get_all_posts_alias():
 )
 async def get_all_posts():
     posts = get_all_posts_from_db()
-    return {"posts": posts}
+
+    # Ensure all posts are serialized correctly
+    serialized_posts = json.dumps(posts, default=str)  # Convert any non-serializable data
+    return {"posts": json.loads(serialized_posts)}  # Convert the serialized string back to JSON
+
