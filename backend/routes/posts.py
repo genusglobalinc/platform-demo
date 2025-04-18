@@ -63,7 +63,7 @@ async def create_post(
         raise HTTPException(status_code=400, detail="Invalid genre specified")
 
     # ✅ Ensure serializable payload before sending to DynamoDB
-    serialized_post_data = json.loads(json.dumps(post_data.post_data.dict(), default=pydantic_encoder))
+    serialized_post_data = post_data.post_data.model_dump()
 
     post_id = create_post_in_db(serialized_post_data, user_id)
     if not post_id:
