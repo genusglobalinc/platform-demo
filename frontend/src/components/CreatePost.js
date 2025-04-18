@@ -4,7 +4,7 @@ import axios from "axios";
 const CreatePost = ({ token, onPostCreated }) => {
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState("");
-  const [subgenres, setSubgenres] = useState(""); // NEW
+  const [subgenres, setSubgenres] = useState("");
   const [studio, setStudio] = useState("");
   const [bannerImage, setBannerImage] = useState("");
   const [description, setDescription] = useState("");
@@ -26,28 +26,42 @@ const CreatePost = ({ token, onPostCreated }) => {
       return;
     }
 
+    const basePost = {
+      title,
+      studio,
+      banner_image: bannerImage,
+      description,
+      tags: tags.split(",").map((t) => t.trim()),
+      subgenres: subgenres.split(",").map((s) => s.trim()),
+      images: images.split(",").map((img) => img.trim()),
+    };
+
+    let fullPostData = {};
+
+    if (genre === "gaming") {
+      fullPostData = {
+        ...basePost,
+        access_instructions: accessInstructions,
+        has_nda: hasNda,
+        rewards,
+        share_post_to_socials: sharePostToSocials,
+      };
+    } else if (genre === "anime") {
+      if (!streamingServices) {
+        setError("Streaming services are required for anime posts.");
+        return;
+      }
+
+      fullPostData = {
+        ...basePost,
+        streaming_services: streamingServices.split(",").map((s) => s.trim()),
+        trailer_url: trailerUrl,
+      };
+    }
+
     const postData = {
       genre,
-      post_data: {
-        title,
-        tags: tags.split(",").map(tag => tag.trim()),
-        subgenres: subgenres.split(",").map(sg => sg.trim()),
-        studio,
-        banner_image: bannerImage,
-        description,
-        images: images.split(",").map(img => img.trim()),
-        ...(genre === "gaming"
-          ? {
-              access_instructions: accessInstructions,
-              has_nda: hasNda,
-              rewards,
-              share_post_to_socials: sharePostToSocials,
-            }
-          : {
-              streaming_services: streamingServices.split(",").map(s => s.trim()),
-              trailer_url: trailerUrl,
-            }),
-      },
+      post_data: fullPostData,
     };
 
     try {
@@ -64,7 +78,7 @@ const CreatePost = ({ token, onPostCreated }) => {
       if (response.data?.post_id) {
         setTitle("");
         setTags("");
-        setSubgenres(""); // Reset
+        setSubgenres("");
         setStudio("");
         setBannerImage("");
         setDescription("");
@@ -76,11 +90,12 @@ const CreatePost = ({ token, onPostCreated }) => {
         setSharePostToSocials(false);
         setStreamingServices("");
         setTrailerUrl("");
+        setError("");
         onPostCreated?.(response.data.post_id);
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to create post.");
+      setError(err.response?.data?.detail || "Failed to create post.");
     }
   };
 
@@ -186,6 +201,7 @@ const CreatePost = ({ token, onPostCreated }) => {
             placeholder="Streaming Services (comma-separated)"
             value={streamingServices}
             onChange={(e) => setStreamingServices(e.target.value)}
+            required
           />
           <input
             type="url"
