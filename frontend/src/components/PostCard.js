@@ -4,6 +4,11 @@ import React, { useState } from "react";
 const PostCard = ({ post }) => {
   const [hovering, setHovering] = useState(false);
 
+  const getContentPreview = (text, maxLength = 100) => {
+    if (!text) return "";
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  };
+
   return (
     <div
       style={styles.card}
@@ -30,8 +35,8 @@ const PostCard = ({ post }) => {
       {/* Optional title */}
       {post.title && <h3 style={styles.title}>{post.title}</h3>}
 
-      {/* Main post content */}
-      {post.content && <p style={styles.content}>{post.content}</p>}
+      {/* Content preview */}
+      {post.content && <p style={styles.content}>{getContentPreview(post.content)}</p>}
 
       {/* Tags if present */}
       {post.tags && post.tags.length > 0 && (
