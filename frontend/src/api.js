@@ -38,7 +38,7 @@ export const updateProfile = (profileData, token) =>
 
 export const getProfileData = async () => {
   const token = localStorage.getItem("token");
-  const res = await axios.get("/api/profile", {
+  const res = await axios.get("/profile", {
     headers: {
       Authorization: `Bearer ${token}`
     }
