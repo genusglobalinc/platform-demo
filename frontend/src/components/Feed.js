@@ -75,8 +75,9 @@ function Feed() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    if (!selectedMain) {
-      console.error("Please select a genre.");
+    // Only title and description are required
+    if (!formFields.title || !formFields.description) {
+      console.error("Title and Description are required fields.");
       return;
     }
 
