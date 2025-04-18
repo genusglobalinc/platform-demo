@@ -74,16 +74,16 @@ function Feed() {
   const handlePostSubmit = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
+  
     // Only title and description are required
     if (!formFields.title || !formFields.description) {
       console.error("Title and Description are required fields.");
       return;
     }
-
+  
     const postData = {
       content: formContent,
-      genre: selectedMain || "DefaultGenre", // Default to "DefaultGenre" if empty
+      genre: selectedMain ? selectedMain : "", // If genre is empty, send an empty string
       subgenres: selectedSub.length > 0 ? selectedSub : [], // Send an empty array if no subgenres
       title: formFields.title,
       description: formFields.description,
@@ -92,7 +92,7 @@ function Feed() {
       images: formFields.images ? formFields.images.split(",").map((img) => img.trim()) : [], // Ensure images is an empty array if not provided
       streaming_services: selectedMain === "Anime" && formFields.streaming_services ? formFields.streaming_services.split(",").map((s) => s.trim()) : [], // Only send streaming_services if main genre is Anime
     };
-
+  
     try {
       const response = await fetch("/posts/", {
         method: "POST",
@@ -102,9 +102,9 @@ function Feed() {
         },
         body: JSON.stringify({ post_data: postData }),
       });
-
+  
       if (!response.ok) throw new Error("Failed to create post");
-
+  
       setFormContent("");
       setSelectedMain("");
       setSelectedSub([]);
@@ -121,7 +121,7 @@ function Feed() {
     } catch (err) {
       console.error("Error creating post:", err);
     }
-  };
+  }; 
 
   const handleMainGenre = (genre) => {
     setSelectedMain(genre);
@@ -306,128 +306,145 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: "1.5rem",
   },
   title: {
-    fontSize: "2rem",
+    fontSize: "1.8rem",
   },
   headerRight: {
     display: "flex",
     gap: "1rem",
   },
   createButton: {
+    background: "#B388EB",
+    color: "#000",
     padding: "0.5rem 1rem",
-    background: "#0a84ff",
-    color: "#fff",
     border: "none",
+    borderRadius: "6px",
+    fontWeight: "bold",
     cursor: "pointer",
   },
   logoutButton: {
-    padding: "0.5rem 1rem",
-    background: "#f44336",
+    background: "#333",
     color: "#fff",
-    border: "none",
+    padding: "0.5rem 1rem",
+    border: "1px solid #555",
+    borderRadius: "6px",
     cursor: "pointer",
   },
   tabContainer: {
     display: "flex",
-    gap: "1rem",
-    margin: "1rem 0",
+    gap: "0.5rem",
+    marginBottom: "1rem",
   },
   tabButton: {
     padding: "0.5rem 1rem",
-    background: "#333",
-    color: "#fff",
-    border: "1px solid #444",
+    background: "#222",
+    color: "#ccc",
+    border: "none",
+    borderRadius: "20px",
     cursor: "pointer",
   },
   activeTab: {
-    background: "#0a84ff",
+    background: "#B388EB",
+    color: "#000",
   },
   filterBar: {
-    marginTop: "1rem",
     display: "flex",
-    gap: "1rem",
-    marginBottom: "1rem",
+    gap: "0.5rem",
+    flexWrap: "wrap",
+    marginBottom: "0.5rem",
   },
   filterButton: {
-    padding: "0.5rem 1rem",
-    background: "#333",
-    color: "#fff",
+    padding: "0.4rem 0.8rem",
+    background: "#2a2a2a",
+    color: "#eee",
     border: "1px solid #444",
+    borderRadius: "15px",
     cursor: "pointer",
   },
   activeFilter: {
-    background: "#0a84ff",
+    background: "#B388EB",
+    color: "#1e1e1e",
   },
   subFilterBar: {
-    marginTop: "1rem",
     display: "flex",
-    gap: "1rem",
+    gap: "0.5rem",
+    flexWrap: "wrap",
+    marginBottom: "1.5rem",
   },
   subFilterButton: {
-    padding: "0.5rem 1rem",
+    padding: "0.3rem 0.7rem",
     background: "#333",
-    color: "#fff",
+    color: "#ddd",
     border: "1px solid #444",
+    borderRadius: "12px",
     cursor: "pointer",
   },
   activeSubFilter: {
-    background: "#0a84ff",
+    background: "#B388EB",
+    color: "#1e1e1e",
   },
   feed: {
-    display: "flex",
-    flexDirection: "column",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: "1rem",
   },
   modalOverlay: {
     position: "fixed",
     top: 0,
     left: 0,
-    width: "100%",
-    height: "100%",
-    background: "rgba(0, 0, 0, 0.5)",
+    height: "100vh",
+    width: "100vw",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1000,
   },
   modal: {
-    background: "#222",
+    background: "#1e1e1e",
     padding: "2rem",
-    borderRadius: "8px",
-    maxWidth: "600px",
-    width: "100%",
+    borderRadius: "10px",
+    width: "90%",
+    maxWidth: "500px",
+    boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)",
   },
   textarea: {
     width: "100%",
-    height: "150px",
-    padding: "1rem",
-    background: "#444",
+    height: "120px",
+    background: "#111",
     color: "#fff",
-    border: "none",
-    borderRadius: "8px",
+    border: "1px solid #444",
+    borderRadius: "6px",
+    padding: "0.5rem",
     marginBottom: "1rem",
+    resize: "none",
   },
   textInput: {
     width: "100%",
     padding: "0.5rem",
-    background: "#444",
+    marginBottom: "0.75rem",
+    background: "#1c1c1c",
     color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    marginBottom: "1rem",
-  },
-  cancelButton: {
-    padding: "0.5rem 1rem",
-    background: "#f44336",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
+    border: "1px solid #444",
+    borderRadius: "6px",
   },
   submitButton: {
+    background: "#B388EB",
+    color: "#000",
     padding: "0.5rem 1rem",
-    background: "#0a84ff",
-    color: "#fff",
     border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    background: "transparent",
+    color: "#ccc",
+    border: "1px solid #666",
+    padding: "0.5rem 1rem",
+    borderRadius: "6px",
     cursor: "pointer",
   },
 };
