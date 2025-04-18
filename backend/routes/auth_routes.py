@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import timedelta
-from backend.utils.security import create_access_token, verify_access_token, verify_password
+from backend.utils.security import create_access_token, verify_access_token, verify_password, get_current_user
 from backend.database import (
     get_user_by_username,
     get_user_by_email,
@@ -187,3 +187,17 @@ async def reset_password(request: ResetPasswordRequest):
     except Exception as e:
         logging.exception("Reset password flow failed")
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+@router.get("/profile")
+async def get_profile_data(current_user: dict = Depends(get_current_user)):
+    return {
+        "user_id": current_user["user_id"],
+        "username": current_user["username"],
+        "display_name": current_user.get("display_name", ""),
+        "email": current_user["email"],
+        "social_links": current_user.get("social_links", ""),
+        "followers": current_user.get("followers", 0),
+        "following": current_user.get("following", 0),
+        "liked_posts": current_user.get("liked_posts", []),
+        "profile_pic": current_user.get("profile_pic", "")
+    }

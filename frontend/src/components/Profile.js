@@ -1,15 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getProfileData } from "../api"; // You'll create this helper if not done
 
 export default function Profile() {
+  const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getProfileData(); // Uses auth token internally
+        setProfile(data);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+        // Optional: redirect if not authenticated
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>My Profile</h2>
         <div style={styles.headerRight}>
-          <button style={styles.backButton} onClick={() => navigate("/")}>
+          <button style={styles.backButton} onClick={() => navigate("/feed")}>
             ← Feed
           </button>
           <button
@@ -20,10 +36,21 @@ export default function Profile() {
           </button>
         </div>
       </div>
-      <p style={styles.details}>
-        Profile details, followers, and liked posts will be displayed here.
-      </p>
-      {/* ...you can render more profile info here */}
+
+      {profile ? (
+        <div style={styles.details}>
+          <p><strong>Username:</strong> {profile.username}</p>
+          <p><strong>Display Name:</strong> {profile.display_name}</p>
+          <p><strong>Email:</strong> {profile.email}</p>
+          <p><strong>Social Links:</strong> {profile.social_links}</p>
+          <p><strong>Followers:</strong> {profile.followers}</p>
+          <p><strong>Following:</strong> {profile.following}</p>
+          <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
+          <p><strong>Profile Pic:</strong> {profile.profile_pic}</p>
+        </div>
+      ) : (
+        <p style={styles.details}>Loading profile...</p>
+      )}
     </div>
   );
 }
@@ -69,5 +96,6 @@ const styles = {
   },
   details: {
     fontSize: "1.1rem",
+    lineHeight: "1.7",
   },
 };

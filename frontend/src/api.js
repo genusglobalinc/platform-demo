@@ -36,6 +36,16 @@ export const updateProfile = (profileData, token) =>
     headers: { Authorization: `Bearer ${token}` },
   });
 
+export const getProfileData = async () => {
+  const token = localStorage.getItem("token");
+  const res = await axios.get("/api/profile", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return res.data;
+};  
+
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData, token) =>
   api.post('/posts/create', postData, {
