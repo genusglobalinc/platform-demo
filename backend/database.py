@@ -7,6 +7,7 @@ from typing import Optional, List
 import logging
 from backend.utils.security import hash_password
 from fastapi.encoders import jsonable_encoder  # <-- Added this
+from typing import Optional, Dict  # Ensure Dict is imported from typing
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
