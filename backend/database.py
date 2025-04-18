@@ -139,14 +139,19 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
         'user_id': user_id,
         'created_at': str(datetime.utcnow())
     })
+
+    logging.debug(f"Attempting to save post to DB. Data: {post_data}")
+
     try:
         response = posts_table.put_item(Item=post_data)
-        logging.debug(f"Created post: {post_data}")
-        logging.debug(f"Create post response: {response}")  # Log the response
+        logging.debug(f"Post saved successfully. Response: {response}")
         return post_id
     except ClientError as e:
-        logging.error(f"Create post failed: {e}")
-        return None
+        logging.error(f"[ClientError] Failed to create post in DB: {e.response['Error']['Message']}")
+    except Exception as e:
+        logging.exception(f"[Exception] Unexpected error while saving post: {e}")
+    return None
+
 
 def get_post_from_db(post_id: str) -> Optional[dict]:
     try:
