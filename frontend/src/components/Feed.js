@@ -70,7 +70,7 @@ export default function Feed() {
 
     // Build payload to satisfy Pydantic
     const payload = {
-      genre: selectedMain || "Gaming",
+      genre: (selectedMain || "Gaming").toLowerCase(),
       post_data: {
         title: formFields.title,
         tags: selectedSub,
@@ -83,9 +83,7 @@ export default function Feed() {
           formFields.images
             .split(",")
             .map((u) => u.trim())
-            .filter(Boolean) || [
-            "https://via.placeholder.com/400x200",
-          ],
+            .filter(Boolean) || [],
         // Only for Anime posts
         ...(selectedMain === "Anime" && {
           streaming_services:
@@ -142,7 +140,13 @@ export default function Feed() {
           >
             + Create Post
           </button>
-          <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} style={styles.logoutButton}>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/login");
+            }}
+            style={styles.logoutButton}
+          >
             Logout
           </button>
         </div>
@@ -169,7 +173,10 @@ export default function Feed() {
         {Object.keys(GENRES).map((main) => (
           <button
             key={main}
-            onClick={() => { setSelectedMain(main); setSelectedSub([]); }}
+            onClick={() => {
+              setSelectedMain(main);
+              setSelectedSub([]);
+            }}
             style={{
               ...styles.filterButton,
               ...(selectedMain === main ? styles.activeFilter : {}),
@@ -195,9 +202,7 @@ export default function Feed() {
               }
               style={{
                 ...styles.subFilterButton,
-                ...(selectedSub.includes(sub)
-                  ? styles.activeSubFilter
-                  : {}),
+                ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
               }}
             >
               {sub}
@@ -208,13 +213,13 @@ export default function Feed() {
 
       {/* Feed */}
       <div style={styles.feed}>
-        {loading
-          ? <p>Loading...</p>
-          : posts.length === 0
-            ? <p>No posts found</p>
-            : posts.map((post) => (
-                <PostCard key={post.post_id} post={post} />
-              ))}
+        {loading ? (
+          <p>Loading...</p>
+        ) : posts.length === 0 ? (
+          <p>No posts found</p>
+        ) : (
+          posts.map((post) => <PostCard key={post.post_id} post={post} />)
+        )}
       </div>
 
       {/* Create‑Post Modal */}
