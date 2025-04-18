@@ -8,6 +8,8 @@ from fastapi.security import OAuth2PasswordBearer
 from backend.database import get_user_from_db, update_user_profile
 from backend.utils.security import verify_access_token
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
 router = APIRouter(tags=["Users"])  # ⬅️ remove `prefix="/users"`
 logging.basicConfig(level=logging.DEBUG)
 
