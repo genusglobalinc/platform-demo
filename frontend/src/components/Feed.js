@@ -1,3 +1,4 @@
+// src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
@@ -8,147 +9,146 @@ const GENRES = {
   Gaming: ["MMO", "First Person Shooter", "Hero Battler"],
 };
 
-function Feed() {
+export default function Feed() {
   const [activeTab, setActiveTab] = useState("Trending");
   const [selectedMain, setSelectedMain] = useState("");
   const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formContent, setFormContent] = useState("");
   const [formFields, setFormFields] = useState({
     title: "",
+    description: "",
     studio: "",
     banner_image: "",
-    description: "",
     images: "",
     streaming_services: "",
   });
 
   const navigate = useNavigate();
 
+  // Fetch feed on mount
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  const fetchPosts = async () => {
+  /** Fetches posts via GET /posts/ */
+  async function fetchPosts() {
     setLoading(true);
     const token = localStorage.getItem("token");
     if (!token) {
-      console.error("No token found, redirecting to login.");
       navigate("/login");
       return;
     }
-
     try {
       const res = await fetch("/posts/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("fetchPosts - status:", res.status);
-      const rawText = await res.text();
-      console.log("fetchPosts - raw body:", rawText);
-
-      let data;
-      try {
-        data = JSON.parse(rawText);
-      } catch {
-        throw new Error("Response not valid JSON. Something still wrong here in Feed.js line 50 as of rn..");
-      }
-
-      if (!Array.isArray(data.posts)) {
-        throw new Error("Expected posts to be an array.");
-      }
-
-      setPosts(data.posts);
+      const body = await res.json();
+      if (!Array.isArray(body.posts)) throw new Error("Invalid response");
+      setPosts(body.posts);
     } catch (err) {
-      console.error("⚠️ Error in fetchPosts:", err);
+      console.error("Error loading posts:", err);
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handlePostSubmit = async () => {
+  /** Handles the POST /posts/ call */
+  async function handlePostSubmit() {
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert("No token found");
+      alert("Not logged in");
       return;
     }
-  
-    const postData = {
-      content: formContent,
-      genre: selectedMain || "Anime", // Required field
-      subgenres: selectedSub.length > 0 ? selectedSub : [],
-      title: formFields.title,
-      description: formFields.description,
-      studio: formFields.studio || null,
-      banner_image: formFields.banner_image || "https://via.placeholder.com/600x200", // Must be a valid URL
-      images: formFields.images
-        ? formFields.images.split(",").map((img) => img.trim())
-        : [],
-      streaming_services:
-        selectedMain === "Anime" && formFields.streaming_services
-          ? formFields.streaming_services.split(",").map((s) => s.trim())
-          : [],
+    // Only title & description required
+    if (!formFields.title.trim() || !formFields.description.trim()) {
+      alert("Title and Description are required.");
+      return;
+    }
+
+    // Build payload to satisfy Pydantic
+    const payload = {
+      genre: selectedMain || "Gaming",
+      post_data: {
+        title: formFields.title,
+        tags: selectedSub,
+        studio: formFields.studio || "",
+        banner_image:
+          formFields.banner_image ||
+          "https://via.placeholder.com/600x200", // must be valid URL
+        description: formFields.description,
+        images:
+          formFields.images
+            .split(",")
+            .map((u) => u.trim())
+            .filter(Boolean) || [
+            "https://via.placeholder.com/400x200",
+          ],
+        // Only for Anime posts
+        ...(selectedMain === "Anime" && {
+          streaming_services:
+            formFields.streaming_services
+              .split(",")
+              .map((u) => u.trim())
+              .filter(Boolean) || [],
+        }),
+      },
     };
-  
+
     try {
-      const response = await fetch(`/posts/?token=${token}`, {
+      const res = await fetch("/posts/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(postData),
+        body: JSON.stringify(payload),
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Failed to create post", errorData);
-        alert(`Error: ${response.status} - ${errorData.detail?.[0]?.msg || "Unknown error"}`);
-        return;
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || res.statusText);
       }
-  
-      const result = await response.json();
-      console.log("Post created successfully:", result);
-      alert("Post created successfully!");
-    } catch (error) {
-      console.error("Error creating post", error);
-      alert("An error occurred while creating the post.");
+      await res.json();
+      setShowCreateModal(false);
+      // reset form
+      setFormFields({
+        title: "",
+        description: "",
+        studio: "",
+        banner_image: "",
+        images: "",
+        streaming_services: "",
+      });
+      setSelectedMain("");
+      setSelectedSub([]);
+      fetchPosts();
+    } catch (err) {
+      console.error("Create post failed:", err);
+      alert("Failed to create post: " + err.message);
     }
-  };  
-
-  const handleMainGenre = (genre) => {
-    setSelectedMain(genre);
-    setSelectedSub([]);
-  };
-
-  const toggleSubtype = (sub) => {
-    setSelectedSub((prev) =>
-      prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
-    );
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+  }
 
   return (
     <div style={styles.container}>
+      {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
-          <button style={styles.createButton} onClick={() => setShowCreateModal(true)}>
+          <button
+            style={styles.createButton}
+            onClick={() => setShowCreateModal(true)}
+          >
             + Create Post
           </button>
-          <button onClick={handleLogout} style={styles.logoutButton}>
+          <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} style={styles.logoutButton}>
             Logout
           </button>
         </div>
       </div>
 
+      {/* Tabs */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
           <button
@@ -164,11 +164,12 @@ function Feed() {
         ))}
       </div>
 
+      {/* Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
             key={main}
-            onClick={() => handleMainGenre(main)}
+            onClick={() => { setSelectedMain(main); setSelectedSub([]); }}
             style={{
               ...styles.filterButton,
               ...(selectedMain === main ? styles.activeFilter : {}),
@@ -179,15 +180,24 @@ function Feed() {
         ))}
       </div>
 
+      {/* Subtype Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
           {GENRES[selectedMain].map((sub) => (
             <button
               key={sub}
-              onClick={() => toggleSubtype(sub)}
+              onClick={() =>
+                setSelectedSub((prev) =>
+                  prev.includes(sub)
+                    ? prev.filter((s) => s !== sub)
+                    : [...prev, sub]
+                )
+              }
               style={{
                 ...styles.subFilterButton,
-                ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
+                ...(selectedSub.includes(sub)
+                  ? styles.activeSubFilter
+                  : {}),
               }}
             >
               {sub}
@@ -196,90 +206,78 @@ function Feed() {
         </div>
       )}
 
+      {/* Feed */}
       <div style={styles.feed}>
-        {loading ? (
-          <p>Loading...</p>
-        ) : posts.length === 0 ? (
-          <p>No posts found</p>
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post.post_id || post.id} post={post} />
-          ))
-        )}
+        {loading
+          ? <p>Loading...</p>
+          : posts.length === 0
+            ? <p>No posts found</p>
+            : posts.map((post) => (
+                <PostCard key={post.post_id} post={post} />
+              ))}
       </div>
 
+      {/* Create‑Post Modal */}
       {showCreateModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h3 style={{ marginBottom: "1rem" }}>Create a Post</h3>
+            <h3>Create a Post</h3>
 
+            {/* Title & Description */}
+            <input
+              style={styles.textInput}
+              placeholder="Title *"
+              value={formFields.title}
+              onChange={(e) =>
+                setFormFields({ ...formFields, title: e.target.value })
+              }
+            />
             <textarea
-              value={formContent}
-              onChange={(e) => setFormContent(e.target.value)}
-              placeholder="What's on your mind?"
-              style={styles.textarea}
+              style={{ ...styles.textInput, height: 80 }}
+              placeholder="Description *"
+              value={formFields.description}
+              onChange={(e) =>
+                setFormFields({ ...formFields, description: e.target.value })
+              }
             />
 
-            {["title", "studio", "banner_image", "description", "images"].map((field) => (
+            {/* Optional fields */}
+            {["studio", "banner_image", "images"].map((fld) => (
               <input
-                key={field}
-                type="text"
-                placeholder={field.replace("_", " ").toUpperCase()}
-                value={formFields[field]}
-                onChange={(e) => setFormFields({ ...formFields, [field]: e.target.value })}
+                key={fld}
                 style={styles.textInput}
+                placeholder={fld.replace("_", " ").toUpperCase()}
+                value={formFields[fld]}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, [fld]: e.target.value })
+                }
               />
             ))}
 
+            {/* Anime only */}
             {selectedMain === "Anime" && (
               <input
-                type="text"
+                style={styles.textInput}
                 placeholder="Streaming Services (comma separated)"
                 value={formFields.streaming_services}
                 onChange={(e) =>
-                  setFormFields({ ...formFields, streaming_services: e.target.value })
+                  setFormFields({
+                    ...formFields,
+                    streaming_services: e.target.value,
+                  })
                 }
-                style={styles.textInput}
               />
             )}
 
-            <div style={styles.filterBar}>
-              {Object.keys(GENRES).map((main) => (
-                <button
-                  key={main}
-                  onClick={() => handleMainGenre(main)}
-                  style={{
-                    ...styles.filterButton,
-                    ...(selectedMain === main ? styles.activeFilter : {}),
-                  }}
-                >
-                  {main}
-                </button>
-              ))}
-            </div>
-
-            {selectedMain && (
-              <div style={styles.subFilterBar}>
-                {GENRES[selectedMain].map((sub) => (
-                  <button
-                    key={sub}
-                    onClick={() => toggleSubtype(sub)}
-                    style={{
-                      ...styles.subFilterButton,
-                      ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
-                    }}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-              <button onClick={() => setShowCreateModal(false)} style={styles.cancelButton}>
+            {/* Controls */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button
+                style={styles.cancelButton}
+                onClick={() => setShowCreateModal(false)}
+              >
                 Cancel
               </button>
-              <button onClick={handlePostSubmit} style={styles.submitButton}>
+              <button style={styles.submitButton} onClick={handlePostSubmit}>
                 Post
               </button>
             </div>
@@ -292,7 +290,7 @@ function Feed() {
 
 const styles = {
   container: {
-    padding: "2rem",
+    padding: 24,
     background: "#111",
     color: "#fff",
     minHeight: "100vh",
@@ -302,97 +300,67 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1.5rem",
+    marginBottom: 24,
   },
-  title: {
-    fontSize: "1.8rem",
-  },
-  headerRight: {
-    display: "flex",
-    gap: "1rem",
-  },
+  title: { fontSize: 24 },
+  headerRight: { display: "flex", gap: 8 },
   createButton: {
     background: "#B388EB",
     color: "#000",
-    padding: "0.5rem 1rem",
+    padding: "8px 16px",
     border: "none",
-    borderRadius: "6px",
-    fontWeight: "bold",
+    borderRadius: 6,
     cursor: "pointer",
   },
   logoutButton: {
     background: "#333",
     color: "#fff",
-    padding: "0.5rem 1rem",
+    padding: "8px 16px",
     border: "1px solid #555",
-    borderRadius: "6px",
+    borderRadius: 6,
     cursor: "pointer",
   },
-  tabContainer: {
-    display: "flex",
-    gap: "0.5rem",
-    marginBottom: "1rem",
-  },
+  tabContainer: { display: "flex", gap: 8, marginBottom: 16 },
   tabButton: {
-    padding: "0.5rem 1rem",
+    padding: "6px 12px",
     background: "#222",
     color: "#ccc",
     border: "none",
-    borderRadius: "20px",
+    borderRadius: 20,
     cursor: "pointer",
   },
-  activeTab: {
-    background: "#B388EB",
-    color: "#000",
-  },
-  filterBar: {
-    display: "flex",
-    gap: "0.5rem",
-    flexWrap: "wrap",
-    marginBottom: "0.5rem",
-  },
+  activeTab: { background: "#B388EB", color: "#000" },
+  filterBar: { display: "flex", gap: 8, margin: "12px 0" },
   filterButton: {
-    padding: "0.4rem 0.8rem",
+    padding: "4px 8px",
     background: "#2a2a2a",
     color: "#eee",
     border: "1px solid #444",
-    borderRadius: "15px",
+    borderRadius: 15,
     cursor: "pointer",
   },
-  activeFilter: {
-    background: "#B388EB",
-    color: "#1e1e1e",
-  },
-  subFilterBar: {
-    display: "flex",
-    gap: "0.5rem",
-    flexWrap: "wrap",
-    marginBottom: "1.5rem",
-  },
+  activeFilter: { background: "#B388EB", color: "#000" },
+  subFilterBar: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
   subFilterButton: {
-    padding: "0.3rem 0.7rem",
+    padding: "4px 8px",
     background: "#333",
     color: "#ddd",
     border: "1px solid #444",
-    borderRadius: "12px",
+    borderRadius: 12,
     cursor: "pointer",
   },
-  activeSubFilter: {
-    background: "#B388EB",
-    color: "#1e1e1e",
-  },
+  activeSubFilter: { background: "#B388EB", color: "#000" },
   feed: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "1rem",
+    gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+    gap: 16,
   },
   modalOverlay: {
     position: "fixed",
-    top: 0,
-    left: 0,
-    height: "100vh",
-    width: "100vw",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    top: 0, left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.7)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -400,49 +368,35 @@ const styles = {
   },
   modal: {
     background: "#1e1e1e",
-    padding: "2rem",
-    borderRadius: "10px",
+    padding: 24,
+    borderRadius: 10,
     width: "90%",
-    maxWidth: "500px",
-    boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)",
-  },
-  textarea: {
-    width: "100%",
-    height: "120px",
-    background: "#111",
-    color: "#fff",
-    border: "1px solid #444",
-    borderRadius: "6px",
-    padding: "0.5rem",
-    marginBottom: "1rem",
-    resize: "none",
+    maxWidth: 500,
   },
   textInput: {
     width: "100%",
-    padding: "0.5rem",
-    marginBottom: "0.75rem",
+    padding: 8,
+    marginBottom: 12,
     background: "#1c1c1c",
     color: "#fff",
     border: "1px solid #444",
-    borderRadius: "6px",
-  },
-  submitButton: {
-    background: "#B388EB",
-    color: "#000",
-    padding: "0.5rem 1rem",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "bold",
+    borderRadius: 6,
   },
   cancelButton: {
     background: "transparent",
     color: "#ccc",
     border: "1px solid #666",
-    padding: "0.5rem 1rem",
-    borderRadius: "6px",
+    padding: "8px 16px",
+    borderRadius: 6,
     cursor: "pointer",
   },
+  submitButton: {
+    background: "#B388EB",
+    color: "#000",
+    padding: "8px 16px",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
 };
-
-export default Feed;
