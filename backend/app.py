@@ -64,7 +64,7 @@ async def startup():
 
     await FastAPILimiter.init(client)
 
-app.include_router(users_router, prefix="/users")
+app.include_router(users_router)
 app.include_router(posts_router, prefix="/posts")
 app.include_router(auth_router, prefix="/auth")
 
