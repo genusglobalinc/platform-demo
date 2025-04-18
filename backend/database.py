@@ -34,7 +34,7 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
         "user_id": user_id,
         "username": user_data["username"],
         "email": user_data["email"],
-        "password": user_data["password"],
+        "password": hash_password(user_data["password"]),
         "is_verified": user_data.get("is_verified", False),
         "created_at": str(datetime.utcnow())
     }
