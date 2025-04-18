@@ -30,27 +30,29 @@ export const forgotPassword = (email) =>
 export const resetPassword = (token, new_password) =>
   api.post('/auth/reset-password', { token, new_password });
 
-// Profile update endpoint (protected)
-export const updateProfile = (profileData, token) =>
-  api.put('/users/profile/update', profileData, {
+// Profile endpoints (protected)
+export const updateProfile = (profileData) => {
+  const token = localStorage.getItem("token");
+  return api.put('/users/profile/update', profileData, {
     headers: { Authorization: `Bearer ${token}` },
   });
+};
 
 export const getProfileData = async () => {
   const token = localStorage.getItem("token");
-  const res = await axios.get("/profile", {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  const res = await api.get('/users/profile', {
+    headers: { Authorization: `Bearer ${token}` }
   });
   return res.data;
-};  
+};
 
 // Post endpoints (create and get) (protected for creation)
-export const createPost = (postData, token) =>
-  api.post('/posts/create', postData, {
+export const createPost = (postData) => {
+  const token = localStorage.getItem("token");
+  return api.post('/posts/', postData, {
     headers: { Authorization: `Bearer ${token}` },
   });
+};
 
 export const getPost = (postId) =>
   api.get(`/posts/${postId}`);
