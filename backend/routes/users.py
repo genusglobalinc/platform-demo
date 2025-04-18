@@ -17,6 +17,7 @@ class UpdateProfileRequest(BaseModel):
 
 @router.get("/profile")
 async def get_profile(token: dict = Depends(verify_access_token)):
+    logging.debug("Hit /users/profile endpoint")
     user_id = token.get("sub")
     logging.debug(f"Fetching profile for user_id: {user_id}")
     user = get_user_from_db(user_id)
