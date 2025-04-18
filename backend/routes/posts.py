@@ -1,21 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, HttpUrl
-from typing import List, Union, Optional
+# backend/routes/posts.py
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, HttpUrl
+from typing import List, Union, Optional, Any
 from backend.database import (
     get_post_from_db,
     create_post_in_db,
     get_all_posts_from_db,
-    filter_posts_from_db,
+    filter_posts_from_db
 )
 from backend.utils.security import verify_access_token
 from fastapi_limiter.depends import RateLimiter
 
-# This will read the bearer token from the Authorization header for us
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
-
-router = APIRouter(tags=["Posts"])  # prefix is applied when you include this router in app
+router = APIRouter(prefix="/posts", tags=["Posts"])
 
 # ---------- Schemas ----------
 
@@ -43,28 +40,38 @@ class PostCreateRequest(BaseModel):
     genre: str  # Must be "gaming" or "anime"
     post_data: Union[GamingPost, AnimePost]
 
+def _normalize_urls(obj: Any) -> Any:
+    """
+    Recursively convert any HttpUrl to str, and lists of HttpUrl to list of str.
+    """
+    if isinstance(obj, HttpUrl):
+        return str(obj)
+    if isinstance(obj, list):
+        return [_normalize_urls(i) for i in obj]
+    if isinstance(obj, dict):
+        return {k: _normalize_urls(v) for k, v in obj.items()}
+    return obj
+
 # ---------- Routes ----------
 
-@router.post(
-    "/",
-    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
-)
+@router.post("/", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def create_post(
     post_data: PostCreateRequest,
-    token: str = Depends(oauth2_scheme),           # <-- pull token from header
+    token: dict = Depends(verify_access_token)
 ):
-    # now manually verify it
-    payload = verify_access_token(token)
-    user_id = payload.get("sub")
+    user_id = token.get("sub")
     genre = post_data.genre.lower()
-
     if genre not in ["gaming", "anime"]:
         raise HTTPException(status_code=400, detail="Invalid genre specified")
 
-    post_id = create_post_in_db(post_data.post_data.dict(), user_id)
+    # Convert Pydantic model to dict
+    raw = post_data.post_data.dict()
+    # Normalize HttpUrl fields into plain strings
+    normalized = _normalize_urls(raw)
+
+    post_id = create_post_in_db(normalized, user_id)
     if not post_id:
         raise HTTPException(status_code=500, detail="Error creating post")
-
     return {"message": "Post created", "post_id": post_id}
 
 
@@ -76,10 +83,7 @@ async def get_post(post_id: str):
     return post
 
 
-@router.get(
-    "/filter",
-    dependencies=[Depends(RateLimiter(times=30, seconds=60))]
-)
+@router.get("/filter", dependencies=[Depends(RateLimiter(times=30, seconds=60))])
 async def get_filtered_posts(
     tab: str = Query("Trending", enum=["Trending", "Newest", "ForYou"]),
     main: Optional[str] = Query(None),
@@ -93,15 +97,12 @@ async def get_filtered_posts(
     return {"posts": posts}
 
 
-@router.get("")
-async def get_all_posts_alias():
-    return {"posts": get_all_posts_from_db()}
-
-
-@router.get(
-    "/",
-    dependencies=[Depends(RateLimiter(times=40, seconds=60))]
-)
+@router.get("", dependencies=[Depends(RateLimiter(times=40, seconds=60))])
 async def get_all_posts():
     posts = get_all_posts_from_db()
     return {"posts": posts}
+
+
+@router.get("/", dependencies=[Depends(RateLimiter(times=40, seconds=60))])
+async def get_all_posts_alias():
+    return await get_all_posts()
