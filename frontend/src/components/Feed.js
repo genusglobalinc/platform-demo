@@ -74,24 +74,25 @@ function Feed() {
   const handlePostSubmit = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
+  
     // Only title and description are required
     if (!formFields.title || !formFields.description) {
       console.error("Title and Description are required fields.");
       return;
     }
-
+  
     const postData = {
       content: formContent,
-      genre: selectedMain,
-      subgenres: selectedSub,
-      ...formFields,
-      images: formFields.images.split(",").map((img) => img.trim()),
-      streaming_services: selectedMain === "Anime"
-        ? formFields.streaming_services.split(",").map((s) => s.trim())
-        : undefined,
+      genre: selectedMain ? selectedMain : "", // If genre is empty, send an empty string
+      subgenres: selectedSub.length > 0 ? selectedSub : [], // Send an empty array if no subgenres
+      title: formFields.title,
+      description: formFields.description,
+      studio: formFields.studio || "", // Send empty string if studio is not provided
+      banner_image: formFields.banner_image || "", // Empty string for missing banner_image
+      images: formFields.images ? formFields.images.split(",").map((img) => img.trim()) : [], // Ensure images is an empty array if not provided
+      streaming_services: selectedMain === "Anime" && formFields.streaming_services ? formFields.streaming_services.split(",").map((s) => s.trim()) : [], // Only send streaming_services if main genre is Anime
     };
-
+  
     try {
       const response = await fetch("/posts/", {
         method: "POST",
@@ -101,9 +102,9 @@ function Feed() {
         },
         body: JSON.stringify({ post_data: postData }),
       });
-
+  
       if (!response.ok) throw new Error("Failed to create post");
-
+  
       setFormContent("");
       setSelectedMain("");
       setSelectedSub([]);
@@ -120,7 +121,7 @@ function Feed() {
     } catch (err) {
       console.error("Error creating post:", err);
     }
-  };
+  }; 
 
   const handleMainGenre = (genre) => {
     setSelectedMain(genre);
