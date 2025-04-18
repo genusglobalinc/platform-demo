@@ -81,7 +81,7 @@ async def get_filtered_posts(
 
 @router.get("")
 async def get_all_posts_alias():
-    return await get_all_posts()
+    return {"posts": get_all_posts_from_db()}
 
 @router.get("/", dependencies=[Depends(RateLimiter(times=40, seconds=60))])
 async def get_all_posts():
