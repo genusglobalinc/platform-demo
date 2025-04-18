@@ -1,81 +1,73 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
-function Profile() {
-  const [profile, setProfile] = useState(null);
+export default function Profile() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await axios.get("/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setProfile(res.data);
-      } catch {
-        navigate("/login");
-      }
-    };
-    fetchProfile();
-  }, [navigate, token]);
-
-  if (!profile) return <div>Loading...</div>;
 
   return (
     <div style={styles.container}>
-      <button style={styles.backBtn} onClick={() => navigate("/feed")}>← Back to Feed</button>
-      <h2 style={styles.title}>{profile.display_name}</h2>
-      <div style={styles.profilePic}>{profile.profile_picture?.toUpperCase() || "PIC"}</div>
-      <p style={styles.details}><strong>Username:</strong> {profile.username}</p>
-      <p style={styles.details}><strong>Email:</strong> {profile.email}</p>
-      <p style={styles.details}><strong>Socials:</strong> {profile.social_links}</p>
+      <div style={styles.header}>
+        <h2 style={styles.title}>My Profile</h2>
+        <div style={styles.headerRight}>
+          <button style={styles.backButton} onClick={() => navigate("/")}>
+            ← Feed
+          </button>
+          <button
+            style={styles.settingsButton}
+            onClick={() => navigate("/profile/settings")}
+          >
+            Settings
+          </button>
+        </div>
+      </div>
+      <p style={styles.details}>
+        Profile details, followers, and liked posts will be displayed here.
+      </p>
+      {/* ...you can render more profile info here */}
     </div>
   );
 }
 
 const styles = {
   container: {
-    padding: '2rem',
-    background: '#1e1e1e',
-    color: '#eee',
-    minHeight: '80vh',
-    maxWidth: '600px',
-    margin: 'auto',
-    textAlign: 'center'
+    padding: "2rem",
+    background: "#1e1e1e",
+    color: "#eee",
+    minHeight: "80vh",
+    fontFamily: "sans-serif",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1.5rem",
   },
   title: {
-    fontSize: '2rem',
-    color: '#B388EB',
-    marginBottom: '1rem'
+    fontSize: "2rem",
+    color: "#B388EB",
+    margin: 0,
   },
-  profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: '50%',
-    background: '#333',
-    color: '#B388EB',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 'bold',
-    fontSize: '1.25rem',
-    margin: '0 auto 1rem'
+  headerRight: {
+    display: "flex",
+    gap: "12px",
+  },
+  backButton: {
+    background: "#5C6BC0",
+    padding: "8px 16px",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  settingsButton: {
+    background: "#4DB6AC",
+    padding: "8px 16px",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
   },
   details: {
-    marginBottom: '0.5rem'
+    fontSize: "1.1rem",
   },
-  backBtn: {
-    marginBottom: '1rem',
-    padding: '0.5rem 1rem',
-    background: '#B388EB',
-    border: 'none',
-    borderRadius: '6px',
-    color: '#121212',
-    fontWeight: 'bold',
-    cursor: 'pointer'
-  }
 };
-
-export default Profile;
