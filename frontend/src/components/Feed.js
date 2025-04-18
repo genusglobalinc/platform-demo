@@ -29,7 +29,7 @@ export default function Feed() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [selectedMain, selectedSub]);
 
   async function fetchPosts() {
     setLoading(true);
@@ -38,8 +38,17 @@ export default function Feed() {
       navigate("/login");
       return;
     }
+
     try {
-      const res = await fetch("/posts/", {
+      const queryParams = new URLSearchParams();
+      if (selectedMain) {
+        queryParams.append("genre", selectedMain.toLowerCase());
+      }
+      if (selectedSub.length > 0) {
+        selectedSub.forEach((tag) => queryParams.append("tags", tag));
+      }
+
+      const res = await fetch(`/posts/?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json();
@@ -243,7 +252,6 @@ export default function Feed() {
               />
             ))}
 
-            {/* Genre selector inside modal */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: "block", marginBottom: 4 }}>
                 Genre (required)
