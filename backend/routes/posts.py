@@ -61,6 +61,12 @@ async def create_post(
     if genre not in ["gaming", "anime"]:
         raise HTTPException(status_code=400, detail="Invalid genre specified")
 
+    # Ensure that the post type matches the genre
+    if genre == "gaming":
+        post_data.post_data.type = "gaming"
+    elif genre == "anime":
+        post_data.post_data.type = "anime"
+
     # Ensure serializable payload before sending to DynamoDB
     serialized_post_data = post_data.post_data.model_dump()
 
@@ -115,4 +121,3 @@ async def get_all_posts():
     # Ensure all posts are serialized correctly
     serialized_posts = json.dumps(posts, default=str)  # Convert any non-serializable data
     return {"posts": json.loads(serialized_posts)}  # Convert the serialized string back to JSON
-
