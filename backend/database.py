@@ -207,8 +207,11 @@ def get_all_posts_from_db() -> List[dict]:
 def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
     try:
         filter_expr = None
+        # Handle genre filtering (post_type)
         if main and main.lower() != "null":
-            filter_expr = Attr('tags').contains(main)
+            filter_expr = Attr('post_type').eq(main.lower())  # Ensure post_type is considered
+
+        # Handle tags filtering (tags)
         if subs:
             sub_filter = None
             for sub in subs:
@@ -216,7 +219,11 @@ def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
                     sub_filter = sub_filter | Attr('tags').contains(sub)
                 else:
                     sub_filter = Attr('tags').contains(sub)
+
+            # Combine genre and tag filters if both exist
             filter_expr = filter_expr & sub_filter if filter_expr else sub_filter
+
+        # Fetch posts based on combined filter expression
         response = posts_table.scan(FilterExpression=filter_expr) if filter_expr else posts_table.scan()
         logging.debug("Filtered posts fetched successfully.")
         logging.debug(f"Filter posts response: {response}")  # Log the response
