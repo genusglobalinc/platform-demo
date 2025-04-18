@@ -35,13 +35,19 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
         "username": user_data["username"],
         "email": user_data["email"],
         "password": hash_password(user_data["password"]),
+        "display_name": user_data.get("display_name", ""),
+        "social_links": user_data.get("social_links", ""),
+        "profile_picture": user_data.get("profile_picture", ""),
+        "followers": 0,
+        "following": 0,
+        "liked_posts": [],
         "is_verified": user_data.get("is_verified", False),
         "created_at": str(datetime.utcnow())
     }
     try:
         response = users_table.put_item(Item=item)
         logging.debug(f"Created user: {item}")
-        logging.debug(f"Database response: {response}")  # Log the response
+        logging.debug(f"Database response: {response}")
         return user_id
     except ClientError as e:
         logging.error(f"User creation failed: {e}")
