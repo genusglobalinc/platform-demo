@@ -36,7 +36,11 @@ class GamingPost(BasePost):
     type: str = "gaming"
 
 class AnimePost(BasePost):
-    streaming_services: List[HttpUrl]
+    # Override BasePost fields to make them optional / defaulted
+    studio: Optional[str] = ""
+    banner_image: Optional[HttpUrl] = "https://via.placeholder.com/600x200"
+    images: List[HttpUrl] = []
+    streaming_services: List[HttpUrl] = []
     trailer_url: Optional[HttpUrl] = None
     type: str = "anime"
 
@@ -79,14 +83,12 @@ async def create_post(
 
     return {"message": "Post created", "post_id": post_id}
 
-
 @router.get("/{post_id}")
 async def get_post(post_id: str):
     post = get_post_from_db(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
-
 
 @router.get(
     "/filter",
@@ -104,7 +106,6 @@ async def get_filtered_posts(
         raise HTTPException(status_code=500, detail=str(e))
     return {"posts": posts}
 
-
 @router.get("")
 async def get_all_posts_alias(
     genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
@@ -114,9 +115,8 @@ async def get_all_posts_alias(
     posts = get_all_posts_from_db(post_type=genre, tags=tag_list if tags else None)
 
     # Ensure that all posts are serialized correctly before returning
-    serialized_posts = json.dumps(posts, default=str)  # Convert objects like datetime to strings
-    return {"posts": json.loads(serialized_posts)}  # Convert the serialized string back to a JSON object
-
+    serialized_posts = json.dumps(posts, default=str)
+    return {"posts": json.loads(serialized_posts)}
 
 @router.get(
     "/",
@@ -124,12 +124,9 @@ async def get_all_posts_alias(
 )
 async def get_all_posts(
     genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
-    tags: Optional[List[str]] = Query(None, description="Comma-separated list of tags"),
+    tags: Optional[List[str]] = Query(None, description="List of tags"),
 ):
-    # tags will now automatically be a list if multiple values are passed in the query
+    # tags will automatically be a list if passed multiple times
     posts = get_all_posts_from_db(post_type=genre, tags=tags)
-
-    # Ensure all posts are serialized correctly
-    serialized_posts = json.dumps(posts, default=str)  # Convert any non-serializable data
-    return {"posts": json.loads(serialized_posts)}  # Convert the serialized string back to JSON
-
+    serialized_posts = json.dumps(posts, default=str)
+    return {"posts": json.loads(serialized_posts)}
