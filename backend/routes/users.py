@@ -15,7 +15,7 @@ class UpdateProfileRequest(BaseModel):
     social_links: Optional[Dict[str, str]] = None
     profile_picture: Optional[str] = None
 
-@router.get("/profile")
+@router.get("/users/profile")
 async def get_profile(token: dict = Depends(verify_access_token)):
     user_id = token.get("sub")
     logging.debug(f"Fetching profile for user_id: {user_id}")
@@ -24,7 +24,7 @@ async def get_profile(token: dict = Depends(verify_access_token)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.put("/profile")
+@router.put("/users/profile")
 async def update_profile(
     update_data: UpdateProfileRequest,
     token: dict = Depends(verify_access_token)
