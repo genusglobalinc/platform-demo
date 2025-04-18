@@ -77,25 +77,33 @@ export default function Feed() {
       genre: (selectedMain || "Gaming").toLowerCase(),
       post_data: {
         title: formFields.title,
-        tags: selectedSub,
-        studio: formFields.studio || "",
-        banner_image:
-          formFields.banner_image || "https://via.placeholder.com/600x200",
         description: formFields.description,
-        images:
-          formFields.images
-            .split(",")
-            .map((u) => u.trim())
-            .filter(Boolean) || [],
-        ...(selectedMain === "Anime" && {
-          streaming_services:
-            formFields.streaming_services
-              .split(",")
-              .map((u) => u.trim())
-              .filter(Boolean) || [],
-        }),
+        tags: selectedSub,
       },
     };
+
+    if (formFields.studio.trim()) {
+      payload.post_data.studio = formFields.studio;
+    }
+    if (formFields.banner_image.trim()) {
+      payload.post_data.banner_image = formFields.banner_image;
+    }
+    const images = formFields.images
+      .split(",")
+      .map((u) => u.trim())
+      .filter(Boolean);
+    if (images.length > 0) {
+      payload.post_data.images = images;
+    }
+    if (selectedMain === "Anime") {
+      const services = formFields.streaming_services
+        .split(",")
+        .map((u) => u.trim())
+        .filter(Boolean);
+      if (services.length > 0) {
+        payload.post_data.streaming_services = services;
+      }
+    }
 
     try {
       const res = await fetch("/posts/", {
