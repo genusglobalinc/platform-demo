@@ -6,7 +6,6 @@ import uuid
 from typing import Optional, List
 import logging
 from backend.utils.security import hash_password
-from pydantic import HttpUrl
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
@@ -14,17 +13,6 @@ users_table = dynamodb.Table('Users')
 posts_table = dynamodb.Table('Posts')
 
 logging.basicConfig(level=logging.DEBUG)
-
-# Helper function to serialize custom types like HttpUrl and nested dictionaries
-def serialize_item(item: dict) -> dict:
-    for key, value in item.items():
-        if isinstance(value, HttpUrl):
-            item[key] = str(value)  # Convert HttpUrl to string
-        elif isinstance(value, dict):
-            item[key] = serialize_item(value)  # Recursively handle nested dictionaries
-        elif isinstance(value, list):
-            item[key] = [serialize_item(i) if isinstance(i, dict) else i for i in value]  # Handle lists of dicts
-    return item
 
 def save_to_dynamodb(item: dict, table_name: str):
     table = dynamodb.Table(table_name)
@@ -146,19 +134,27 @@ def update_user_profile(email: str, profile_data: dict) -> bool:
 
 def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     post_id = str(uuid.uuid4())
+
+    # Validation: Ensure title and description are present
+    if 'title' not in post_data or 'description' not in post_data:
+        logging.error("Title and description are mandatory fields.")
+        return None
+    
+    # Validation: Ensure post_type is either 'gaming' or 'anime'
+    if post_data.get('post_type') not in ['gaming', 'anime']:
+        logging.error("Invalid post_type. Must be 'gaming' or 'anime'.")
+        return None
+
     post_data.update({
         'post_id': post_id,
         'user_id': user_id,
         'created_at': str(datetime.utcnow())
     })
 
-    # Serialize the post data before saving to DynamoDB
-    serialized_post_data = serialize_item(post_data)
-
-    logging.debug(f"Attempting to save post to DB. Data: {serialized_post_data}")
+    logging.debug(f"Attempting to save post to DB. Data: {post_data}")
 
     try:
-        response = posts_table.put_item(Item=serialized_post_data)
+        response = posts_table.put_item(Item=post_data)
         logging.debug(f"Post saved successfully. Response: {response}")
         return post_id
     except ClientError as e:
@@ -166,6 +162,7 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     except Exception as e:
         logging.exception(f"[Exception] Unexpected error while saving post: {e}")
     return None
+
 
 def get_post_from_db(post_id: str) -> Optional[dict]:
     try:
@@ -219,13 +216,17 @@ def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
         logging.error(f"Error filtering posts: {e}")
         return []
 
-# Helper function to serialize custom types like HttpUrl and nested dictionaries
-def serialize_item(item: dict) -> dict:
-    for key, value in item.items():
-        if isinstance(value, HttpUrl):
-            item[key] = str(value)  # Convert HttpUrl to string
-        elif isinstance(value, dict):
-            item[key] = serialize_item(value)  # Recursively handle nested dictionaries
-        elif isinstance(value, list):
-            item[key] = [serialize_item(i) if isinstance(i, dict) else i for i in value]  # Handle lists of dicts
-    return item
+def update_user_password(user_id: str, new_password: str) -> bool:
+    try:
+        hashed = hash_password(new_password)
+        response = users_table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression="SET password = :p",
+            ExpressionAttributeValues={":p": hashed}
+        )
+        logging.debug(f"Password updated for user: {user_id}")
+        logging.debug(f"Password update response: {response}")  # Log the response
+        return True
+    except ClientError as e:
+        logging.error(f"Password update failed for user {user_id}: {e}")
+        return False
