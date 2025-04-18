@@ -79,7 +79,6 @@ async def get_filtered_posts(
 
     return {"posts": posts}
 
-# 🔧 Fix here: support both /posts and /posts/
 @router.get("")
 async def get_all_posts_alias():
     return await get_all_posts()
