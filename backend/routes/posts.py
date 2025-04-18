@@ -124,10 +124,10 @@ async def get_all_posts_alias(
 )
 async def get_all_posts(
     genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
-    tags: Optional[str] = Query(None, description="Comma-separated list of tags"),
+    tags: Optional[List[str]] = Query(None, description="Comma-separated list of tags"),
 ):
-    tag_list = tags.split(",") if tags else []  # Change from None to [] if no tags provided
-    posts = get_all_posts_from_db(post_type=genre, tags=tag_list)
+    # tags will now automatically be a list if multiple values are passed in the query
+    posts = get_all_posts_from_db(post_type=genre, tags=tags)
 
     # Ensure all posts are serialized correctly
     serialized_posts = json.dumps(posts, default=str)  # Convert any non-serializable data
