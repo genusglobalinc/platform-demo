@@ -11,8 +11,8 @@ const GENRES = {
 
 export default function Feed() {
   const [activeTab, setActiveTab] = useState("Trending");
-  const [selectedMain, setSelectedMain] = useState(""); // Main genre
-  const [selectedSub, setSelectedSub] = useState([]); // Sub genres (tags)
+  const [selectedMain, setSelectedMain] = useState("");
+  const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -27,7 +27,6 @@ export default function Feed() {
 
   const navigate = useNavigate();
 
-  // Fetch posts based on genre and tags
   useEffect(() => {
     fetchPosts();
   }, [selectedMain, selectedSub]);
@@ -174,7 +173,7 @@ export default function Feed() {
             key={main}
             onClick={() => {
               setSelectedMain(main);
-              setSelectedSub([]); // Clear sub-genres when changing the main genre
+              setSelectedSub([]);
             }}
             style={{
               ...styles.filterButton,
@@ -338,6 +337,8 @@ const styles = {
     padding: 24,
     background: "#111",
     color: "#fff",
+    minHeight: "100vh",
+    fontFamily: "sans-serif",
   },
   header: {
     display: "flex",
@@ -345,124 +346,102 @@ const styles = {
     alignItems: "center",
     marginBottom: 24,
   },
-  title: {
-    margin: 0,
-    fontSize: 28,
-  },
-  headerRight: {
-    display: "flex",
-    gap: 16,
-  },
+  title: { fontSize: 24 },
+  headerRight: { display: "flex", gap: 8 },
   createButton: {
-    padding: "10px 20px",
-    background: "#2e2e2e",
-    color: "#fff",
+    background: "#B388EB",
+    color: "#000",
+    padding: "8px 16px",
     border: "none",
+    borderRadius: 6,
     cursor: "pointer",
-    borderRadius: 8,
   },
   logoutButton: {
-    padding: "10px 20px",
-    background: "#d9534f",
+    background: "#333",
     color: "#fff",
-    border: "none",
+    padding: "8px 16px",
+    border: "1px solid #555",
+    borderRadius: 6,
     cursor: "pointer",
-    borderRadius: 8,
   },
-  tabContainer: {
-    marginBottom: 16,
-  },
+  tabContainer: { display: "flex", gap: 8, marginBottom: 16 },
   tabButton: {
-    padding: "8px 16px",
-    background: "#2e2e2e",
-    color: "#fff",
+    padding: "6px 12px",
+    background: "#222",
+    color: "#ccc",
     border: "none",
+    borderRadius: 20,
     cursor: "pointer",
-    marginRight: 8,
-    borderRadius: 4,
   },
-  activeTab: {
-    background: "#1d1d1d",
-  },
-  filterBar: {
-    marginBottom: 16,
-    marginTop: 24,
-  },
+  activeTab: { background: "#B388EB", color: "#000" },
+  filterBar: { display: "flex", gap: 8, margin: "12px 0" },
   filterButton: {
-    padding: "8px 16px",
-    background: "#2e2e2e",
-    color: "#fff",
-    border: "none",
+    padding: "4px 8px",
+    background: "#2a2a2a",
+    color: "#eee",
+    border: "1px solid #444",
+    borderRadius: 15,
     cursor: "pointer",
-    marginRight: 8,
-    borderRadius: 4,
   },
-  activeFilter: {
-    background: "#1d1d1d",
-  },
-  subFilterBar: {
-    marginTop: 8,
-  },
+  activeFilter: { background: "#B388EB", color: "#000" },
+  subFilterBar: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
   subFilterButton: {
-    padding: "8px 16px",
-    background: "#2e2e2e",
-    color: "#fff",
-    border: "none",
+    padding: "4px 8px",
+    background: "#333",
+    color: "#ddd",
+    border: "1px solid #444",
+    borderRadius: 12,
     cursor: "pointer",
-    marginRight: 8,
-    marginBottom: 8,
-    borderRadius: 4,
   },
-  activeSubFilter: {
-    background: "#1d1d1d",
-  },
+  activeSubFilter: { background: "#B388EB", color: "#000" },
   feed: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
     gap: 16,
   },
   modalOverlay: {
     position: "fixed",
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0, 0, 0, 0.5)",
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.7)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1000,
   },
   modal: {
-    background: "#222",
+    background: "#1e1e1e",
     padding: 24,
-    borderRadius: 8,
-    width: "80%",
-    maxWidth: "600px",
-    color: "#fff",
+    borderRadius: 10,
+    width: "90%",
+    maxWidth: 500,
   },
   textInput: {
     width: "100%",
-    padding: 10,
-    marginBottom: 16,
-    background: "#333",
+    padding: 8,
+    marginBottom: 12,
+    background: "#1c1c1c",
     color: "#fff",
-    border: "1px solid #555",
-    borderRadius: 4,
+    border: "1px solid #444",
+    borderRadius: 6,
   },
   cancelButton: {
-    padding: "10px 20px",
-    background: "#d9534f",
-    color: "#fff",
-    border: "none",
+    background: "transparent",
+    color: "#ccc",
+    border: "1px solid #666",
+    padding: "8px 16px",
+    borderRadius: 6,
     cursor: "pointer",
-    borderRadius: 8,
   },
   submitButton: {
-    padding: "10px 20px",
-    background: "#5bc0de",
-    color: "#fff",
+    background: "#B388EB",
+    color: "#000",
+    padding: "8px 16px",
     border: "none",
+    borderRadius: 6,
     cursor: "pointer",
-    borderRadius: 8,
+    fontWeight: "bold",
   },
 };
