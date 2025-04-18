@@ -9,7 +9,7 @@ const CreatePost = ({ token, onPostCreated }) => {
   const [bannerImage, setBannerImage] = useState("");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState("");
-  const [genre, setGenre] = useState("gaming");
+  const [postType, setPostType] = useState("gaming");
   const [accessInstructions, setAccessInstructions] = useState("");
   const [hasNda, setHasNda] = useState(false);
   const [rewards, setRewards] = useState("");
@@ -38,7 +38,7 @@ const CreatePost = ({ token, onPostCreated }) => {
 
     let fullPostData = {};
 
-    if (genre === "gaming") {
+    if (postType === "gaming") {
       fullPostData = {
         ...basePost,
         access_instructions: accessInstructions,
@@ -46,7 +46,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         rewards,
         share_post_to_socials: sharePostToSocials,
       };
-    } else if (genre === "anime") {
+    } else if (postType === "anime") {
       if (!streamingServices) {
         setError("Streaming services are required for anime posts.");
         return;
@@ -60,7 +60,7 @@ const CreatePost = ({ token, onPostCreated }) => {
     }
 
     const postData = {
-      genre,
+      post_type: postType,
       post_data: fullPostData,
     };
 
@@ -83,7 +83,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         setBannerImage("");
         setDescription("");
         setImages("");
-        setGenre("gaming");
+        setPostType("gaming");
         setAccessInstructions("");
         setHasNda(false);
         setRewards("");
@@ -154,14 +154,14 @@ const CreatePost = ({ token, onPostCreated }) => {
       />
 
       <label>
-        Genre:
-        <select value={genre} onChange={(e) => setGenre(e.target.value)}>
+        Post Type:
+        <select value={postType} onChange={(e) => setPostType(e.target.value)}>
           <option value="gaming">Gaming</option>
           <option value="anime">Anime</option>
         </select>
       </label>
 
-      {genre === "gaming" && (
+      {postType === "gaming" && (
         <>
           <input
             type="text"
@@ -194,7 +194,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         </>
       )}
 
-      {genre === "anime" && (
+      {postType === "anime" && (
         <>
           <input
             type="text"
