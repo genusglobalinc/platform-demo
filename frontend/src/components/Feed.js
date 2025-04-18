@@ -47,7 +47,7 @@ function Feed() {
       try {
         data = JSON.parse(rawText);
       } catch {
-        throw new Error("Response not valid JSON. Something still wrong here in Feed.js line 50 as of");
+        throw new Error("Response not valid JSON. Something still wrong here in Feed.js line 50 as of rn..");
       }
 
       if (!Array.isArray(data.posts)) {
