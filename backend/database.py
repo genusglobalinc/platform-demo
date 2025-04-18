@@ -53,13 +53,32 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
         logging.error(f"User creation failed: {e}")
         return None
 
-def get_user_from_db(user_id: str) -> Optional[dict]:
+def get_user_from_db(user_id: str) -> Optional[Dict[str, str]]:
     try:
+        # Attempt to get the item from DynamoDB by user_id
         response = users_table.get_item(Key={'user_id': user_id})
-        logging.debug(f"Get user response: {response}")  # Log the response
-        return response.get('Item')
+        
+        # Log the full response to check for successful retrieval
+        logging.debug(f"Get user response: {response}")
+
+        # Check if 'Item' exists in the response; if not, return None
+        user_item = response.get('Item')
+        
+        if not user_item:
+            logging.warning(f"User with user_id {user_id} not found in database.")
+            return None
+        
+        # Return the user data (item) retrieved from DynamoDB
+        return user_item
+
     except ClientError as e:
-        logging.error(f"Get user failed: {e}")
+        # Log any ClientError raised by DynamoDB and return None
+        logging.error(f"Get user failed for user_id {user_id}: {e}")
+        return None
+
+    except Exception as e:
+        # Catch any other exceptions and log the error
+        logging.error(f"Unexpected error occurred while fetching user {user_id}: {e}")
         return None
 
 def get_user_by_email(email: str) -> Optional[dict]:

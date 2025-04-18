@@ -40,9 +40,16 @@ export const updateProfile = (profileData) => {
 
 export const getProfileData = async () => {
   const token = localStorage.getItem("token");
-  const res = await api.get('/users/profile', {
-    headers: { Authorization: `Bearer ${token}` }
+  if (!token) {
+    throw new Error("No token found");
+  }
+  
+  const res = await axios.get(`${API_BASE_URL}/users/profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
+  
   return res.data;
 };
 
