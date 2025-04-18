@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 import logging
+from fastapi.security import OAuth2PasswordBearer
 
 from backend.database import get_user_from_db, update_user_profile
 from backend.utils.security import verify_access_token
@@ -16,9 +17,9 @@ class UpdateProfileRequest(BaseModel):
     profile_picture: Optional[str] = None
 
 @router.get("/profile")
-async def get_profile(token: dict = Depends(verify_access_token)):
-    logging.debug("Hit /users/profile endpoint")
-    user_id = token.get("sub")
+async def get_profile(token: str = Depends(oauth2_scheme)):
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
     logging.debug(f"Fetching profile for user_id: {user_id}")
     user = get_user_from_db(user_id)
     if not user:
@@ -28,9 +29,10 @@ async def get_profile(token: dict = Depends(verify_access_token)):
 @router.put("/profile")
 async def update_profile(
     update_data: UpdateProfileRequest,
-    token: dict = Depends(verify_access_token)
+    token: str = Depends(oauth2_scheme)
 ):
-    user_id = token.get("sub")
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
     updates = update_data.dict(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
