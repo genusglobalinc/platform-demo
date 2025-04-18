@@ -12,32 +12,28 @@ export const api = axios.create({
 
 // Authentication endpoints
 export const loginUser = (username, password) =>
-  api.post('/api/auth/token', { username, password });
+  api.post('/auth/token', { username, password });
 
 export const registerUser = (username, email, password) =>
-  api.post('/api/auth/register', { username, email, password });
+  api.post('/auth/register', { username, email, password });
 
 export const forgotPassword = (email) =>
-  api.post('/api/auth/forgot-password', { email });
+  api.post('/auth/forgot-password', { email });
 
 export const resetPassword = (token, new_password) =>
-  api.post('/api/auth/reset-password', { token, new_password });
+  api.post('/auth/reset-password', { token, new_password });
 
 // Profile update endpoint (protected)
 export const updateProfile = (profileData, token) =>
-  api.put('/api/users/profile/update', profileData, {
+  api.put('/users/profile/update', profileData, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData, token) =>
-  api.post('/api/posts', postData, {
+  api.post('/posts/create', postData, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
 export const getPost = (postId) =>
-  api.get(`/api/posts/${postId}`);
-
-// (Optional) Add a "get all posts" method if you're using that in Feed.js
-export const getAllPosts = () =>
-  api.get('/api/posts');
+  api.get(`/posts/${postId}`);
