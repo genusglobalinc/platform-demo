@@ -63,9 +63,14 @@ async def create_post(
 
     # Ensure that the post type matches the genre
     if genre == "gaming":
+        # Explicitly set the type for GamingPost
         post_data.post_data.type = "gaming"
     elif genre == "anime":
+        # Explicitly set the type for AnimePost
         post_data.post_data.type = "anime"
+
+    # Debugging log to confirm the type assignment
+    print(f"Post type set to: {post_data.post_data.type}")
 
     # Ensure serializable payload before sending to DynamoDB
     serialized_post_data = post_data.post_data.model_dump()
