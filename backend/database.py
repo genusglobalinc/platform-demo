@@ -135,17 +135,38 @@ def update_user_profile(email: str, profile_data: dict) -> bool:
 def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     post_id = str(uuid.uuid4())
 
-    logging.debug(f"Incoming post_data: {post_data}")  # <-- Add this line
-
     # Validation: Ensure title and description are present
     if 'title' not in post_data or 'description' not in post_data:
         logging.error("Title and description are mandatory fields.")
         return None
-    
+
+    # Normalize key if 'type' is used instead of 'post_type'
+    if 'post_type' not in post_data and 'type' in post_data:
+        post_data['post_type'] = post_data.pop('type')
+
     # Validation: Ensure post_type is either 'gaming' or 'anime'
     if post_data.get('post_type') not in ['gaming', 'anime']:
         logging.error("Invalid post_type. Must be 'gaming' or 'anime'.")
         return None
+
+    post_data.update({
+        'post_id': post_id,
+        'user_id': user_id,
+        'created_at': str(datetime.utcnow())
+    })
+
+    logging.debug(f"Attempting to save post to DB. Data: {post_data}")
+
+    try:
+        response = posts_table.put_item(Item=post_data)
+        logging.debug(f"Post saved successfully. Response: {response}")
+        return post_id
+    except ClientError as e:
+        logging.error(f"[ClientError] Failed to create post in DB: {e.response['Error']['Message']}")
+    except Exception as e:
+        logging.exception(f"[Exception] Unexpected error while saving post: {e}")
+    return None
+
 
 
 def get_post_from_db(post_id: str) -> Optional[dict]:
