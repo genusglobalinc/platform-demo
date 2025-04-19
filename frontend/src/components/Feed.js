@@ -1,3 +1,4 @@
+// src/components/Feed.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
@@ -26,6 +27,7 @@ export default function Feed() {
 
   const navigate = useNavigate();
 
+  // Re-fetch whenever genre or tags change
   useEffect(() => {
     fetchPosts();
   }, [selectedMain, selectedSub]);
@@ -43,15 +45,18 @@ export default function Feed() {
       if (selectedMain) {
         queryParams.append("genre", selectedMain.toLowerCase());
       }
-      if (selectedSub.length > 0) {
-        selectedSub.forEach((tag) => queryParams.append("tags", tag));
-      }
+      // allow multiple ?tags= entries
+      selectedSub.forEach((tag) => {
+        queryParams.append("tags", tag);
+      });
 
       const res = await fetch(`/posts/?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json();
-      if (!Array.isArray(body.posts)) throw new Error("Invalid response");
+      if (!Array.isArray(body.posts)) {
+        throw new Error("Invalid response");
+      }
       setPosts(body.posts);
     } catch (err) {
       console.error("Error loading posts:", err);
@@ -72,6 +77,7 @@ export default function Feed() {
       return;
     }
 
+    // Build payload dynamically, only including non‑empty fields
     const payload = {
       genre: (selectedMain || "Gaming").toLowerCase(),
       post_data: {
@@ -87,7 +93,6 @@ export default function Feed() {
     if (formFields.banner_image.trim()) {
       payload.post_data.banner_image = formFields.banner_image.trim();
     }
-
     const images = formFields.images
       .split(",")
       .map((img) => img.trim())
@@ -95,7 +100,6 @@ export default function Feed() {
     if (images.length > 0) {
       payload.post_data.images = images;
     }
-
     if (selectedMain === "Anime") {
       const services = formFields.streaming_services
         .split(",")
@@ -140,6 +144,7 @@ export default function Feed() {
 
   return (
     <div style={styles.container}>
+      {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
@@ -149,6 +154,15 @@ export default function Feed() {
           >
             + Create Post
           </button>
+
+          {/* ← NEW Profile button → */}
+          <button
+            style={styles.profileButton}
+            onClick={() => navigate("/profile")}
+          >
+            Profile
+          </button>
+
           <button
             onClick={() => {
               localStorage.removeItem("token");
@@ -161,6 +175,7 @@ export default function Feed() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
           <button
@@ -176,13 +191,14 @@ export default function Feed() {
         ))}
       </div>
 
+      {/* Genre Filters */}
       <div style={styles.filterBar}>
         {Object.keys(GENRES).map((main) => (
           <button
             key={main}
             onClick={() => {
               setSelectedMain(main);
-              setSelectedSub([]); // Reset tags when genre is changed
+              setSelectedSub([]); // reset tags on genre change
             }}
             style={{
               ...styles.filterButton,
@@ -194,6 +210,7 @@ export default function Feed() {
         ))}
       </div>
 
+      {/* Sub‑genre Filters */}
       {selectedMain && (
         <div style={styles.subFilterBar}>
           {GENRES[selectedMain].map((sub) => (
@@ -201,9 +218,7 @@ export default function Feed() {
               key={sub}
               onClick={() =>
                 setSelectedSub((prev) =>
-                  prev.includes(sub)
-                    ? prev.filter((s) => s !== sub)
-                    : [...prev, sub]
+                  prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
                 )
               }
               style={{
@@ -217,6 +232,7 @@ export default function Feed() {
         </div>
       )}
 
+      {/* Feed */}
       <div style={styles.feed}>
         {loading ? (
           <p>Loading...</p>
@@ -227,6 +243,7 @@ export default function Feed() {
         )}
       </div>
 
+      {/* Create‑Post Modal */}
       {showCreateModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
@@ -261,54 +278,6 @@ export default function Feed() {
               />
             ))}
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", marginBottom: 4 }}>
-                Genre (required)
-              </label>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                {Object.keys(GENRES).map((main) => (
-                  <button
-                    key={main}
-                    onClick={() => {
-                      setSelectedMain(main);
-                      setSelectedSub([]); // Reset tags when genre is changed
-                    }}
-                    style={{
-                      ...styles.filterButton,
-                      ...(selectedMain === main ? styles.activeFilter : {}),
-                    }}
-                  >
-                    {main}
-                  </button>
-                ))}
-              </div>
-
-              {selectedMain && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {GENRES[selectedMain].map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() =>
-                        setSelectedSub((prev) =>
-                          prev.includes(sub)
-                            ? prev.filter((s) => s !== sub)
-                            : [...prev, sub]
-                        )
-                      }
-                      style={{
-                        ...styles.subFilterButton,
-                        ...(selectedSub.includes(sub)
-                          ? styles.activeSubFilter
-                          : {}),
-                      }}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {selectedMain === "Anime" && (
               <input
                 style={styles.textInput}
@@ -322,6 +291,44 @@ export default function Feed() {
                 }
               />
             )}
+
+            {/* Genre and Tag Selectors */}
+            <div style={styles.modalSelectorContainer}>
+              <h4>Genre</h4>
+              {Object.keys(GENRES).map((main) => (
+                <button
+                  key={main}
+                  onClick={() => setSelectedMain(main)}
+                  style={{
+                    ...styles.modalSelectorButton,
+                    ...(selectedMain === main ? styles.activeSelector : {}),
+                  }}
+                >
+                  {main}
+                </button>
+              ))}
+              {selectedMain && (
+                <div>
+                  <h4>Tags</h4>
+                  {GENRES[selectedMain].map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() =>
+                        setSelectedSub((prev) =>
+                          prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
+                        )
+                      }
+                      style={{
+                        ...styles.modalSelectorButton,
+                        ...(selectedSub.includes(sub) ? styles.activeSelector : {}),
+                      }}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button
@@ -363,6 +370,15 @@ const styles = {
     color: "#fff",
     borderRadius: 8,
     border: "none",
+    cursor: "pointer",
+  },
+  profileButton: {
+    background: "#4CAF50",
+    padding: "8px 16px",
+    color: "#fff",
+    borderRadius: 8,
+    border: "none",
+    cursor: "pointer",
   },
   logoutButton: {
     background: "#E57373",
@@ -370,6 +386,7 @@ const styles = {
     color: "#fff",
     borderRadius: 8,
     border: "none",
+    cursor: "pointer",
   },
   tabContainer: {
     display: "flex",
@@ -454,6 +471,7 @@ const styles = {
     color: "#fff",
     borderRadius: 8,
     border: "none",
+    cursor: "pointer",
   },
   submitButton: {
     background: "#5C6BC0",
@@ -461,5 +479,20 @@ const styles = {
     color: "#fff",
     borderRadius: 8,
     border: "none",
+    cursor: "pointer",
+  },
+  modalSelectorContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  modalSelectorButton: {
+    padding: "6px 12px",
+    background: "#444",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  activeSelector: {
+    background: "#5C6BC0",
   },
 };
