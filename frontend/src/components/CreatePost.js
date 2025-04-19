@@ -1,10 +1,21 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+const GENRE_OPTIONS = [
+  "Anime",
+  "Gaming",
+  "MMO",
+  "First Person Shooter",
+  "Hero Battler",
+  "Isekai",
+  "Action",
+  "Horror",
+];
+
 const CreatePost = ({ token, onPostCreated }) => {
   const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
-  const [subgenres, setSubgenres] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [selectedSubgenres, setSelectedSubgenres] = useState([]);
   const [studio, setStudio] = useState("");
   const [bannerImage, setBannerImage] = useState("");
   const [description, setDescription] = useState("");
@@ -18,10 +29,18 @@ const CreatePost = ({ token, onPostCreated }) => {
   const [trailerUrl, setTrailerUrl] = useState("");
   const [error, setError] = useState("");
 
+  const toggleCheckbox = (value, setFunction, currentState) => {
+    if (currentState.includes(value)) {
+      setFunction(currentState.filter((item) => item !== value));
+    } else {
+      setFunction([...currentState, value]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || !tags || !subgenres || !studio || !bannerImage || !description || !images) {
+    if (!title || selectedTags.length === 0 || selectedSubgenres.length === 0 || !studio || !bannerImage || !description || !images) {
       setError("All required fields must be filled.");
       return;
     }
@@ -31,8 +50,8 @@ const CreatePost = ({ token, onPostCreated }) => {
       studio,
       banner_image: bannerImage,
       description,
-      tags: tags.split(",").map((t) => t.trim()),
-      subgenres: subgenres.split(",").map((s) => s.trim()),
+      tags: selectedTags,
+      subgenres: selectedSubgenres,
       images: images.split(",").map((img) => img.trim()),
     };
 
@@ -77,8 +96,8 @@ const CreatePost = ({ token, onPostCreated }) => {
 
       if (response.data?.post_id) {
         setTitle("");
-        setTags("");
-        setSubgenres("");
+        setSelectedTags([]);
+        setSelectedSubgenres([]);
         setStudio("");
         setBannerImage("");
         setDescription("");
@@ -111,20 +130,39 @@ const CreatePost = ({ token, onPostCreated }) => {
         onChange={(e) => setTitle(e.target.value)}
         required
       />
-      <input
-        type="text"
-        placeholder="Tags (comma-separated)"
-        value={tags}
-        onChange={(e) => setTags(e.target.value)}
-        required
-      />
-      <input
-        type="text"
-        placeholder="Subgenres (comma-separated)"
-        value={subgenres}
-        onChange={(e) => setSubgenres(e.target.value)}
-        required
-      />
+
+      <label>Tags:</label>
+      <div className="checkbox-group">
+        {GENRE_OPTIONS.map((tag) => (
+          <label key={`tag-${tag}`}>
+            <input
+              type="checkbox"
+              checked={selectedTags.includes(tag)}
+              onChange={() =>
+                toggleCheckbox(tag, setSelectedTags, selectedTags)
+              }
+            />
+            {tag}
+          </label>
+        ))}
+      </div>
+
+      <label>Subgenres:</label>
+      <div className="checkbox-group">
+        {GENRE_OPTIONS.map((genre) => (
+          <label key={`subgenre-${genre}`}>
+            <input
+              type="checkbox"
+              checked={selectedSubgenres.includes(genre)}
+              onChange={() =>
+                toggleCheckbox(genre, setSelectedSubgenres, selectedSubgenres)
+              }
+            />
+            {genre}
+          </label>
+        ))}
+      </div>
+
       <input
         type="text"
         placeholder="Studio"
