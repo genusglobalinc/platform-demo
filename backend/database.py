@@ -141,18 +141,24 @@ def update_user_password_by_email(email: str, new_password: str) -> bool:
         logging.error(f"Password update failed: {e}")
         return False
 
-def update_user_profile(email: str, profile_data: dict) -> bool:
+def update_user_profile(user_id: str, profile_data: dict) -> bool:
+    """
+    Update arbitrary profile fields for the given user_id.
+    """
     try:
-        update_expression = "SET " + ", ".join([f"{key} = :{key}" for key in profile_data])
-        values = {f":{key}": value for key, value in profile_data.items()}
+        # Build DynamoDB UpdateExpression, e.g. "SET display_name = :display_name, social_links = :social_links"
+        update_expression = "SET " + ", ".join(f"{k} = :{k}" for k in profile_data.keys())
+        expression_values = {f":{k}": v for k, v in profile_data.items()}
+
         response = users_table.update_item(
-            Key={'email': email},
+            Key={'user_id': user_id},                     # <-- use user_id as the primary key
             UpdateExpression=update_expression,
-            ExpressionAttributeValues=values
+            ExpressionAttributeValues=expression_values
         )
-        logging.debug(f"Profile updated for {email} with {profile_data}")
-        logging.debug(f"Profile update response: {response}")  # Log the response
+        logging.debug(f"Profile updated for user_id {user_id}: {profile_data}")
+        logging.debug(f"DynamoDB response: {response}")
         return True
+
     except ClientError as e:
         logging.error(f"Profile update failed: {e}")
         return False
