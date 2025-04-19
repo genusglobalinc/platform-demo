@@ -10,6 +10,7 @@ export default function ProfileSettings() {
   const [socialLinks, setSocialLinks] = useState("");
   const [selectedPic, setSelectedPic] = useState("");
   const [status, setStatus] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,21 +38,20 @@ export default function ProfileSettings() {
     }
   };
 
-  if (!profile) return <div style={styles.details}>Loading profile...</div>;
+  if (!profile) return <div style={styles.container}>Loading profile...</div>;
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>Profile Settings</h2>
-        <div style={styles.headerRight}>
-          <button style={styles.backButton} onClick={() => navigate("/feed")}>
-            ← Feed
-          </button>
-          <button style={styles.settingsButton} onClick={() => navigate("/profile")}>
-            Profile
-          </button>
-        </div>
+      <div style={styles.topNav}>
+        <button style={styles.navButton} onClick={() => navigate("/feed")}>
+          ← Feed
+        </button>
+        <button style={styles.navButton} onClick={() => navigate("/profile")}>
+          ← Profile
+        </button>
       </div>
+
+      <h2 style={styles.header}>Profile Settings</h2>
 
       {/* Display Name */}
       <div style={styles.section}>
@@ -72,7 +72,7 @@ export default function ProfileSettings() {
 
       {/* Social Links */}
       <div style={styles.section}>
-        <label style={styles.label}>Social Links</label>
+        <label style={styles.label}>Social Links (comma separated)</label>
         <input
           type="text"
           value={socialLinks}
@@ -120,41 +120,28 @@ export default function ProfileSettings() {
 const styles = {
   container: {
     padding: "2rem",
-    background: "#1e1e1e",
+    maxWidth: "600px",
+    margin: "auto",
     color: "#eee",
-    minHeight: "80vh",
     fontFamily: "sans-serif",
   },
-  header: {
+  topNav: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "1.5rem",
   },
-  title: {
-    fontSize: "2rem",
-    color: "#B388EB",
-    margin: 0,
-  },
-  headerRight: {
-    display: "flex",
-    gap: "12px",
-  },
-  backButton: {
+  navButton: {
     background: "#5C6BC0",
     padding: "8px 16px",
     color: "#fff",
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
+    fontWeight: "bold",
   },
-  settingsButton: {
-    background: "#4DB6AC",
-    padding: "8px 16px",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
+  header: {
+    color: "#B388EB",
+    marginBottom: "1.5rem",
   },
   section: {
     marginBottom: "1.5rem",
@@ -202,9 +189,5 @@ const styles = {
   status: {
     marginTop: "1rem",
     color: "lightgreen",
-  },
-  details: {
-    fontSize: "1.1rem",
-    lineHeight: "1.7",
   },
 };
