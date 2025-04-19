@@ -53,6 +53,15 @@ export const getProfileData = async () => {
   return res.data;
 };
 
+// ─── NEW ───
+export const getUserPosts = (user_id) => {
+  const token = localStorage.getItem("token");
+  return api
+    .get(`/users/${user_id}/posts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((r) => r.data);
+};
 
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData) => {

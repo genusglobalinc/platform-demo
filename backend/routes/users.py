@@ -42,3 +42,14 @@ async def update_profile(
     if not success:
         raise HTTPException(status_code=500, detail="Error updating profile")
     return {"message": "Profile updated successfully"}
+
+# ─── NEW ───
+@router.get("/{user_id}/posts")
+async def get_user_posts(
+    user_id: str,
+    token: dict = Depends(verify_access_token)
+):
+    # ensure they can only fetch their own posts (or drop this check if you want public profiles)
+    if token.get("sub") != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return get_posts_by_user(user_id)
