@@ -1,5 +1,5 @@
-// src/components/ProfileSettings.js
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getProfileData, updateProfile } from "../api";
 
 const profilePics = ["pic1", "pic2", "pic3"];
@@ -10,8 +10,8 @@ export default function ProfileSettings() {
   const [socialLinks, setSocialLinks] = useState("");
   const [selectedPic, setSelectedPic] = useState("");
   const [status, setStatus] = useState("");
+  const navigate = useNavigate();
 
-  // Load profile once
   useEffect(() => {
     (async () => {
       try {
@@ -26,12 +26,10 @@ export default function ProfileSettings() {
     })();
   }, []);
 
-  // Generic save helper
   const saveField = async (fieldName, value) => {
     try {
       await updateProfile({ [fieldName]: value });
       setStatus(`${fieldName.replace("_", " ")} updated!`);
-      // re-fetch fresh profile
       const data = await getProfileData();
       setProfile(data);
     } catch {
@@ -39,12 +37,22 @@ export default function ProfileSettings() {
     }
   };
 
-  if (!profile) return <div>Loading profile...</div>;
+  if (!profile) return <div style={styles.details}>Loading profile...</div>;
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.header}>Profile Settings</h2>
-      
+      <div style={styles.header}>
+        <h2 style={styles.title}>Profile Settings</h2>
+        <div style={styles.headerRight}>
+          <button style={styles.backButton} onClick={() => navigate("/feed")}>
+            ← Feed
+          </button>
+          <button style={styles.settingsButton} onClick={() => navigate("/profile")}>
+            Profile
+          </button>
+        </div>
+      </div>
+
       {/* Display Name */}
       <div style={styles.section}>
         <label style={styles.label}>Display Name</label>
@@ -64,7 +72,7 @@ export default function ProfileSettings() {
 
       {/* Social Links */}
       <div style={styles.section}>
-        <label style={styles.label}>Social Links (comma separated)</label>
+        <label style={styles.label}>Social Links</label>
         <input
           type="text"
           value={socialLinks}
@@ -112,14 +120,41 @@ export default function ProfileSettings() {
 const styles = {
   container: {
     padding: "2rem",
-    maxWidth: "600px",
-    margin: "auto",
+    background: "#1e1e1e",
     color: "#eee",
+    minHeight: "80vh",
     fontFamily: "sans-serif",
   },
   header: {
-    color: "#B388EB",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: "1.5rem",
+  },
+  title: {
+    fontSize: "2rem",
+    color: "#B388EB",
+    margin: 0,
+  },
+  headerRight: {
+    display: "flex",
+    gap: "12px",
+  },
+  backButton: {
+    background: "#5C6BC0",
+    padding: "8px 16px",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  settingsButton: {
+    background: "#4DB6AC",
+    padding: "8px 16px",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
   },
   section: {
     marginBottom: "1.5rem",
@@ -167,5 +202,9 @@ const styles = {
   status: {
     marginTop: "1rem",
     color: "lightgreen",
+  },
+  details: {
+    fontSize: "1.1rem",
+    lineHeight: "1.7",
   },
 };

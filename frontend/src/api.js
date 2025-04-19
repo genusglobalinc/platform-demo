@@ -33,7 +33,7 @@ export const resetPassword = (token, new_password) =>
 // Profile endpoints (protected)
 export const updateProfile = (profileData) => {
   const token = localStorage.getItem("token");
-  return api.put('/users/profile/update', profileData, {
+  return api.put('/users/profile', profileData, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
