@@ -28,14 +28,21 @@ export default function ProfileSettings() {
   }, []);
 
   const saveField = async (fieldName, value) => {
+    const trimmedValue = value.trim();
     try {
-      await updateProfile({ [fieldName]: value });
+      await updateProfile({ [fieldName]: trimmedValue });
       setStatus(`${fieldName.replace("_", " ")} updated!`);
       const data = await getProfileData();
       setProfile(data);
+      setTimeout(() => setStatus(""), 3000);
     } catch {
       setStatus(`Error updating ${fieldName.replace("_", " ")}.`);
     }
+  };
+
+  const hasChanged = (fieldName, value) => {
+    if (!profile) return false;
+    return profile[fieldName] !== value.trim();
   };
 
   if (!profile) return <div style={styles.container}>Loading profile...</div>;
@@ -65,6 +72,7 @@ export default function ProfileSettings() {
         <button
           onClick={() => saveField("display_name", displayName)}
           style={styles.button}
+          disabled={!hasChanged("display_name", displayName)}
         >
           Save
         </button>
@@ -76,12 +84,14 @@ export default function ProfileSettings() {
         <input
           type="text"
           value={socialLinks}
+          placeholder="twitter.com/user, github.com/user"
           onChange={(e) => setSocialLinks(e.target.value)}
           style={styles.input}
         />
         <button
           onClick={() => saveField("social_links", socialLinks)}
           style={styles.button}
+          disabled={!hasChanged("social_links", socialLinks)}
         >
           Save
         </button>
@@ -107,6 +117,7 @@ export default function ProfileSettings() {
         <button
           onClick={() => saveField("profile_picture", selectedPic)}
           style={styles.button}
+          disabled={!hasChanged("profile_picture", selectedPic)}
         >
           Save
         </button>
