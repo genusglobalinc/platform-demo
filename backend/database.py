@@ -44,7 +44,9 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
         "following": 0,
         "liked_posts": [],
         "is_verified": user_data.get("is_verified", False),
-        "created_at": str(datetime.utcnow())
+        "created_at": str(datetime.utcnow()),
+        "two_factor_secret": user_data.get("two_factor_secret"),
+        "two_factor_enabled": user_data.get("two_factor_enabled", False)
     }
     try:
         response = users_table.put_item(Item=item)
@@ -140,6 +142,19 @@ def update_user_password_by_email(email: str, new_password: str) -> bool:
         return True
     except ClientError as e:
         logging.error(f"Password update failed: {e}")
+        return False
+
+def verify_2fa_code(user_id: str, code: str) -> bool:
+    """Verify a 2FA code for a user."""
+    try:
+        user = get_user_from_db(user_id)
+        if not user or not user.get('two_factor_secret'):
+            return False
+        
+        totp = pyotp.TOTP(user['two_factor_secret'])
+        return totp.verify(code)
+    except Exception as e:
+        logging.error(f"2FA verification failed: {e}")
         return False
 
 def update_user_profile(user_id: str, profile_data: dict) -> bool:
