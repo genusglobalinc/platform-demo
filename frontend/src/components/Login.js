@@ -168,15 +168,16 @@ const styles = {
     '100%': { transform: 'rotate(360deg)' },
   },
   container: {
-    maxWidth: '100%',
-    margin: '1rem',
+    width: '90%',
+    maxWidth: '400px',
+    margin: '2rem auto',
     padding: '1.5rem',
     background: '#121212',
     color: '#eee',
     borderRadius: '12px',
     boxShadow: '0 0 20px rgba(128,0,128,0.3)',
+    boxSizing: 'border-box',
     '@media (min-width: 768px)': {
-      maxWidth: '400px',
       margin: '5rem auto',
       padding: '2rem',
     }
@@ -201,6 +202,7 @@ const styles = {
     color: '#fff',
     fontSize: '1rem',
     transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
     '&:focus': {
       outline: 'none',
       borderColor: '#B388EB',
