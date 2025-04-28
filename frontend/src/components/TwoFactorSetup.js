@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { setup2FA, verify2FA } from '../api';
+import { setup2FA, verify2FA, verify2FALogin } from '../api';
 
 const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) => {
   const [setupData, setSetupData] = useState(initialSetupData);

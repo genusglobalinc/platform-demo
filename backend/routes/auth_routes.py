@@ -334,7 +334,8 @@ async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(oauth
 
 
 @router.post("/2fa/login")
-async def verify_2fa_login(request: TwoFactorVerifyRequest, temp_token: str = Depends(verify_access_token)):
+async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends(oauth2_scheme)):
+    temp_token = verify_access_token(token)
     try:
         if not temp_token.get("temp"):
             raise HTTPException(status_code=400, detail="Invalid token type")
