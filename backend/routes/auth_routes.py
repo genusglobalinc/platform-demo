@@ -335,24 +335,35 @@ async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(oauth
 
 @router.post("/2fa/login")
 async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends(oauth2_scheme)):
-    temp_token = verify_access_token(token)
     try:
-        if not temp_token.get("temp"):
+        # First verify the token is a temp token
+        temp_token = verify_access_token(token)
+        if not temp_token.get("temp", False):
+            logging.error(f"Token is not a temp token: {temp_token}")
             raise HTTPException(status_code=400, detail="Invalid token type")
 
         user_id = temp_token.get("sub")
+        if not user_id:
+            logging.error("No user_id in token")
+            raise HTTPException(status_code=400, detail="Invalid token")
+
         user = get_user_from_db(user_id)
         if not user:
+            logging.error(f"User not found: {user_id}")
             raise HTTPException(status_code=404, detail="User not found")
 
         # Verify the code
         if not verify_2fa_code(user_id, request.code):
+            logging.error(f"Invalid 2FA code for user: {user_id}")
             raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
         # Generate the actual access token
-        access_token = create_access_token(data={"sub": user_id})
+        access_token = create_access_token(data={"sub": user_id, "temp": False})
         return {"access_token": access_token, "token_type": "bearer"}
 
+    except JWTError as e:
+        logging.exception("JWT validation failed")
+        raise HTTPException(status_code=401, detail="Invalid token")
     except Exception as e:
         logging.exception("2FA login verification failed")
         raise HTTPException(status_code=500, detail=str(e))
