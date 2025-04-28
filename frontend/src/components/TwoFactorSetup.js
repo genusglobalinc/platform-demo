@@ -21,11 +21,20 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) 
 
   const handleVerify = async () => {
     try {
+      // First verify the setup
       await verify2FA(verificationCode, tempToken);
+      
+      // Then immediately do the login verification
+      const loginResponse = await verify2FALogin(verificationCode, tempToken);
+      
+      // Store the actual access token
+      localStorage.setItem('token', loginResponse.data.access_token);
+      
+      // Clear any errors
       setError('');
-      if (onComplete) {
-        onComplete();
-      }
+      
+      // Navigate to feed
+      window.location.href = '/feed';
     } catch (err) {
       setError('Invalid verification code. Please try again.');
       console.error('2FA verification error:', err);
