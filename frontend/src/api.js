@@ -15,10 +15,9 @@ export const loginUser = (username, password) =>
   api.post('/auth/token', { username, password });
 
 // 2FA endpoints
-export const setup2FA = () => {
-  const token = localStorage.getItem("token");
+export const setup2FA = (tempToken) => {
   return api.post('/auth/2fa/setup', {}, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${tempToken}` },
   });
 };
 
@@ -29,8 +28,10 @@ export const verify2FA = (code) => {
   });
 };
 
-export const verify2FALogin = async (code) => {
-  return await axios.post(`${API_BASE_URL}/2fa/verify`, { code });
+export const verify2FALogin = async (code, tempToken) => {
+  return await api.post('/auth/2fa/login', { code }, {
+    headers: { Authorization: `Bearer ${tempToken}` },
+  });
 };
 
 export const registerUser = async (username, email, password, displayName, socialLinks, profilePic) => {

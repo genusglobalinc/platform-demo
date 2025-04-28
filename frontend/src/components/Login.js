@@ -22,7 +22,7 @@ const Login = () => {
         
         if (response.data.requires_setup) {
           // User needs to set up 2FA first
-          const setupResponse = await setup2FA();
+          const setupResponse = await setup2FA(response.data.temp_token);
           setSetupData(setupResponse.data);
           setShowSetup(true);
         } else {
@@ -43,8 +43,12 @@ const Login = () => {
   const handle2FASubmit = async () => {
     try {
       const response = await verify2FALogin(code2FA, tempToken);
-      localStorage.setItem("token", response.data.access_token);
-      navigate("/feed");
+      if (response.data.access_token) {
+        localStorage.setItem("token", response.data.access_token);
+        navigate("/feed");
+      } else {
+        alert("Failed to verify 2FA code. Please try again.");
+      }
     } catch (err) {
       alert("Invalid 2FA code. Please try again.");
       console.error("2FA error:", err);
