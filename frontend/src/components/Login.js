@@ -93,6 +93,7 @@ const Login = () => {
         // Show 2FA setup if user hasn't set it up yet
         <TwoFactorSetup
           setupData={setupData}
+          tempToken={tempToken}
           onComplete={() => {
             setShowSetup(false);
             setShow2FA(true);
