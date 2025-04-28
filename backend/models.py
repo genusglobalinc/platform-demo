@@ -73,3 +73,12 @@ class TwoFactorLoginResponse(BaseModel):
     temp_token: Optional[str] = None
     access_token: Optional[str] = None
     token_type: Optional[str] = None
+
+# Model for forgot password request
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+# Model for reset password request
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
