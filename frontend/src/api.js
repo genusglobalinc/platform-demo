@@ -29,20 +29,21 @@ export const verify2FA = (code) => {
   });
 };
 
-export const verify2FALogin = (code, tempToken) => 
-  api.post('/auth/2fa/login', { code }, {
-    headers: { Authorization: `Bearer ${tempToken}` },
-  });
+export const verify2FALogin = async (code) => {
+  return await axios.post(`${API_BASE_URL}/2fa/verify`, { code });
+};
 
-export const registerUser = (username, email, password, display_name, social_links, profile_picture) =>
-  api.post('/auth/register', {
+export const registerUser = async (username, email, password, displayName, socialLinks, profilePic) => {
+  const response = await axios.post(`${API_BASE_URL}/register`, {
     username,
     email,
     password,
-    display_name,
-    social_links,
-    profile_picture,
+    display_name: displayName,
+    social_links: socialLinks,
+    profile_pic: profilePic,
   });
+  return response;
+};
 
 export const forgotPassword = (email) =>
   api.post('/auth/forgot-password', { email });

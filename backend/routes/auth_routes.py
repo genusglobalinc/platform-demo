@@ -4,24 +4,35 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import timedelta
+import logging
+import pyotp
+import qrcode
+import io
+import base64
 from backend.utils.security import create_access_token, verify_access_token, verify_password
 from backend.models import (
     TwoFactorLoginResponse,
     TwoFactorSetupResponse,
-    TwoFactorVerifyRequest
+    TwoFactorVerifyRequest,
+    UserRegistration,
+    UsernameRecoveryRequest,
+    EmailVerificationRequest,
+    VerifyTokenRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    LoginRequest
 )
 from backend.database import (
     get_user_by_username,
     get_user_by_email,
     get_user_from_db,
-    update_user_verification,
     create_user_in_db,
+    update_user_verification,
     update_reset_token,
     update_user_password,
     update_user_2fa,
     verify_2fa_code
 )
-import logging
 import pyotp
 import qrcode
 import io
@@ -75,14 +86,44 @@ async def register_user(user_data: UserRegistration):
             raise HTTPException(status_code=400, detail="Email already exists")
 
         user_dict = user_data.dict()
+        
+        # Generate 2FA secret for the new user
+        secret = pyotp.random_base32()
+        user_dict['two_factor_secret'] = secret
+        user_dict['two_factor_enabled'] = True  # 2FA is mandatory
+        
         # create_user_in_db will hash password internally
         user_id = create_user_in_db(user_dict)
         if not user_id:
             logging.error("create_user_in_db returned None")
             raise HTTPException(status_code=500, detail="Error creating user")
 
+        # Generate QR code for 2FA setup
+        totp = pyotp.TOTP(secret)
+        provisioning_uri = totp.provisioning_uri(
+            name=user_data.email,
+            issuer_name="Lost Gates"
+        )
+
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(provisioning_uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Convert QR code to base64 string
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_code = base64.b64encode(buffered.getvalue()).decode()
+
         logging.info(f"User registered successfully with ID: {user_id}")
-        return {"message": "User registered successfully", "user_id": user_id}
+        return {
+            "message": "User registered successfully",
+            "user_id": user_id,
+            "two_factor_setup": {
+                "qr_code": f"data:image/png;base64,{qr_code}",
+                "manual_entry_key": secret
+            }
+        }
 
     except HTTPException:
         raise
@@ -100,14 +141,16 @@ async def login(request: LoginRequest):
             logging.warning(f"Invalid credentials for user: {request.username}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        # If 2FA is not enabled, proceed with normal login
+        # If 2FA is not enabled, generate a setup token
         if not user.get("two_factor_enabled", False):
-            access_token = create_access_token(data={"sub": user["user_id"]})
-            logging.debug(f"Access token generated for user: {user['user_id']}")
+            setup_token = create_access_token(
+                data={"sub": user["user_id"], "setup": True},
+                expires_delta=timedelta(minutes=15)
+            )
             return TwoFactorLoginResponse(
-                requires_2fa=False,
-                access_token=access_token,
-                token_type="bearer"
+                requires_2fa=True,
+                requires_setup=True,
+                temp_token=setup_token
             )
 
         # If 2FA is enabled, generate a temporary token

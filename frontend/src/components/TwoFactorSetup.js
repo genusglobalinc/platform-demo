@@ -1,28 +1,31 @@
 import React, { useState } from 'react';
 import { setup2FA, verify2FA } from '../api';
 
-const TwoFactorSetup = () => {
-  const [setupData, setSetupData] = useState(null);
+const TwoFactorSetup = ({ setupData: initialSetupData, onComplete }) => {
+  const [setupData, setSetupData] = useState(initialSetupData);
   const [verificationCode, setVerificationCode] = useState('');
-  const [isEnabled, setIsEnabled] = useState(false);
   const [error, setError] = useState('');
 
   const handleSetup = async () => {
-    try {
-      const response = await setup2FA();
-      setSetupData(response.data);
-      setError('');
-    } catch (err) {
-      setError('Failed to setup 2FA. Please try again.');
-      console.error('2FA setup error:', err);
+    if (!setupData) {
+      try {
+        const response = await setup2FA();
+        setSetupData(response.data);
+        setError('');
+      } catch (err) {
+        setError('Failed to setup 2FA. Please try again.');
+        console.error('2FA setup error:', err);
+      }
     }
   };
 
   const handleVerify = async () => {
     try {
       await verify2FA(verificationCode);
-      setIsEnabled(true);
       setError('');
+      if (onComplete) {
+        onComplete();
+      }
     } catch (err) {
       setError('Invalid verification code. Please try again.');
       console.error('2FA verification error:', err);
@@ -31,23 +34,21 @@ const TwoFactorSetup = () => {
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Two-Factor Authentication</h2>
+      <h2 style={styles.title}>Two-Factor Authentication Setup</h2>
       
       {error && <p style={styles.error}>{error}</p>}
 
-      {!setupData && !isEnabled && (
+      {!setupData ? (
         <>
           <p style={styles.text}>
-            Enhance your account security by enabling two-factor authentication.
+            Two-factor authentication is required for all accounts.
             You'll need an authenticator app like Google Authenticator or Microsoft Authenticator.
           </p>
           <button style={styles.button} onClick={handleSetup}>
-            Set up 2FA
+            Start 2FA Setup
           </button>
         </>
-      )}
-
-      {setupData && !isEnabled && (
+      ) : (
         <>
           <p style={styles.text}>
             1. Scan this QR code with your authenticator app:
@@ -74,18 +75,9 @@ const TwoFactorSetup = () => {
             maxLength={6}
           />
           <button style={styles.button} onClick={handleVerify}>
-            Verify and Enable 2FA
+            Verify and Continue
           </button>
         </>
-      )}
-
-      {isEnabled && (
-        <div style={styles.success}>
-          <p>✓ Two-factor authentication is now enabled for your account!</p>
-          <p>
-            You'll need to enter a code from your authenticator app each time you log in.
-          </p>
-        </div>
       )}
     </div>
   );

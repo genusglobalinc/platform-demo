@@ -69,6 +69,7 @@ class TwoFactorVerifyRequest(BaseModel):
 # Model for 2FA login response
 class TwoFactorLoginResponse(BaseModel):
     requires_2fa: bool
+    requires_setup: bool = False
     temp_token: Optional[str] = None
     access_token: Optional[str] = None
     token_type: Optional[str] = None

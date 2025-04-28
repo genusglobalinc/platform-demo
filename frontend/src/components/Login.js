@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { loginUser, verify2FALogin } from '../api';
+import { loginUser, verify2FALogin, setup2FA, verify2FA } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
+import TwoFactorSetup from './TwoFactorSetup';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [show2FA, setShow2FA] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
   const [code2FA, setCode2FA] = useState('');
   const [tempToken, setTempToken] = useState('');
+  const [setupData, setSetupData] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -15,11 +18,19 @@ const Login = () => {
       const response = await loginUser(username, password);
       
       if (response.data.requires_2fa) {
-        // If 2FA is required, show the 2FA input
         setTempToken(response.data.temp_token);
-        setShow2FA(true);
+        
+        if (response.data.requires_setup) {
+          // User needs to set up 2FA first
+          const setupResponse = await setup2FA();
+          setSetupData(setupResponse.data);
+          setShowSetup(true);
+        } else {
+          // User has 2FA enabled, just needs to enter code
+          setShow2FA(true);
+        }
       } else {
-        // If 2FA is not required, proceed with normal login
+        // This shouldn't happen anymore as 2FA is mandatory
         localStorage.setItem("token", response.data.access_token);
         navigate("/feed");
       }
@@ -47,8 +58,8 @@ const Login = () => {
         Discover and participate in exclusive game testing events.
       </p>
       
-      {!show2FA ? (
-        // Show login form if 2FA is not required yet
+      {!show2FA && !showSetup ? (
+        // Show login form initially
         <>
           <input
             style={styles.input}
@@ -74,8 +85,17 @@ const Login = () => {
             Don't have an account? <Link to="/register" style={styles.link}>Create one</Link>
           </p>
         </>
+      ) : showSetup ? (
+        // Show 2FA setup if user hasn't set it up yet
+        <TwoFactorSetup
+          setupData={setupData}
+          onComplete={() => {
+            setShowSetup(false);
+            setShow2FA(true);
+          }}
+        />
       ) : (
-        // Show 2FA form if required
+        // Show 2FA verification form
         <>
           <p style={styles.subText}>
             Please enter the verification code from your authenticator app.
