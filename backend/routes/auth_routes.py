@@ -307,9 +307,10 @@ async def setup_2fa(token: str = Depends(oauth2_scheme)):
 
 
 @router.post("/2fa/verify")
-async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(verify_access_token)):
+async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(oauth2_scheme)):
+    token_data = verify_access_token(token)
     try:
-        user_id = token.get("sub")
+        user_id = token_data.get("sub")
         user = get_user_from_db(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
