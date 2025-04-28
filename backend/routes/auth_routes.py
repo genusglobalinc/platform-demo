@@ -1,6 +1,7 @@
 # backend/routes/auth_routes.py
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import timedelta
@@ -40,6 +41,8 @@ import base64
 
 router = APIRouter()
 logging.basicConfig(level=logging.DEBUG)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # ---------------- Models ---------------- 
 
