@@ -5,6 +5,11 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import timedelta
 from backend.utils.security import create_access_token, verify_access_token, verify_password
+from backend.models import (
+    TwoFactorLoginResponse,
+    TwoFactorSetupResponse,
+    TwoFactorVerifyRequest
+)
 from backend.database import (
     get_user_by_username,
     get_user_by_email,
