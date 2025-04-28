@@ -34,7 +34,7 @@ export const verify2FALogin = async (code, tempToken) => {
 };
 
 export const registerUser = async (username, email, password, displayName, socialLinks, profilePic) => {
-  const response = await axios.post(`${API_BASE_URL}/register`, {
+  const response = await api.post('/auth/register', {
     username,
     email,
     password,
