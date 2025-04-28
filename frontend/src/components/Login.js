@@ -1,20 +1,42 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api';
+import { loginUser, verify2FALogin } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [show2FA, setShow2FA] = useState(false);
+  const [code2FA, setCode2FA] = useState('');
+  const [tempToken, setTempToken] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
       const response = await loginUser(username, password);
-      localStorage.setItem("token", response.data.access_token);
-      navigate("/feed");
+      
+      if (response.data.requires_2fa) {
+        // If 2FA is required, show the 2FA input
+        setTempToken(response.data.temp_token);
+        setShow2FA(true);
+      } else {
+        // If 2FA is not required, proceed with normal login
+        localStorage.setItem("token", response.data.access_token);
+        navigate("/feed");
+      }
     } catch (err) {
       alert("Login failed. Please check your credentials.");
       console.error("Login error:", err);
+    }
+  };
+
+  const handle2FASubmit = async () => {
+    try {
+      const response = await verify2FALogin(code2FA, tempToken);
+      localStorage.setItem("token", response.data.access_token);
+      navigate("/feed");
+    } catch (err) {
+      alert("Invalid 2FA code. Please try again.");
+      console.error("2FA error:", err);
     }
   };
 
@@ -24,29 +46,51 @@ const Login = () => {
       <p style={styles.subText}>
         Discover and participate in exclusive game testing events.
       </p>
-      <input
-        style={styles.input}
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        style={styles.input}
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button style={styles.button} onClick={handleLogin}>Login</button>
-      <div style={styles.alt}>
-        <Link to="/forgot-password" style={styles.link}>Forgot Password?</Link>
-        {" | "}
-        <Link to="/forgot-email" style={styles.link}>Forgot Email?</Link>
-      </div>
-      <p style={styles.alt}>
-        Don’t have an account? <Link to="/register" style={styles.link}>Create one</Link>
-      </p>
+      
+      {!show2FA ? (
+        // Show login form if 2FA is not required yet
+        <>
+          <input
+            style={styles.input}
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            style={styles.input}
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button style={styles.button} onClick={handleLogin}>Login</button>
+          <div style={styles.alt}>
+            <Link to="/forgot-password" style={styles.link}>Forgot Password?</Link>
+            {" | "}
+            <Link to="/forgot-email" style={styles.link}>Forgot Email?</Link>
+          </div>
+          <p style={styles.alt}>
+            Don't have an account? <Link to="/register" style={styles.link}>Create one</Link>
+          </p>
+        </>
+      ) : (
+        // Show 2FA form if required
+        <>
+          <p style={styles.subText}>
+            Please enter the verification code from your authenticator app.
+          </p>
+          <input
+            style={styles.input}
+            type="text"
+            placeholder="Enter 6-digit code"
+            value={code2FA}
+            onChange={(e) => setCode2FA(e.target.value)}
+            maxLength={6}
+          />
+          <button style={styles.button} onClick={handle2FASubmit}>Verify</button>
+        </>
+      )}
     </div>
   );
 };

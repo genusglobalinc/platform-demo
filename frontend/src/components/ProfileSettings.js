@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import TwoFactorSetup from './TwoFactorSetup';
 
 const profilePics = ["pic1", "pic2", "pic3"];
 
@@ -130,6 +131,12 @@ export default function ProfileSettings() {
       </div>
 
       {status && <p style={styles.status}>{status}</p>}
+
+      {/* 2FA Setup */}
+      <div style={styles.twoFactorSection}>
+        <h3 style={styles.subHeader}>Two-Factor Authentication</h3>
+        <TwoFactorSetup />
+      </div>
     </div>
   );
 }
@@ -207,5 +214,16 @@ const styles = {
   status: {
     marginTop: "1rem",
     color: "lightgreen",
+  },
+  twoFactorSection: {
+    marginTop: "2rem",
+    padding: "1.5rem",
+    background: "#121212",
+    borderRadius: "12px",
+  },
+  subHeader: {
+    fontSize: "1.25rem",
+    color: "#B388EB",
+    marginBottom: "1rem",
   },
 };

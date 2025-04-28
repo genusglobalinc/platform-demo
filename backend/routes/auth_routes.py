@@ -1,6 +1,6 @@
 # backend/routes/auth_routes.py
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import timedelta
@@ -12,9 +12,15 @@ from backend.database import (
     update_user_verification,
     create_user_in_db,
     update_reset_token,
-    update_user_password
+    update_user_password,
+    update_user_2fa,
+    verify_2fa_code
 )
 import logging
+import pyotp
+import qrcode
+import io
+import base64
 
 router = APIRouter()
 logging.basicConfig(level=logging.DEBUG)
@@ -80,7 +86,7 @@ async def register_user(user_data: UserRegistration):
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
-@router.post("/token")
+@router.post("/token", response_model=TwoFactorLoginResponse)
 async def login(request: LoginRequest):
     try:
         logging.debug(f"Login attempt for user: {request.username}")
@@ -89,9 +95,25 @@ async def login(request: LoginRequest):
             logging.warning(f"Invalid credentials for user: {request.username}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        access_token = create_access_token(data={"sub": user["user_id"]})
-        logging.debug(f"Access token generated for user: {user['user_id']}")
-        return {"access_token": access_token, "token_type": "bearer"}
+        # If 2FA is not enabled, proceed with normal login
+        if not user.get("two_factor_enabled", False):
+            access_token = create_access_token(data={"sub": user["user_id"]})
+            logging.debug(f"Access token generated for user: {user['user_id']}")
+            return TwoFactorLoginResponse(
+                requires_2fa=False,
+                access_token=access_token,
+                token_type="bearer"
+            )
+
+        # If 2FA is enabled, generate a temporary token
+        temp_token = create_access_token(
+            data={"sub": user["user_id"], "temp": True},
+            expires_delta=timedelta(minutes=5)
+        )
+        return TwoFactorLoginResponse(
+            requires_2fa=True,
+            temp_token=temp_token
+        )
 
     except HTTPException:
         raise
@@ -169,6 +191,117 @@ async def forgot_password(request: ForgotPasswordRequest):
 
 @router.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
+    try:
+        payload = verify_access_token(request.token)
+        email = payload.get("sub")
+
+        user = get_user_by_email(email)
+        if not user or user.get("reset_token") != request.token:
+            raise HTTPException(status_code=400, detail="Token mismatch or expired")
+
+        if not update_user_password(email, request.new_password):
+            raise HTTPException(status_code=500, detail="Error resetting password")
+
+        logging.info(f"Password reset for: {email}")
+        return {"message": "Password has been reset successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("Reset password flow failed")
+        raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+@router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
+async def setup_2fa(token: str = Depends(verify_access_token)):
+    try:
+        user_id = token.get("sub")
+        user = get_user_from_db(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Generate new TOTP secret
+        secret = pyotp.random_base32()
+        totp = pyotp.TOTP(secret)
+
+        # Generate QR code
+        provisioning_uri = totp.provisioning_uri(
+            name=user["email"],
+            issuer_name="Lost Gates"
+        )
+
+        # Create QR code image
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(provisioning_uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Convert QR code to base64 string
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_code = base64.b64encode(buffered.getvalue()).decode()
+
+        # Store secret in database (but don't enable 2FA yet)
+        if not update_user_2fa(user_id, secret, enabled=False):
+            raise HTTPException(status_code=500, detail="Failed to save 2FA secret")
+
+        return TwoFactorSetupResponse(
+            secret=secret,
+            qr_code=f"data:image/png;base64,{qr_code}",
+            manual_entry_key=secret
+        )
+
+    except Exception as e:
+        logging.exception("2FA setup failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/2fa/verify")
+async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(verify_access_token)):
+    try:
+        user_id = token.get("sub")
+        user = get_user_from_db(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if not user.get("two_factor_secret"):
+            raise HTTPException(status_code=400, detail="2FA not set up")
+
+        # Verify the code
+        if not verify_2fa_code(user_id, request.code):
+            raise HTTPException(status_code=400, detail="Invalid 2FA code")
+
+        # Enable 2FA for the user
+        if not update_user_2fa(user_id, user["two_factor_secret"], enabled=True):
+            raise HTTPException(status_code=500, detail="Failed to enable 2FA")
+
+        return {"message": "2FA enabled successfully"}
+
+    except Exception as e:
+        logging.exception("2FA verification failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/2fa/login")
+async def verify_2fa_login(request: TwoFactorVerifyRequest, temp_token: str = Depends(verify_access_token)):
+    try:
+        if not temp_token.get("temp"):
+            raise HTTPException(status_code=400, detail="Invalid token type")
+
+        user_id = temp_token.get("sub")
+        user = get_user_from_db(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Verify the code
+        if not verify_2fa_code(user_id, request.code):
+            raise HTTPException(status_code=400, detail="Invalid 2FA code")
+
+        # Generate the actual access token
+        access_token = create_access_token(data={"sub": user_id})
+        return {"access_token": access_token, "token_type": "bearer"}
+
+    except Exception as e:
+        logging.exception("2FA login verification failed")
+        raise HTTPException(status_code=500, detail=str(e))
     try:
         payload = verify_access_token(request.token)
         email = payload.get("sub")

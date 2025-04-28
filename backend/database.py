@@ -8,6 +8,7 @@ import logging
 from backend.utils.security import hash_password
 from fastapi.encoders import jsonable_encoder  # <-- Added this
 from typing import Optional, Dict  # Ensure Dict is imported from typing
+import pyotp  # For 2FA
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
@@ -290,4 +291,37 @@ def update_user_password(user_id: str, new_password: str) -> bool:
         return True
     except ClientError as e:
         logging.error(f"Password update failed for user {user_id}: {e}")
+        return False
+
+
+def update_user_2fa(user_id: str, secret: str, enabled: bool = False) -> bool:
+    """Update user's 2FA settings"""
+    try:
+        response = users_table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression="SET two_factor_secret = :s, two_factor_enabled = :e",
+            ExpressionAttributeValues={
+                ':s': secret,
+                ':e': enabled
+            }
+        )
+        logging.debug(f"2FA settings updated for user: {user_id}")
+        logging.debug(f"2FA update response: {response}")
+        return True
+    except ClientError as e:
+        logging.error(f"2FA update failed for user {user_id}: {e}")
+        return False
+
+
+def verify_2fa_code(user_id: str, code: str) -> bool:
+    """Verify a 2FA code for a user"""
+    try:
+        user = get_user_from_db(user_id)
+        if not user or not user.get('two_factor_secret'):
+            return False
+
+        totp = pyotp.TOTP(user['two_factor_secret'])
+        return totp.verify(code)
+    except Exception as e:
+        logging.error(f"2FA verification failed for user {user_id}: {e}")
         return False

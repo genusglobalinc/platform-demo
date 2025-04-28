@@ -14,6 +14,26 @@ export const api = axios.create({
 export const loginUser = (username, password) =>
   api.post('/auth/token', { username, password });
 
+// 2FA endpoints
+export const setup2FA = () => {
+  const token = localStorage.getItem("token");
+  return api.post('/auth/2fa/setup', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const verify2FA = (code) => {
+  const token = localStorage.getItem("token");
+  return api.post('/auth/2fa/verify', { code }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const verify2FALogin = (code, tempToken) => 
+  api.post('/auth/2fa/login', { code }, {
+    headers: { Authorization: `Bearer ${tempToken}` },
+  });
+
 export const registerUser = (username, email, password, display_name, social_links, profile_picture) =>
   api.post('/auth/register', {
     username,
