@@ -21,10 +21,9 @@ export const setup2FA = (tempToken) => {
   });
 };
 
-export const verify2FA = (code) => {
-  const token = localStorage.getItem("token");
+export const verify2FA = (code, tempToken) => {
   return api.post('/auth/2fa/verify', { code }, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${tempToken}` },
   });
 };
 

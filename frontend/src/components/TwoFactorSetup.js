@@ -21,7 +21,7 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete }) => {
 
   const handleVerify = async () => {
     try {
-      await verify2FA(verificationCode);
+      await verify2FA(verificationCode, tempToken);
       setError('');
       if (onComplete) {
         onComplete();
