@@ -1,5 +1,6 @@
 # backend/routes/auth_routes.py
 
+from jose import jwt, JWTError
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
@@ -360,9 +361,11 @@ async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends
         access_token = create_access_token(data={"sub": user_id, "temp": False})
         return {"access_token": access_token, "token_type": "bearer"}
 
-    except JWTError as e:
+    except JWTError:
         logging.exception("JWT validation failed")
         raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("2FA login verification failed")
         raise HTTPException(status_code=500, detail=str(e))
