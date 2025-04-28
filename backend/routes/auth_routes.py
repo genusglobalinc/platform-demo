@@ -147,7 +147,7 @@ async def login(request: LoginRequest):
         # If 2FA is not enabled, generate a setup token
         if not user.get("two_factor_enabled", False):
             setup_token = create_access_token(
-                data={"sub": user["user_id"], "setup": True},
+                data={"sub": user["user_id"], "temp": True},
                 expires_delta=timedelta(minutes=15)
             )
             return TwoFactorLoginResponse(
@@ -333,13 +333,15 @@ async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(oauth
 @router.post("/2fa/login")
 async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends(oauth2_scheme)):
     try:
-        # First verify the token is a temp token
-        temp_token = verify_access_token(token)
-        if not temp_token.get("temp", False):
-            logging.error(f"Token is not a temp token: {temp_token}")
+        # First verify the token
+        token_data = verify_access_token(token)
+        
+        # Check if it's a temp token or setup token
+        if not token_data.get("temp", False):
+            logging.error(f"Token is not a temp token: {token_data}")
             raise HTTPException(status_code=400, detail="Invalid token type")
 
-        user_id = temp_token.get("sub")
+        user_id = token_data.get("sub")
         if not user_id:
             logging.error("No user_id in token")
             raise HTTPException(status_code=400, detail="Invalid token")
