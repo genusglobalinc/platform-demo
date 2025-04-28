@@ -315,18 +315,15 @@ async def verify_2fa(request: TwoFactorVerifyRequest, token: str = Depends(oauth
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if not user.get("two_factor_secret"):
-            raise HTTPException(status_code=400, detail="2FA not set up")
-
         # Verify the code
         if not verify_2fa_code(user_id, request.code):
             raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
-        # Enable 2FA for the user
-        if not update_user_2fa(user_id, user["two_factor_secret"], enabled=True):
+        # Enable 2FA for the user after successful verification
+        if not update_user_2fa(user_id, user.get("two_factor_secret"), enabled=True):
             raise HTTPException(status_code=500, detail="Failed to enable 2FA")
 
-        return {"message": "2FA enabled successfully"}
+        return {"message": "2FA verification successful"}
 
     except Exception as e:
         logging.exception("2FA verification failed")
