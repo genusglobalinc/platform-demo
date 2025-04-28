@@ -5,6 +5,7 @@ import { registerUser, verify2FALogin } from '../api';
 const profilePics = ["pic1", "pic2", "pic3"];
 
 function Register() {
+  const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,6 +21,8 @@ function Register() {
 
   const handleRegister = async () => {
     try {
+      setLoading(true);
+      setErrorMsg('');
       const res = await registerUser(username, email, password, displayName, socialLinks, selectedPic);
       setTwoFactorSetup(res.data.two_factor_setup);
       setTempToken(res.data.temp_token);
@@ -27,17 +30,23 @@ function Register() {
     } catch (err) {
       setErrorMsg(err?.response?.data?.detail || "Registration failed.");
       console.error("Registration error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerify2FA = async () => {
     try {
+      setLoading(true);
+      setErrorMsg('');
       await verify2FALogin(verificationCode, tempToken);
-      alert("Account created and 2FA enabled successfully!");
-      navigate("/");
+      setStep(3); // Show success animation
+      setTimeout(() => navigate("/"), 2000);
     } catch (err) {
       setErrorMsg("Invalid verification code. Please try again.");
       console.error("2FA verification error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,8 +83,27 @@ function Register() {
     );
   }
 
+  const renderLoadingSpinner = () => (
+    <div style={styles.loadingSpinner}>
+      <div style={styles.spinner}></div>
+      <p style={styles.loadingText}>Loading...</p>
+    </div>
+  );
+
+  const renderSuccessAnimation = () => (
+    <div style={styles.successContainer}>
+      <div style={styles.successCheckmark}>
+        <div style={styles.checkmarkCircle}></div>
+        <div style={styles.checkmarkStem}></div>
+        <div style={styles.checkmarkKick}></div>
+      </div>
+      <p style={styles.successText}>Account created successfully!</p>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
+      {loading && renderLoadingSpinner()}
       <h2 style={styles.title}>Set Up Two-Factor Authentication</h2>
       {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
       
@@ -124,6 +152,85 @@ function Register() {
 }
 
 const styles = {
+  loadingSpinner: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 1000,
+  },
+  spinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid #B388EB',
+    borderTop: '5px solid transparent',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    color: '#B388EB',
+    marginTop: '1rem',
+    fontSize: '1.2rem',
+  },
+  successContainer: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 1000,
+  },
+  successCheckmark: {
+    width: '80px',
+    height: '80px',
+    position: 'relative',
+    animation: 'scale-in 0.3s ease-out',
+  },
+  checkmarkCircle: {
+    width: '80px',
+    height: '80px',
+    border: '4px solid #B388EB',
+    borderRadius: '50%',
+    position: 'absolute',
+    animation: 'circle-fill 0.4s ease-in-out 0.3s forwards',
+  },
+  checkmarkStem: {
+    height: '40px',
+    width: '4px',
+    background: '#B388EB',
+    position: 'absolute',
+    left: '38px',
+    top: '20px',
+    transform: 'rotate(45deg)',
+    animation: 'stem-draw 0.3s ease-out 0.7s forwards',
+  },
+  checkmarkKick: {
+    height: '4px',
+    width: '20px',
+    background: '#B388EB',
+    position: 'absolute',
+    left: '24px',
+    top: '50px',
+    transform: 'rotate(45deg)',
+    animation: 'kick-draw 0.3s ease-out 0.7s forwards',
+  },
+  successText: {
+    color: '#B388EB',
+    marginTop: '2rem',
+    fontSize: '1.5rem',
+    animation: 'fade-in 0.5s ease-out',
+  },
   text: {
     marginBottom: '1.5rem',
     lineHeight: '1.5',
@@ -144,10 +251,37 @@ const styles = {
     fontFamily: 'monospace',
     marginTop: '0.5rem',
   },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' },
+  },
+  '@keyframes scale-in': {
+    '0%': { transform: 'scale(0)' },
+    '100%': { transform: 'scale(1)' },
+  },
+  '@keyframes circle-fill': {
+    '0%': { opacity: 0 },
+    '100%': { opacity: 1 },
+  },
+  '@keyframes stem-draw': {
+    '0%': { height: 0 },
+    '100%': { height: '40px' },
+  },
+  '@keyframes kick-draw': {
+    '0%': { width: 0 },
+    '100%': { width: '20px' },
+  },
+  '@keyframes fade-in': {
+    '0%': { opacity: 0, transform: 'translateY(20px)' },
+    '100%': { opacity: 1, transform: 'translateY(0)' },
+  },
   container: {
     maxWidth: 400,
     margin: '5rem auto',
-    padding: '2rem',
+    padding: "1rem",
+    '@media (min-width: 768px)': {
+      padding: "2rem",
+    },
     background: '#121212',
     color: '#eee',
     borderRadius: '12px',
@@ -160,6 +294,21 @@ const styles = {
   },
   input: {
     width: '100%',
+    maxWidth: '400px',
+    padding: '0.75rem',
+    marginBottom: '1rem',
+    borderRadius: '8px',
+    border: '2px solid #444',
+    background: '#2a2a2a',
+    color: '#fff',
+    fontSize: '1rem',
+    transition: 'all 0.2s ease',
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#B388EB',
+      boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+    },
+    width: '100%',
     padding: '0.75rem',
     marginBottom: '1rem',
     borderRadius: '6px',
@@ -168,6 +317,24 @@ const styles = {
     color: '#fff'
   },
   button: {
+    width: '100%',
+    maxWidth: '400px',
+    padding: '0.75rem',
+    borderRadius: '8px',
+    border: 'none',
+    background: '#B388EB',
+    color: '#121212',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+    },
+    '&:active': {
+      transform: 'translateY(1px)',
+    },
     width: '100%',
     padding: '0.75rem',
     background: '#B388EB',

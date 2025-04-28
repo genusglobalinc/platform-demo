@@ -11,10 +11,14 @@ const Login = () => {
   const [code2FA, setCode2FA] = useState('');
   const [tempToken, setTempToken] = useState('');
   const [setupData, setSetupData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
+      setLoading(true);
+      setErrorMsg('');
       const response = await loginUser(username, password);
       
       if (response.data.requires_2fa) {
@@ -35,8 +39,10 @@ const Login = () => {
         navigate("/feed");
       }
     } catch (err) {
-      alert("Login failed. Please check your credentials.");
+      setErrorMsg(err?.response?.data?.detail || "Login failed.");
       console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,13 +56,23 @@ const Login = () => {
         alert("Failed to verify 2FA code. Please try again.");
       }
     } catch (err) {
-      alert("Invalid 2FA code. Please try again.");
-      console.error("2FA error:", err);
+      setErrorMsg("Invalid verification code. Please try again.");
+      console.error("2FA verification error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderLoadingSpinner = () => (
+    <div style={styles.loadingSpinner}>
+      <div style={styles.spinner}></div>
+      <p style={styles.loadingText}>Loading...</p>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
+      {loading && renderLoadingSpinner()}
       <h1 style={styles.title}>Welcome to Lost Gates</h1>
       <p style={styles.subText}>
         Discover and participate in exclusive game testing events.
@@ -121,14 +137,49 @@ const Login = () => {
 };
 
 const styles = {
+  loadingSpinner: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 1000,
+  },
+  spinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid #B388EB',
+    borderTop: '5px solid transparent',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    color: '#B388EB',
+    marginTop: '1rem',
+    fontSize: '1.2rem',
+  },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' },
+  },
   container: {
-    maxWidth: 400,
-    margin: '5rem auto',
-    padding: '2rem',
+    maxWidth: '100%',
+    margin: '1rem',
+    padding: '1.5rem',
     background: '#121212',
     color: '#eee',
     borderRadius: '12px',
-    boxShadow: '0 0 20px rgba(128,0,128,0.3)'
+    boxShadow: '0 0 20px rgba(128,0,128,0.3)',
+    '@media (min-width: 768px)': {
+      maxWidth: '400px',
+      margin: '5rem auto',
+      padding: '2rem',
+    }
   },
   title: {
     fontSize: '2rem',
@@ -144,20 +195,36 @@ const styles = {
     width: '100%',
     padding: '0.75rem',
     marginBottom: '1rem',
-    borderRadius: '6px',
-    border: '1px solid #444',
-    background: '#1e1e1e',
-    color: '#fff'
+    borderRadius: '8px',
+    border: '2px solid #444',
+    background: '#2a2a2a',
+    color: '#fff',
+    fontSize: '1rem',
+    transition: 'all 0.2s ease',
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#B388EB',
+      boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+    }
   },
   button: {
     width: '100%',
     padding: '0.75rem',
+    borderRadius: '8px',
+    border: 'none',
     background: '#B388EB',
     color: '#121212',
-    border: 'none',
-    borderRadius: '6px',
+    fontSize: '1rem',
+    fontWeight: 'bold',
     cursor: 'pointer',
-    fontWeight: 'bold'
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+    },
+    '&:active': {
+      transform: 'translateY(1px)',
+    }
   },
   alt: {
     marginTop: '1rem',

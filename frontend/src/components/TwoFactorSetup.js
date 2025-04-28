@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { setup2FA, verify2FA, verify2FALogin } from '../api';
 
 const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) => {
+  const [loading, setLoading] = useState(false);
   const [setupData, setSetupData] = useState(initialSetupData);
   const [verificationCode, setVerificationCode] = useState('');
   const [error, setError] = useState('');
@@ -21,6 +22,8 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) 
 
   const handleVerify = async () => {
     try {
+      setLoading(true);
+      setError('');
       // First verify the 2FA setup
       await verify2FA(verificationCode, tempToken);
       
@@ -37,13 +40,23 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) 
       // Navigate to feed
       window.location.href = '/feed';
     } catch (err) {
-      setError('Invalid verification code. Please try again.');
-      console.error('2FA verification error:', err);
+      setError("Invalid verification code. Please try again.");
+      console.error("2FA verification error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderLoadingSpinner = () => (
+    <div style={styles.loadingSpinner}>
+      <div style={styles.spinner}></div>
+      <p style={styles.loadingText}>Loading...</p>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
+      {loading && renderLoadingSpinner()}
       <h2 style={styles.title}>Two-Factor Authentication Setup</h2>
       
       {error && <p style={styles.error}>{error}</p>}
@@ -94,24 +107,66 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) 
 };
 
 const styles = {
+  loadingSpinner: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 1000,
+  },
+  spinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid #B388EB',
+    borderTop: '5px solid transparent',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    color: '#B388EB',
+    marginTop: '1rem',
+    fontSize: '1.2rem',
+  },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' },
+  },
+  '@keyframes slideIn': {
+    '0%': { transform: 'translateY(20px)', opacity: 0 },
+    '100%': { transform: 'translateY(0)', opacity: 1 },
+  },
   container: {
-    maxWidth: 600,
+    maxWidth: '100%',
     margin: '2rem auto',
     padding: '2rem',
     background: '#121212',
     borderRadius: '12px',
     color: '#eee',
+    '@media (min-width: 768px)': {
+      maxWidth: '500px',
+      margin: '2rem auto',
+      padding: '2rem',
+    },
   },
   title: {
-    fontSize: '1.5rem',
-    marginBottom: '1.5rem',
+    fontSize: '1.75rem',
     color: '#B388EB',
+    marginBottom: '1.5rem',
+    textAlign: 'center',
+    animation: 'slideIn 0.3s ease-out',
   },
   text: {
     marginBottom: '1.5rem',
     lineHeight: '1.5',
   },
   button: {
+    width: '100%',
     padding: '0.75rem 1.5rem',
     background: '#B388EB',
     color: '#121212',
@@ -120,6 +175,13 @@ const styles = {
     cursor: 'pointer',
     fontWeight: 'bold',
     marginBottom: '1rem',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+    },
+    '&:active': {
+      transform: 'translateY(1px)',
+    },
   },
   input: {
     width: '100%',
@@ -130,6 +192,11 @@ const styles = {
     background: '#1e1e1e',
     color: '#fff',
     fontSize: '1rem',
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#B388EB',
+      boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+    },
   },
   qrCode: {
     display: 'block',
@@ -138,14 +205,28 @@ const styles = {
     background: '#fff',
     padding: '1rem',
     borderRadius: '8px',
+    transition: 'transform 0.2s ease',
+    '&:hover': {
+      transform: 'scale(1.02)',
+    },
   },
   secretKey: {
     display: 'inline-block',
-    padding: '0.5rem',
-    background: '#1e1e1e',
-    borderRadius: '4px',
+    padding: '0.75rem',
+    background: '#2a2a2a',
+    borderRadius: '8px',
     fontFamily: 'monospace',
-    marginTop: '0.5rem',
+    fontSize: '1.1rem',
+    letterSpacing: '0.1em',
+    color: '#B388EB',
+    border: '2px solid #444',
+    margin: '0.5rem 0',
+    userSelect: 'all',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      background: '#333',
+      borderColor: '#B388EB',
+    },
   },
   error: {
     color: '#ff6b6b',

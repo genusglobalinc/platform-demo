@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import TwoFactorSetup from './TwoFactorSetup';
 
 const profilePics = ["pic1", "pic2", "pic3"];
 
 export default function ProfileSettings() {
+  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
@@ -36,6 +36,8 @@ export default function ProfileSettings() {
   // Generic field updater
   const saveField = async (field, value) => {
     try {
+      setLoading(true);
+      setStatus('');
       await axios.put(
         "/users/profile",
         { [field]: value },
@@ -49,6 +51,8 @@ export default function ProfileSettings() {
       setProfile(res.data);
     } catch {
       setStatus(`Error updating ${field.replace("_", " ")}.`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,8 +60,16 @@ export default function ProfileSettings() {
     return <div style={styles.container}>Loading profile...</div>;
   }
 
+  const renderLoadingSpinner = () => (
+    <div style={styles.loadingSpinner}>
+      <div style={styles.spinner}></div>
+      <p style={styles.loadingText}>Loading...</p>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
+      {loading && renderLoadingSpinner()}
       {/* Top navigation */}
       <div style={styles.topNav}>
         <button style={styles.navButton} onClick={() => navigate("/feed")}>
@@ -132,22 +144,59 @@ export default function ProfileSettings() {
 
       {status && <p style={styles.status}>{status}</p>}
 
-      {/* 2FA Setup */}
-      <div style={styles.twoFactorSection}>
-        <h3 style={styles.subHeader}>Two-Factor Authentication</h3>
-        <TwoFactorSetup />
-      </div>
+
     </div>
   );
 }
 
 const styles = {
+  loadingSpinner: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 1000,
+  },
+  spinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid #B388EB',
+    borderTop: '5px solid transparent',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  loadingText: {
+    color: '#B388EB',
+    marginTop: '1rem',
+    fontSize: '1.2rem',
+  },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' },
+  },
+  '@keyframes slideIn': {
+    '0%': { transform: 'translateY(20px)', opacity: 0 },
+    '100%': { transform: 'translateY(0)', opacity: 1 },
+  },
   container: {
-    padding: "2rem",
-    background: "#1e1e1e",
-    color: "#eee",
-    minHeight: "100vh",
-    fontFamily: "sans-serif",
+    maxWidth: '100%',
+    margin: '0',
+    padding: '1rem',
+    background: '#1e1e1e',
+    color: '#eee',
+    minHeight: '100vh',
+    fontFamily: 'sans-serif',
+    '@media (min-width: 768px)': {
+      padding: '2rem',
+      margin: '0 auto',
+      maxWidth: '800px',
+    },
   },
   topNav: {
     display: "flex",
@@ -169,10 +218,20 @@ const styles = {
     marginBottom: "1.5rem",
   },
   section: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    marginBottom: "1.25rem",
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+    marginBottom: '1.5rem',
+    padding: '1rem',
+    background: '#1a1a1a',
+    borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+    animation: 'slideIn 0.3s ease-out',
+    '@media (min-width: 768px)': {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '1rem',
+    },
   },
   label: {
     flex: "0 0 130px",
@@ -180,50 +239,66 @@ const styles = {
   },
   input: {
     flex: 1,
-    padding: "0.5rem",
-    borderRadius: "6px",
-    border: "1px solid #444",
-    background: "#2a2a2a",
-    color: "#fff",
+    padding: '0.75rem',
+    borderRadius: '8px',
+    border: '2px solid #444',
+    background: '#2a2a2a',
+    color: '#fff',
+    fontSize: '1rem',
+    transition: 'all 0.2s ease',
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#B388EB',
+      boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+    },
   },
   button: {
-    background: "#B388EB",
-    color: "#121212",
-    border: "none",
-    borderRadius: "6px",
-    padding: "0.5rem 1rem",
-    cursor: "pointer",
-    fontWeight: "bold",
+    padding: '0.75rem 1.5rem',
+    borderRadius: '8px',
+    border: 'none',
+    background: '#B388EB',
+    color: '#121212',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+    },
+    '&:active': {
+      transform: 'translateY(1px)',
+    },
   },
   picsRow: {
     display: "flex",
     gap: "1rem",
   },
   picCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: "50%",
-    background: "#333",
-    color: "#B388EB",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    fontWeight: "bold",
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    background: '#2a2a2a',
+    color: '#B388EB',
+    fontWeight: 'bold',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      transform: 'scale(1.05)',
+      boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+    },
   },
   status: {
-    marginTop: "1rem",
-    color: "lightgreen",
-  },
-  twoFactorSection: {
-    marginTop: "2rem",
-    padding: "1.5rem",
-    background: "#121212",
-    borderRadius: "12px",
-  },
-  subHeader: {
-    fontSize: "1.25rem",
-    color: "#B388EB",
-    marginBottom: "1rem",
+    marginTop: '1rem',
+    padding: '0.75rem',
+    borderRadius: '8px',
+    background: 'rgba(40, 167, 69, 0.1)',
+    border: '1px solid rgba(40, 167, 69, 0.2)',
+    color: '#28a745',
+    animation: 'slideIn 0.3s ease-out',
   },
 };
