@@ -15,12 +15,14 @@ function Register() {
   const [step, setStep] = useState(1); // 1: Registration form, 2: 2FA setup
   const [twoFactorSetup, setTwoFactorSetup] = useState(null);
   const [verificationCode, setVerificationCode] = useState("");
+  const [tempToken, setTempToken] = useState("");
   const navigate = useNavigate();
 
   const handleRegister = async () => {
     try {
       const res = await registerUser(username, email, password, displayName, socialLinks, selectedPic);
       setTwoFactorSetup(res.data.two_factor_setup);
+      setTempToken(res.data.temp_token);
       setStep(2); // Move to 2FA setup step
     } catch (err) {
       setErrorMsg(err?.response?.data?.detail || "Registration failed.");
@@ -30,7 +32,7 @@ function Register() {
 
   const handleVerify2FA = async () => {
     try {
-      await verify2FALogin(verificationCode);
+      await verify2FALogin(verificationCode, tempToken);
       alert("Account created and 2FA enabled successfully!");
       navigate("/");
     } catch (err) {
