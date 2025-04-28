@@ -276,16 +276,19 @@ const styles = {
     '100%': { opacity: 1, transform: 'translateY(0)' },
   },
   container: {
-    maxWidth: 400,
-    margin: '5rem auto',
-    padding: "1rem",
-    '@media (min-width: 768px)': {
-      padding: "2rem",
-    },
-    background: '#121212',
+    width: '90%',
+    maxWidth: '500px',
+    margin: '2rem auto',
+    padding: '1.5rem',
+    background: '#1a1a1a',
     color: '#eee',
     borderRadius: '12px',
-    boxShadow: '0 0 20px rgba(128,0,128,0.3)'
+    boxShadow: '0 0 20px rgba(128,0,128,0.3)',
+    boxSizing: 'border-box',
+    '@media (min-width: 768px)': {
+      margin: '5rem auto',
+      padding: '2rem',
+    },
   },
   title: {
     fontSize: '1.75rem',
@@ -294,7 +297,6 @@ const styles = {
   },
   input: {
     width: '100%',
-    maxWidth: '400px',
     padding: '0.75rem',
     marginBottom: '1rem',
     borderRadius: '8px',
@@ -302,23 +304,16 @@ const styles = {
     background: '#2a2a2a',
     color: '#fff',
     fontSize: '1rem',
+    boxSizing: 'border-box',
     transition: 'all 0.2s ease',
     '&:focus': {
       outline: 'none',
       borderColor: '#B388EB',
       boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
     },
-    width: '100%',
-    padding: '0.75rem',
-    marginBottom: '1rem',
-    borderRadius: '6px',
-    border: '1px solid #444',
-    background: '#1e1e1e',
-    color: '#fff'
   },
   button: {
     width: '100%',
-    maxWidth: '400px',
     padding: '0.75rem',
     borderRadius: '8px',
     border: 'none',
@@ -335,14 +330,6 @@ const styles = {
     '&:active': {
       transform: 'translateY(1px)',
     },
-    width: '100%',
-    padding: '0.75rem',
-    background: '#B388EB',
-    color: '#121212',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: 'bold'
   },
   alt: {
     marginTop: '1rem',

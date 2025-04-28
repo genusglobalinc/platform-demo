@@ -13,6 +13,147 @@ const GENRE_OPTIONS = [
 ];
 
 const CreatePost = ({ token, onPostCreated }) => {
+  const styles = {
+    container: {
+      width: '90%',
+      maxWidth: '800px',
+      margin: '2rem auto',
+      padding: '1.5rem',
+      background: '#1a1a1a',
+      color: '#eee',
+      borderRadius: '12px',
+      boxShadow: '0 0 20px rgba(128,0,128,0.3)',
+      boxSizing: 'border-box',
+      '@media (min-width: 768px)': {
+        padding: '2rem',
+      },
+    },
+    title: {
+      color: '#B388EB',
+      marginBottom: '1.5rem',
+      fontSize: '1.75rem',
+      textAlign: 'center',
+    },
+    error: {
+      color: '#ff6b6b',
+      marginBottom: '1rem',
+      padding: '0.75rem',
+      background: 'rgba(255, 107, 107, 0.1)',
+      border: '1px solid rgba(255, 107, 107, 0.3)',
+      borderRadius: '8px',
+      textAlign: 'center',
+    },
+    input: {
+      width: '100%',
+      padding: '0.75rem',
+      marginBottom: '1rem',
+      borderRadius: '8px',
+      border: '2px solid #444',
+      background: '#2a2a2a',
+      color: '#fff',
+      fontSize: '1rem',
+      boxSizing: 'border-box',
+      transition: 'all 0.2s ease',
+      '&:focus': {
+        outline: 'none',
+        borderColor: '#B388EB',
+        boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+      },
+    },
+    textarea: {
+      width: '100%',
+      padding: '0.75rem',
+      marginBottom: '1rem',
+      borderRadius: '8px',
+      border: '2px solid #444',
+      background: '#2a2a2a',
+      color: '#fff',
+      fontSize: '1rem',
+      boxSizing: 'border-box',
+      minHeight: '100px',
+      maxHeight: '300px',
+      resize: 'vertical',
+      fontFamily: 'inherit',
+      transition: 'all 0.2s ease',
+      '&:focus': {
+        outline: 'none',
+        borderColor: '#B388EB',
+        boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+      },
+    },
+    select: {
+      width: '100%',
+      padding: '0.75rem',
+      marginBottom: '1rem',
+      borderRadius: '8px',
+      border: '2px solid #444',
+      background: '#2a2a2a',
+      color: '#fff',
+      fontSize: '1rem',
+      boxSizing: 'border-box',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:focus': {
+        outline: 'none',
+        borderColor: '#B388EB',
+        boxShadow: '0 0 0 2px rgba(179, 136, 235, 0.3)',
+      },
+    },
+    label: {
+      display: 'block',
+      marginBottom: '0.5rem',
+      color: '#B388EB',
+      fontSize: '1rem',
+    },
+    checkboxGroup: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '1rem',
+      marginBottom: '1rem',
+      padding: '1rem',
+      background: '#2a2a2a',
+      borderRadius: '8px',
+      border: '2px solid #444',
+    },
+    checkboxLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      color: '#fff',
+      cursor: 'pointer',
+      padding: '0.5rem',
+      borderRadius: '4px',
+      transition: 'background 0.2s',
+      '&:hover': {
+        background: 'rgba(179, 136, 235, 0.1)',
+      },
+    },
+    checkbox: {
+      width: '1.2rem',
+      height: '1.2rem',
+      cursor: 'pointer',
+    },
+    button: {
+      width: '100%',
+      padding: '0.75rem',
+      marginTop: '1rem',
+      borderRadius: '8px',
+      border: 'none',
+      background: '#B388EB',
+      color: '#121212',
+      fontSize: '1rem',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-1px)',
+        boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
+      },
+      '&:active': {
+        transform: 'translateY(1px)',
+      },
+    },
+  };
   const [title, setTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedSubgenres, setSelectedSubgenres] = useState([]);
@@ -119,9 +260,9 @@ const CreatePost = ({ token, onPostCreated }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="create-post-form">
-      <h2>Create Post</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <form onSubmit={handleSubmit} style={styles.container}>
+      <h2 style={styles.title}>Create Post</h2>
+      {error && <p style={styles.error}>{error}</p>}
 
       <input
         type="text"
@@ -129,12 +270,13 @@ const CreatePost = ({ token, onPostCreated }) => {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         required
+        style={styles.input}
       />
 
-      <label>Tags:</label>
-      <div className="checkbox-group">
+      <label style={styles.label}>Tags:</label>
+      <div style={styles.checkboxGroup}>
         {GENRE_OPTIONS.map((tag) => (
-          <label key={`tag-${tag}`}>
+          <label key={`tag-${tag}`} style={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={selectedTags.includes(tag)}
@@ -147,10 +289,10 @@ const CreatePost = ({ token, onPostCreated }) => {
         ))}
       </div>
 
-      <label>Subgenres:</label>
-      <div className="checkbox-group">
+      <label style={styles.label}>Subgenres:</label>
+      <div style={styles.checkboxGroup}>
         {GENRE_OPTIONS.map((genre) => (
-          <label key={`subgenre-${genre}`}>
+          <label key={`subgenre-${genre}`} style={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={selectedSubgenres.includes(genre)}
@@ -169,6 +311,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         value={studio}
         onChange={(e) => setStudio(e.target.value)}
         required
+        style={styles.input}
       />
       <input
         type="url"
@@ -176,12 +319,14 @@ const CreatePost = ({ token, onPostCreated }) => {
         value={bannerImage}
         onChange={(e) => setBannerImage(e.target.value)}
         required
+        style={styles.input}
       />
       <textarea
         placeholder="Description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         required
+        style={styles.textarea}
       />
       <input
         type="text"
@@ -189,11 +334,12 @@ const CreatePost = ({ token, onPostCreated }) => {
         value={images}
         onChange={(e) => setImages(e.target.value)}
         required
+        style={styles.input}
       />
 
-      <label>
+      <label style={styles.label}>
         Post Type:
-        <select value={postType} onChange={(e) => setPostType(e.target.value)}>
+        <select value={postType} onChange={(e) => setPostType(e.target.value)} style={styles.select}>
           <option value="gaming">Gaming</option>
           <option value="anime">Anime</option>
         </select>
@@ -206,12 +352,14 @@ const CreatePost = ({ token, onPostCreated }) => {
             placeholder="Access Instructions (optional)"
             value={accessInstructions}
             onChange={(e) => setAccessInstructions(e.target.value)}
+            style={styles.input}
           />
-          <label>
+          <label style={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={hasNda}
               onChange={(e) => setHasNda(e.target.checked)}
+              style={styles.checkbox}
             />
             Has NDA
           </label>
@@ -220,12 +368,14 @@ const CreatePost = ({ token, onPostCreated }) => {
             placeholder="Rewards (optional)"
             value={rewards}
             onChange={(e) => setRewards(e.target.value)}
+            style={styles.input}
           />
-          <label>
+          <label style={styles.checkboxLabel}>
             <input
               type="checkbox"
               checked={sharePostToSocials}
               onChange={(e) => setSharePostToSocials(e.target.checked)}
+              style={styles.checkbox}
             />
             Share to socials
           </label>
@@ -240,17 +390,19 @@ const CreatePost = ({ token, onPostCreated }) => {
             value={streamingServices}
             onChange={(e) => setStreamingServices(e.target.value)}
             required
+            style={styles.input}
           />
           <input
             type="url"
             placeholder="Trailer URL (optional)"
             value={trailerUrl}
             onChange={(e) => setTrailerUrl(e.target.value)}
+            style={styles.input}
           />
         </>
       )}
 
-      <button type="submit">Post</button>
+      <button type="submit" style={styles.button}>Post</button>
     </form>
   );
 };
