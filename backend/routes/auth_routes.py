@@ -120,9 +120,17 @@ async def register_user(user_data: UserRegistration):
         qr_code = base64.b64encode(buffered.getvalue()).decode()
 
         logging.info(f"User registered successfully with ID: {user_id}")
+        
+        # Generate temp token for 2FA setup
+        temp_token = create_access_token(
+            data={"sub": user_id, "temp": True},
+            expires_delta=timedelta(minutes=15)
+        )
+        
         return {
             "message": "User registered successfully",
             "user_id": user_id,
+            "temp_token": temp_token,
             "two_factor_setup": {
                 "qr_code": f"data:image/png;base64,{qr_code}",
                 "manual_entry_key": secret
