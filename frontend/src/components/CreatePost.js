@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const GENRE_OPTIONS = [
-  "Anime",
-  "Gaming",
+// Available sub-genres (act as tags)
+const SUBGENRE_OPTIONS = [
   "MMO",
   "First Person Shooter",
   "Hero Battler",
@@ -158,21 +157,14 @@ const CreatePost = ({ token, onPostCreated }) => {
     },
   };
   const [title, setTitle] = useState("");
-  const [selectedTags, setSelectedTags] = useState([]);
   const [selectedSubgenres, setSelectedSubgenres] = useState([]);
+  const [genre, setGenre] = useState("gaming");
   const [studio, setStudio] = useState("");
   const [bannerImage, setBannerImage] = useState(""); // url fallback
   const [bannerRef, setBannerRef] = useState(null);     // sanity reference
   const [description, setDescription] = useState("");
   const [images, setImages] = useState("");            // csv fallback
   const [imageRefs, setImageRefs] = useState([]);       // sanity references
-  const [postType, setPostType] = useState("gaming");
-  const [accessInstructions, setAccessInstructions] = useState("");
-  const [hasNda, setHasNda] = useState(false);
-  const [rewards, setRewards] = useState("");
-  const [sharePostToSocials, setSharePostToSocials] = useState(false);
-  const [streamingServices, setStreamingServices] = useState("");
-  const [trailerUrl, setTrailerUrl] = useState("");
   const [error, setError] = useState("");
 
   const toggleCheckbox = (value, setFunction, currentState) => {
@@ -186,53 +178,27 @@ const CreatePost = ({ token, onPostCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || selectedTags.length === 0 || selectedSubgenres.length === 0 || !studio || (!bannerRef && !bannerImage) || !description || (!imageRefs.length && !images)) {
+    if (!title || !studio || (!bannerRef && !bannerImage) || !description) {
       setError("All required fields must be filled.");
       return;
     }
 
     const basePost = {
+      genre,
       title,
       studio,
       banner_image: bannerRef || bannerImage,
       description,
-      tags: selectedTags,
-      subgenres: selectedSubgenres,
+      tags: selectedSubgenres,
       images: imageRefs.length ? imageRefs : images.split(",").map((img) => img.trim()),
     };
 
-    let fullPostData = {};
-
-    if (postType === "gaming") {
-      fullPostData = {
-        ...basePost,
-        access_instructions: accessInstructions,
-        has_nda: hasNda,
-        rewards,
-        share_post_to_socials: sharePostToSocials,
-      };
-    } else if (postType === "anime") {
-      if (!streamingServices) {
-        setError("Streaming services are required for anime posts.");
-        return;
-      }
-
-      fullPostData = {
-        ...basePost,
-        streaming_services: streamingServices.split(",").map((s) => s.trim()),
-        trailer_url: trailerUrl,
-      };
-    }
-
-    const postData = {
-      post_type: postType,
-      post_data: fullPostData,
-    };
+    const fullPostData = { genre, post_data: basePost };
 
     try {
       const response = await axios.post(
         `${API_BASE_URL}/posts`,
-        postData,
+        fullPostData,
         {
           headers: {
             Authorization: authToken ? `Bearer ${authToken}` : "",
@@ -242,7 +208,6 @@ const CreatePost = ({ token, onPostCreated }) => {
 
       if (response.data?.post_id) {
         setTitle("");
-        setSelectedTags([]);
         setSelectedSubgenres([]);
         setStudio("");
         setBannerImage("");
@@ -250,13 +215,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         setDescription("");
         setImages("");
         setImageRefs([]);
-        setPostType("gaming");
-        setAccessInstructions("");
-        setHasNda(false);
-        setRewards("");
-        setSharePostToSocials(false);
-        setStreamingServices("");
-        setTrailerUrl("");
+        setGenre("gaming");
         setError("");
         onPostCreated?.(response.data.post_id);
       }
@@ -299,34 +258,22 @@ const CreatePost = ({ token, onPostCreated }) => {
         style={styles.input}
       />
 
-      <label style={styles.label}>Tags:</label>
-      <div style={styles.checkboxGroup}>
-        {GENRE_OPTIONS.map((tag) => (
-          <label key={`tag-${tag}`} style={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={selectedTags.includes(tag)}
-              onChange={() =>
-                toggleCheckbox(tag, setSelectedTags, selectedTags)
-              }
-            />
-            {tag}
-          </label>
-        ))}
-      </div>
+      <label style={styles.label}>Genre:</label>
+      <select value={genre} onChange={(e) => setGenre(e.target.value)} style={styles.select}>
+        <option value="gaming">Gaming</option>
+        <option value="anime">Anime</option>
+      </select>
 
-      <label style={styles.label}>Subgenres:</label>
+      <label style={styles.label}>Sub-genres / Tags:</label>
       <div style={styles.checkboxGroup}>
-        {GENRE_OPTIONS.map((genre) => (
-          <label key={`subgenre-${genre}`} style={styles.checkboxLabel}>
+        {SUBGENRE_OPTIONS.map((sg) => (
+          <label key={`sub-${sg}`} style={styles.checkboxLabel}>
             <input
               type="checkbox"
-              checked={selectedSubgenres.includes(genre)}
-              onChange={() =>
-                toggleCheckbox(genre, setSelectedSubgenres, selectedSubgenres)
-              }
+              checked={selectedSubgenres.includes(sg)}
+              onChange={() => toggleCheckbox(sg, setSelectedSubgenres, selectedSubgenres)}
             />
-            {genre}
+            {sg}
           </label>
         ))}
       </div>
@@ -384,71 +331,6 @@ const CreatePost = ({ token, onPostCreated }) => {
         onChange={(e) => setImages(e.target.value)}
         style={styles.input}
       />
-
-      <label style={styles.label}>
-        Post Type:
-        <select value={postType} onChange={(e) => setPostType(e.target.value)} style={styles.select}>
-          <option value="gaming">Gaming</option>
-          <option value="anime">Anime</option>
-        </select>
-      </label>
-
-      {postType === "gaming" && (
-        <>
-          <input
-            type="text"
-            placeholder="Access Instructions (optional)"
-            value={accessInstructions}
-            onChange={(e) => setAccessInstructions(e.target.value)}
-            style={styles.input}
-          />
-          <label style={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={hasNda}
-              onChange={(e) => setHasNda(e.target.checked)}
-              style={styles.checkbox}
-            />
-            Has NDA
-          </label>
-          <input
-            type="text"
-            placeholder="Rewards (optional)"
-            value={rewards}
-            onChange={(e) => setRewards(e.target.value)}
-            style={styles.input}
-          />
-          <label style={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={sharePostToSocials}
-              onChange={(e) => setSharePostToSocials(e.target.checked)}
-              style={styles.checkbox}
-            />
-            Share to socials
-          </label>
-        </>
-      )}
-
-      {postType === "anime" && (
-        <>
-          <input
-            type="text"
-            placeholder="Streaming Services (comma-separated)"
-            value={streamingServices}
-            onChange={(e) => setStreamingServices(e.target.value)}
-            required
-            style={styles.input}
-          />
-          <input
-            type="url"
-            placeholder="Trailer URL (optional)"
-            value={trailerUrl}
-            onChange={(e) => setTrailerUrl(e.target.value)}
-            style={styles.input}
-          />
-        </>
-      )}
 
       <button type="submit" style={styles.button}>Post</button>
     </form>
