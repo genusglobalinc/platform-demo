@@ -52,12 +52,10 @@ export default {
     },
     {
       name: 'bannerImage',
-      title: 'Banner Image',
-      type: 'image',
-      options: {
-        hotspot: true
-      },
-      validation: Rule => Rule.required()
+      title: 'Banner Image URL',
+      type: 'url',
+      description: 'Direct image URL (uploads coming later)',
+      validation: Rule => Rule.required().uri({allowRelative: false})
     },
     {
       name: 'images',
@@ -96,10 +94,19 @@ export default {
     select: {
       title: 'title',
       studio: 'studio',
-      media: 'bannerImage'
+      banner: 'bannerImage'
     },
     prepare(selection) {
-      const { title, studio, media } = selection
+      const { title, studio, banner } = selection
+      const media = banner
+        ? () => (
+            <img
+              src={banner}
+              alt={title || 'banner'}
+              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            />
+          )
+        : undefined
       return {
         title,
         subtitle: studio,

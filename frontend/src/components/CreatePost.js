@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 // Available sub-genres (act as tags)
@@ -156,6 +157,7 @@ const CreatePost = ({ token, onPostCreated }) => {
       },
     },
   };
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [selectedSubgenres, setSelectedSubgenres] = useState([]);
   const [genre, setGenre] = useState("gaming");
@@ -218,6 +220,7 @@ const CreatePost = ({ token, onPostCreated }) => {
         setGenre("gaming");
         setError("");
         onPostCreated?.(response.data.post_id);
+        navigate('/feed');
       }
     } catch (err) {
       console.error(err);

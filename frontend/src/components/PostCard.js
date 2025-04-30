@@ -1,43 +1,30 @@
 // frontend/src/components/PostCard.js
-import React, { useState } from "react";
+import React from "react";
 
 const PostCard = ({ post }) => {
-  const [hovering, setHovering] = useState(false);
-
   const getContentPreview = (text, maxLength = 100) => {
     if (!text) return "";
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
 
+  const bannerSrc = post.banner_image || (post.images && post.images[0]) || null;
+  const created = post.created_at || post.createdAt || null;
+
   return (
-    <div
-      style={styles.card}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
+    <div style={styles.card}>
       <div style={styles.thumbnail}>
-        {/* If not hovering, display the image; otherwise, display the video */}
-        {!hovering && post.image ? (
-          <img src={post.image} alt={post.title || "Post image"} style={styles.image} />
+        {bannerSrc ? (
+          <img src={bannerSrc} alt={post.title || "Post banner"} style={styles.image} />
         ) : (
-          post.video && (
-            <video
-              src={post.video}
-              style={styles.video}
-              autoPlay
-              loop
-              muted
-            />
-          )
+          <div style={{...styles.image, background: '#333', display:'flex',alignItems:'center',justifyContent:'center',color:'#777'}}>No Image</div>
         )}
       </div>
 
       <div style={styles.content}>
-        {/* Studio name and location */}
-        {post.studioName && (
+        {/* Studio */}
+        {post.studio && (
           <div style={styles.studioInfo}>
-            <h4 style={styles.studioName}>{post.studioName}</h4>
-            {post.location && <span style={styles.location}>{post.location}</span>}
+            <h4 style={styles.studioName}>{post.studio}</h4>
           </div>
         )}
 
@@ -48,9 +35,6 @@ const PostCard = ({ post }) => {
         {post.description && (
           <p style={styles.description}>{getContentPreview(post.description, 150)}</p>
         )}
-
-        {/* Content preview */}
-        {post.content && <p style={styles.contentText}>{getContentPreview(post.content)}</p>}
 
         {/* Tags if present */}
         {post.tags && post.tags.length > 0 && (
@@ -63,12 +47,9 @@ const PostCard = ({ post }) => {
 
         {/* Additional metadata */}
         <div style={styles.metadata}>
-          {post.createdAt && (
-            <span style={styles.date}>
-              {new Date(post.createdAt).toLocaleDateString()}
-            </span>
+          {created && (
+            <span style={styles.date}>{new Date(created).toLocaleDateString()}</span>
           )}
-          {post.eventType && <span style={styles.eventType}>{post.eventType}</span>}
         </div>
       </div>
     </div>
@@ -97,11 +78,6 @@ const styles = {
     height: '100%',
     objectFit: 'cover',
   },
-  video: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
   content: {
     padding: '1rem',
   },
@@ -117,10 +93,6 @@ const styles = {
     fontWeight: 'bold',
     color: '#B388EB',
   },
-  location: {
-    fontSize: '0.9rem',
-    color: '#888',
-  },
   title: {
     margin: '0.5rem 0',
     fontSize: '1.2rem',
@@ -132,12 +104,6 @@ const styles = {
     color: '#ddd',
     marginBottom: '0.75rem',
     lineHeight: '1.5',
-  },
-  contentText: {
-    fontSize: '0.95rem',
-    color: '#aaa',
-    marginBottom: '0.75rem',
-    lineHeight: '1.4',
   },
   tags: {
     display: 'flex',
@@ -166,11 +132,6 @@ const styles = {
   date: {
     color: '#888',
   },
-  eventType: {
-    color: '#B388EB',
-    fontWeight: '500',
-  },
-
   thumbnail: {
     position: "relative",
     overflow: "hidden",
@@ -179,12 +140,6 @@ const styles = {
     marginBottom: "0.5rem",
   },
   image: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    borderRadius: "10px",
-  },
-  video: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
