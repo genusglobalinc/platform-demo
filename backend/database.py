@@ -211,12 +211,17 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
                 "postType": post_data.get("post_type") or post_data.get("type"),
                 "tags": post_data.get("tags", []),
                 "studio": post_data.get("studio"),
-                "bannerImage": banner_ref,
+                "bannerImage": {
+                    "image": banner_ref,
+                    "url": banner_val if isinstance(banner_val, str) else None,
+                } if banner_ref else None,
                 "images": image_refs,
                 "testerId": user_id,
                 "status": "draft",
                 "date": str(datetime.utcnow()),
             }
+
+            logger.debug(f"[create_post_in_db] Sanity payload: {sanity_payload}")
 
             return _sanity_client.create_document("post", sanity_payload)
         except Exception as e:

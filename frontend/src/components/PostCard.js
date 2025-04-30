@@ -19,12 +19,14 @@ const PostCard = ({ post }) => {
     return `https://cdn.sanity.io/images/${projectId}/production/${id}.${ext}`;
   };
 
+  const firstImageRef = Array.isArray(post.images) && post.images.length > 0 ? post.images[0] : null;
+
   const bannerSrc =
     post.banner_image ||
     post.bannerImage?.url ||
     (post.bannerImage?.image && buildSanityUrl(post.bannerImage.image.asset?._ref)) ||
     (post.bannerImage && buildSanityUrl(post.bannerImage.asset?._ref)) ||
-    (post.images && post.images[0]) ||
+    (firstImageRef && (typeof firstImageRef === 'string' ? firstImageRef : buildSanityUrl(firstImageRef.asset?._ref))) ||
     null;
 
   // Determine ownership
@@ -94,8 +96,8 @@ const PostCard = ({ post }) => {
 
         {/* Additional metadata */}
         <div style={styles.metadata}>
-          {post.created_at && (
-            <span style={styles.date}>{new Date(post.created_at).toLocaleDateString()}</span>
+          {(post.created_at || post.date || post._createdAt) && (
+            <span style={styles.date}>{new Date(post.created_at || post.date || post._createdAt).toLocaleDateString()}</span>
           )}
         </div>
       </div>

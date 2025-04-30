@@ -1,3 +1,5 @@
+import React from 'react'
+
 export default {
   name: 'post',
   title: 'Post',
@@ -114,13 +116,11 @@ export default {
       const image = media?.image?.asset || media?.url
       const alt = title || 'banner'
       const mediaComponent = image
-        ? () => (
-            <img
-              src={image}
-              alt={alt}
-              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-            />
-          )
+        ? () => React.createElement('img', {
+            src: image,
+            alt,
+            style: { objectFit: 'cover', width: '100%', height: '100%' },
+          })
         : undefined
       return {
         title,
