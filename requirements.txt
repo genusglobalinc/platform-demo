@@ -35,6 +35,7 @@ python-jose==3.4.0
 python-multipart==0.0.20
 PyYAML==6.0.2
 redis==5.2.1
+requests==2.31.0
 rsa==4.9
 s3transfer==0.11.4
 six==1.17.0
