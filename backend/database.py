@@ -221,6 +221,17 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
                 "date": str(datetime.utcnow()),
             }
 
+            # Remove keys with None/empty values to satisfy schema validation
+            sanity_payload = {
+                k: v
+                for k, v in sanity_payload.items()
+                if v not in (None, "", [], {})
+            }
+
+            if "bannerImage" not in sanity_payload:
+                logger.error("[create_post_in_db] bannerImage is required but missing")
+                return None
+
             logger.debug(f"[create_post_in_db] Sanity payload: {sanity_payload}")
 
             return _sanity_client.create_document("post", sanity_payload)
