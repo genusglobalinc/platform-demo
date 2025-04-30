@@ -13,6 +13,9 @@ const GENRE_OPTIONS = [
 ];
 
 const CreatePost = ({ token, onPostCreated }) => {
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+  const authToken = token || localStorage.getItem("token") || sessionStorage.getItem("token");
+
   const styles = {
     container: {
       width: '90%',
@@ -228,11 +231,11 @@ const CreatePost = ({ token, onPostCreated }) => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || ""}/posts`,
+        `${API_BASE_URL}/posts`,
         postData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: authToken ? `Bearer ${authToken}` : "",
           },
         }
       );
@@ -267,9 +270,9 @@ const CreatePost = ({ token, onPostCreated }) => {
     try {
       const form = new FormData();
       form.append("file", file);
-      const resp = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ""}/uploads/image`, form, {
+      const resp = await axios.post(`${API_BASE_URL}/uploads/image`, form, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: authToken ? `Bearer ${authToken}` : "",
           "Content-Type": "multipart/form-data",
         },
       });

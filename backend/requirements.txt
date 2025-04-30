@@ -36,3 +36,4 @@ aiofiles
 
 # Redis for async Redis client (used for rate limiting or other Redis-based tasks)
 redis
+pyotp
