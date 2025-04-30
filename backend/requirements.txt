@@ -38,3 +38,5 @@ aiofiles
 redis
 pyotp
 qrcode
+email-validator
+pillow
