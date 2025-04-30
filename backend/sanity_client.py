@@ -31,6 +31,29 @@ class SanityClient:
         }
 
     # ---------------------------------------------------------------------
+    # Asset upload helpers
+    # ---------------------------------------------------------------------
+    def _upload_image(self, image_bytes: bytes, content_type: str = "application/octet-stream") -> str:
+        """Upload raw image bytes to Sanity and return the asset ID."""
+        url = f"{self.base_url}/assets/images/{self.dataset}"
+        headers = {**self._headers(), "Content-Type": content_type}
+        resp = requests.post(url, data=image_bytes, headers=headers, timeout=20)
+        if resp.status_code == 200:
+            return resp.json().get("document", {}).get("_id")
+        raise RuntimeError(f"Sanity image upload failed: {resp.text}")
+
+    def upload_image_from_url(self, image_url: str) -> dict[str, Any]:
+        """Download an image from a URL, upload to Sanity, and return an image reference dict."""
+        dl_resp = requests.get(image_url, timeout=20)
+        if dl_resp.status_code != 200:
+            raise RuntimeError(f"Failed to download image from {image_url}: {dl_resp.status_code}")
+        asset_id = self._upload_image(
+            dl_resp.content,
+            dl_resp.headers.get("Content-Type", "application/octet-stream"),
+        )
+        return {"_type": "image", "asset": {"_type": "reference", "_ref": asset_id}}
+
+    # ---------------------------------------------------------------------
     # Public CRUD helpers
     # ---------------------------------------------------------------------
     def create_document(self, doc_type: str, data: dict) -> str:
@@ -48,7 +71,10 @@ class SanityClient:
         }
         resp = requests.post(url, json=payload, headers=self._headers(), timeout=10)
         if resp.status_code == 200:
-            return resp.json()["results"][0]["id"]
+            res = resp.json()["results"][0]
+            doc_id = res.get("id") or res.get("documentId")
+            if doc_id:
+                return doc_id
         raise RuntimeError(f"Sanity create_document failed: {resp.text}")
 
     def get_document(self, doc_id: str) -> Any:

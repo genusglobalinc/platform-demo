@@ -183,19 +183,32 @@ def update_user_profile(user_id: str, profile_data: dict) -> bool:
 
 def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     if _sanity_client:
-        sanity_payload = {
-            "title": post_data.get("title"),
-            "description": post_data.get("description"),
-            "postType": post_data.get("post_type") or post_data.get("type"),
-            "tags": post_data.get("tags", []),
-            "studio": post_data.get("studio"),
-            "bannerImage": post_data.get("banner_image"),
-            "images": post_data.get("images", []),
-            "testerId": user_id,
-            "status": "draft",
-            "date": str(datetime.utcnow()),
-        }
         try:
+            # Upload images to Sanity and build image reference objects
+            banner_ref = None
+            if post_data.get("banner_image"):
+                banner_ref = _sanity_client.upload_image_from_url(post_data["banner_image"])
+
+            image_refs = []
+            for img_url in post_data.get("images", []):
+                try:
+                    image_refs.append(_sanity_client.upload_image_from_url(img_url))
+                except Exception as img_err:
+                    logging.error(f"Failed to upload image {img_url}: {img_err}")
+
+            sanity_payload = {
+                "title": post_data.get("title"),
+                "description": post_data.get("description"),
+                "postType": post_data.get("post_type") or post_data.get("type"),
+                "tags": post_data.get("tags", []),
+                "studio": post_data.get("studio"),
+                "bannerImage": banner_ref,
+                "images": image_refs,
+                "testerId": user_id,
+                "status": "draft",
+                "date": str(datetime.utcnow()),
+            }
+
             return _sanity_client.create_document("post", sanity_payload)
         except Exception as e:
             logging.error(f"Sanity create post failed: {e}")
