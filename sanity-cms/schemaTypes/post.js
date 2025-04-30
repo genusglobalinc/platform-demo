@@ -21,10 +21,11 @@ export default {
       type: 'string',
       options: {
         list: [
-          { title: 'Gaming', value: 'gaming' }
+          { title: 'Gaming', value: 'gaming' },
+          { title: 'Anime', value: 'anime' }
         ]
       },
-      validation: Rule => Rule.required()
+      initialValue: 'gaming'
     },
     {
       name: 'date',
@@ -52,10 +53,22 @@ export default {
     },
     {
       name: 'bannerImage',
-      title: 'Banner Image URL',
-      type: 'url',
-      description: 'Direct image URL (uploads coming later)',
-      validation: Rule => Rule.required().uri({allowRelative: false})
+      title: 'Banner Image',
+      type: 'object',
+      fields: [
+        {
+          name: 'image',
+          title: 'Image',
+          type: 'image',
+          options: { hotspot: true }
+        },
+        {
+          name: 'url',
+          title: 'URL',
+          type: 'url'
+        }
+      ],
+      validation: Rule => Rule.required()
     },
     {
       name: 'images',
@@ -94,15 +107,17 @@ export default {
     select: {
       title: 'title',
       studio: 'studio',
-      banner: 'bannerImage'
+      media: 'bannerImage'
     },
     prepare(selection) {
-      const { title, studio, banner } = selection
-      const media = banner
+      const { title, studio, media } = selection
+      const image = media?.image?.asset || media?.url
+      const alt = title || 'banner'
+      const mediaComponent = image
         ? () => (
             <img
-              src={banner}
-              alt={title || 'banner'}
+              src={image}
+              alt={alt}
               style={{ objectFit: 'cover', width: '100%', height: '100%' }}
             />
           )
@@ -110,7 +125,7 @@ export default {
       return {
         title,
         subtitle: studio,
-        media
+        media: mediaComponent
       }
     }
   }
