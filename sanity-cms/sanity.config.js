@@ -7,7 +7,7 @@ export default defineConfig({
   name: 'default',
   title: 'lost-gates-cms',
 
-  projectId: '0na7kv87',
+  projectId: 'jpgxw2o8',
   dataset: 'production',
 
   plugins: [structureTool(), visionTool()],
