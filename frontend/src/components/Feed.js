@@ -150,7 +150,7 @@ export default function Feed() {
         <div style={styles.headerRight}>
           <button
             style={styles.createButton}
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => navigate('/create-post')}
           >
             + Create Post
           </button>
