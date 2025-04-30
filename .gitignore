@@ -1,3 +1,14 @@
 .env
 __pycache__/
 node_modules/
+
+# Sanity Studio specific
+sanity-cms/node_modules/
+sanity-cms/dist/
+sanity-cms/.sanity/
+*.local
+
+# Build artifacts
+dist/
+build/
+.cache/
