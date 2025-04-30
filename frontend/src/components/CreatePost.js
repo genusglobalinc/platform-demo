@@ -158,9 +158,11 @@ const CreatePost = ({ token, onPostCreated }) => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedSubgenres, setSelectedSubgenres] = useState([]);
   const [studio, setStudio] = useState("");
-  const [bannerImage, setBannerImage] = useState("");
+  const [bannerImage, setBannerImage] = useState(""); // url fallback
+  const [bannerRef, setBannerRef] = useState(null);     // sanity reference
   const [description, setDescription] = useState("");
-  const [images, setImages] = useState("");
+  const [images, setImages] = useState("");            // csv fallback
+  const [imageRefs, setImageRefs] = useState([]);       // sanity references
   const [postType, setPostType] = useState("gaming");
   const [accessInstructions, setAccessInstructions] = useState("");
   const [hasNda, setHasNda] = useState(false);
@@ -181,7 +183,7 @@ const CreatePost = ({ token, onPostCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title || selectedTags.length === 0 || selectedSubgenres.length === 0 || !studio || !bannerImage || !description || !images) {
+    if (!title || selectedTags.length === 0 || selectedSubgenres.length === 0 || !studio || (!bannerRef && !bannerImage) || !description || (!imageRefs.length && !images)) {
       setError("All required fields must be filled.");
       return;
     }
@@ -189,11 +191,11 @@ const CreatePost = ({ token, onPostCreated }) => {
     const basePost = {
       title,
       studio,
-      banner_image: bannerImage,
+      banner_image: bannerRef || bannerImage,
       description,
       tags: selectedTags,
       subgenres: selectedSubgenres,
-      images: images.split(",").map((img) => img.trim()),
+      images: imageRefs.length ? imageRefs : images.split(",").map((img) => img.trim()),
     };
 
     let fullPostData = {};
@@ -241,8 +243,10 @@ const CreatePost = ({ token, onPostCreated }) => {
         setSelectedSubgenres([]);
         setStudio("");
         setBannerImage("");
+        setBannerRef(null);
         setDescription("");
         setImages("");
+        setImageRefs([]);
         setPostType("gaming");
         setAccessInstructions("");
         setHasNda(false);
@@ -256,6 +260,25 @@ const CreatePost = ({ token, onPostCreated }) => {
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || "Failed to create post.");
+    }
+  };
+
+  const uploadFile = async (file, setter) => {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const resp = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ""}/uploads/image`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (resp.data?.image) {
+        setter(resp.data.image);
+      }
+    } catch (e) {
+      console.error(e);
+      setError("Image upload failed");
     }
   };
 
@@ -313,12 +336,23 @@ const CreatePost = ({ token, onPostCreated }) => {
         required
         style={styles.input}
       />
+      <label style={styles.label}>Banner Image:</label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            uploadFile(e.target.files[0], setBannerRef);
+          }
+        }}
+        style={styles.input}
+      />
+      <small style={{ color: "#888" }}>or paste URL below</small>
       <input
         type="url"
         placeholder="Banner Image URL"
         value={bannerImage}
         onChange={(e) => setBannerImage(e.target.value)}
-        required
         style={styles.input}
       />
       <textarea
@@ -328,12 +362,23 @@ const CreatePost = ({ token, onPostCreated }) => {
         required
         style={styles.textarea}
       />
+      <label style={styles.label}>Gallery Images:</label>
+      <input
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          files.forEach((f) => uploadFile(f, (ref) => setImageRefs((prev) => [...prev, ref])));
+        }}
+        style={styles.input}
+      />
+      <small style={{ color: "#888" }}>or paste URLs below (comma separated)</small>
       <input
         type="text"
         placeholder="Image URLs (comma-separated)"
         value={images}
         onChange={(e) => setImages(e.target.value)}
-        required
         style={styles.input}
       />
 

@@ -53,6 +53,11 @@ class SanityClient:
         )
         return {"_type": "image", "asset": {"_type": "reference", "_ref": asset_id}}
 
+    def upload_image_bytes(self, image_bytes: bytes, content_type: str = "application/octet-stream") -> dict[str, Any]:
+        """Upload raw image bytes and return a Sanity image reference dict."""
+        asset_id = self._upload_image(image_bytes, content_type)
+        return {"_type": "image", "asset": {"_type": "reference", "_ref": asset_id}}
+
     # ---------------------------------------------------------------------
     # Public CRUD helpers
     # ---------------------------------------------------------------------

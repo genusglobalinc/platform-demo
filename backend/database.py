@@ -184,17 +184,25 @@ def update_user_profile(user_id: str, profile_data: dict) -> bool:
 def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     if _sanity_client:
         try:
-            # Upload images to Sanity and build image reference objects
+            # Banner image
+            banner_val = post_data.get("banner_image")
             banner_ref = None
-            if post_data.get("banner_image"):
-                banner_ref = _sanity_client.upload_image_from_url(post_data["banner_image"])
+            if banner_val:
+                if isinstance(banner_val, dict) and banner_val.get("_type") == "image":
+                    banner_ref = banner_val  # already uploaded
+                else:
+                    banner_ref = _sanity_client.upload_image_from_url(banner_val)
 
+            # Gallery images
             image_refs = []
-            for img_url in post_data.get("images", []):
+            for img in post_data.get("images", []):
                 try:
-                    image_refs.append(_sanity_client.upload_image_from_url(img_url))
+                    if isinstance(img, dict) and img.get("_type") == "image":
+                        image_refs.append(img)
+                    else:
+                        image_refs.append(_sanity_client.upload_image_from_url(img))
                 except Exception as img_err:
-                    logging.error(f"Failed to upload image {img_url}: {img_err}")
+                    logging.error(f"Failed to upload image {img}: {img_err}")
 
             sanity_payload = {
                 "title": post_data.get("title"),
