@@ -9,6 +9,7 @@ from backend.database import (
     create_post_in_db,
     get_all_posts_from_db,
     filter_posts_from_db,
+    delete_post_in_db,
 )
 from backend.utils.security import verify_access_token
 from fastapi_limiter.depends import RateLimiter
@@ -60,6 +61,7 @@ async def create_post(
 ):
     payload = verify_access_token(token)
     user_id = payload.get("sub")
+    print(f"[create_post] user_id={user_id} payload={payload}")
     genre = post_data.genre.lower()
 
     if genre not in ["gaming", "anime"]:
@@ -130,3 +132,15 @@ async def get_all_posts(
     posts = get_all_posts_from_db(post_type=genre, tags=tags)
     serialized_posts = json.dumps(posts, default=str)
     return {"posts": json.loads(serialized_posts)}
+
+# ----------------- Delete -----------------
+
+@router.delete("/{post_id}")
+async def delete_post(post_id: str, token: str = Depends(oauth2_scheme)):
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
+    print(f"[delete_post] user {user_id} wants to delete {post_id}")
+    success = delete_post_in_db(post_id, user_id)
+    if not success:
+        raise HTTPException(status_code=403, detail="Delete failed or not authorized")
+    return {"message": "Post deleted"}

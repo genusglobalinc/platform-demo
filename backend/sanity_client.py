@@ -63,7 +63,8 @@ class SanityClient:
     # ---------------------------------------------------------------------
     def create_document(self, doc_type: str, data: dict) -> str:
         """Create and return the Sanity document ID."""
-        url = f"{self.base_url}/data/mutate/{self.dataset}"
+        # Ask Sanity to return the generated IDs so we can forward them back to callers
+        url = f"{self.base_url}/data/mutate/{self.dataset}?returnIds=true&returnDocuments=false"
         payload = {
             "mutations": [
                 {
@@ -93,3 +94,15 @@ class SanityClient:
         if resp.status_code == 200:
             return resp.json().get("result", [])
         raise RuntimeError(f"Sanity query failed: {resp.text}")
+
+    # ------------------------------------------------------------------
+    # Delete helpers
+    # ------------------------------------------------------------------
+    def delete_document(self, doc_id: str) -> bool:
+        """Delete a document by ID. Returns True if successful."""
+        url = f"{self.base_url}/data/mutate/{self.dataset}?returnIds=false"
+        payload = {"mutations": [{"delete": {"id": doc_id}}]}
+        resp = requests.post(url, json=payload, headers=self._headers(), timeout=10)
+        if resp.status_code == 200:
+            return True
+        raise RuntimeError(f"Sanity delete_document failed: {resp.text}")

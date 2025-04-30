@@ -1,5 +1,7 @@
 // frontend/src/components/PostCard.js
 import React from "react";
+import axios from "axios";
+import jwtDecode from "jwt-decode";
 
 const PostCard = ({ post }) => {
   const getContentPreview = (text, maxLength = 100) => {
@@ -7,8 +9,46 @@ const PostCard = ({ post }) => {
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
 
-  const bannerSrc = post.banner_image || (post.images && post.images[0]) || null;
-  const created = post.created_at || post.createdAt || null;
+  const projectId = process.env.REACT_APP_SANITY_PROJECT_ID;
+  const buildSanityUrl = (ref) => {
+    if (!ref || !projectId) return null;
+    const parts = ref.split("-"); // image-<id>-<dims>-<fmt>
+    if (parts.length < 4) return null;
+    const id = parts[1];
+    const ext = parts[3];
+    return `https://cdn.sanity.io/images/${projectId}/production/${id}.${ext}`;
+  };
+
+  const bannerSrc =
+    post.banner_image ||
+    post.bannerImage?.url ||
+    (post.bannerImage?.image && buildSanityUrl(post.bannerImage.image.asset?._ref)) ||
+    (post.bannerImage && buildSanityUrl(post.bannerImage.asset?._ref)) ||
+    (post.images && post.images[0]) ||
+    null;
+
+  // Determine ownership
+  const authToken = localStorage.getItem("token") || sessionStorage.getItem("token");
+  let currentUser = null;
+  try {
+    if (authToken) currentUser = jwtDecode(authToken);
+  } catch {}
+
+  const canDelete = currentUser && (post.user_id === currentUser.sub || post.testerId === currentUser.sub);
+
+  const handleDelete = async () => {
+    if (!canDelete) return;
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      await axios.delete(`/posts/${post._id || post.post_id}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      window.location.reload();
+    } catch (e) {
+      console.error("Delete failed", e);
+      alert("Failed to delete post");
+    }
+  };
 
   return (
     <div style={styles.card}>
@@ -45,10 +85,17 @@ const PostCard = ({ post }) => {
           </div>
         )}
 
+        {/* Delete button for owner */}
+        {canDelete && (
+          <button style={styles.deleteBtn} onClick={handleDelete}>
+            Delete
+          </button>
+        )}
+
         {/* Additional metadata */}
         <div style={styles.metadata}>
-          {created && (
-            <span style={styles.date}>{new Date(created).toLocaleDateString()}</span>
+          {post.created_at && (
+            <span style={styles.date}>{new Date(post.created_at).toLocaleDateString()}</span>
           )}
         </div>
       </div>
@@ -159,6 +206,15 @@ const styles = {
     fontSize: "0.9rem",
     color: "#aaa",
     marginTop: "0.3rem",
+  },
+  deleteBtn: {
+    background: "#e74c3c",
+    border: "none",
+    color: "#fff",
+    padding: "4px 8px",
+    borderRadius: 4,
+    cursor: "pointer",
+    marginBottom: 8,
   },
 };
 

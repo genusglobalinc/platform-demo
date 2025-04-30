@@ -17,22 +17,23 @@ users_table = dynamodb.Table('Users')
 posts_table = dynamodb.Table('Posts')
 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 try:
     _sanity_client = SanityClient()
 except Exception as e:
     _sanity_client = None
-    logging.warning(f"Sanity client not initialized: {e}")
+    logger.warning(f"Sanity client not initialized: {e}")
 
 def save_to_dynamodb(item: dict, table_name: str):
     table = dynamodb.Table(table_name)
     try:
         response = table.put_item(Item=item)
-        logging.debug(f"Saved item to {table_name}: {item}")
-        logging.debug(f"Database response: {response}")  
+        logger.debug(f"[save_to_dynamodb] Saved item to {table_name}: {item}")
+        logger.debug(f"[save_to_dynamodb] Response: {response}")  
         return response
     except ClientError as e:
-        logging.error(f"Error saving to {table_name}: {e}")
+        logger.error(f"[save_to_dynamodb] Error saving to {table_name}: {e}")
         return None
 
 # --- User Management ---
@@ -57,52 +58,52 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
     }
     try:
         response = users_table.put_item(Item=item)
-        logging.debug(f"Created user: {item}")
-        logging.debug(f"Database response: {response}")
+        logger.debug(f"[create_user_in_db] Created user: {item}")
+        logger.debug(f"[create_user_in_db] Database response: {response}")
         return user_id
     except ClientError as e:
-        logging.error(f"User creation failed: {e}")
+        logger.error(f"[create_user_in_db] User creation failed: {e}")
         return None
 
 def get_user_from_db(user_id: str) -> Optional[Dict[str, str]]:
     try:
         response = users_table.get_item(Key={'user_id': user_id})
         
-        logging.debug(f"Get user response: {response}")
+        logger.debug(f"[get_user_from_db] Get user response: {response}")
 
         user_item = response.get('Item')
         
         if not user_item:
-            logging.warning(f"User with user_id {user_id} not found in database.")
+            logger.warning(f"[get_user_from_db] User with user_id {user_id} not found in database.")
             return None
         
         return user_item
 
     except ClientError as e:
-        logging.error(f"Get user failed for user_id {user_id}: {e}")
+        logger.error(f"[get_user_from_db] Get user failed for user_id {user_id}: {e}")
         return None
 
     except Exception as e:
-        logging.error(f"Unexpected error occurred while fetching user {user_id}: {e}")
+        logger.error(f"[get_user_from_db] Unexpected error occurred while fetching user {user_id}: {e}")
         return None
 
 def get_user_by_email(email: str) -> Optional[dict]:
     try:
         response = users_table.get_item(Key={'email': email})
-        logging.debug(f"Get user by email response: {response}")  
+        logger.debug(f"[get_user_by_email] Get user by email response: {response}")  
         return response.get('Item')
     except ClientError as e:
-        logging.error(f"Get user by email failed: {e}")
+        logger.error(f"[get_user_by_email] Get user by email failed: {e}")
         return None
 
 def get_user_by_username(username: str) -> Optional[dict]:
     try:
         response = users_table.scan(FilterExpression=Attr('username').eq(username))
-        logging.debug(f"Get user by username response: {response}")  
+        logger.debug(f"[get_user_by_username] Get user by username response: {response}")  
         items = response.get('Items', [])
         return items[0] if items else None
     except ClientError as e:
-        logging.error(f"Get user by username failed: {e}")
+        logger.error(f"[get_user_by_username] Get user by username failed: {e}")
         return None
 
 def update_user_verification(email: str, is_verified: bool) -> bool:
@@ -112,10 +113,10 @@ def update_user_verification(email: str, is_verified: bool) -> bool:
             UpdateExpression="SET is_verified = :v",
             ExpressionAttributeValues={':v': is_verified}
         )
-        logging.debug(f"Update verification response: {response}")  
+        logger.debug(f"[update_user_verification] Update verification response: {response}")  
         return True
     except ClientError as e:
-        logging.error(f"Verification update failed: {e}")
+        logger.error(f"[update_user_verification] Verification update failed: {e}")
         return False
 
 def update_reset_token(email: str, reset_token: str) -> bool:
@@ -125,10 +126,10 @@ def update_reset_token(email: str, reset_token: str) -> bool:
             UpdateExpression="SET reset_token = :t",
             ExpressionAttributeValues={":t": reset_token}
         )
-        logging.debug(f"Update reset token response: {response}")  
+        logger.debug(f"[update_reset_token] Update reset token response: {response}")  
         return True
     except ClientError as e:
-        logging.error(f"Reset token update failed: {e}")
+        logger.error(f"[update_reset_token] Reset token update failed: {e}")
         return False
 
 def update_user_password_by_email(email: str, new_password: str) -> bool:
@@ -139,10 +140,10 @@ def update_user_password_by_email(email: str, new_password: str) -> bool:
             UpdateExpression="SET password = :p, reset_token = :empty",
             ExpressionAttributeValues={":p": hashed, ":empty": ""}
         )
-        logging.debug(f"Password update response: {response}")  
+        logger.debug(f"[update_user_password_by_email] Password update response: {response}")  
         return True
     except ClientError as e:
-        logging.error(f"Password update failed: {e}")
+        logger.error(f"[update_user_password_by_email] Password update failed: {e}")
         return False
 
 def verify_2fa_code(user_id: str, code: str) -> bool:
@@ -155,7 +156,7 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
         totp = pyotp.TOTP(user['two_factor_secret'])
         return totp.verify(code)
     except Exception as e:
-        logging.error(f"2FA verification failed: {e}")
+        logger.error(f"[verify_2fa_code] 2FA verification failed: {e}")
         return False
 
 def update_user_profile(user_id: str, profile_data: dict) -> bool:
@@ -171,12 +172,12 @@ def update_user_profile(user_id: str, profile_data: dict) -> bool:
             UpdateExpression=update_expression,
             ExpressionAttributeValues=expression_values
         )
-        logging.debug(f"Profile updated for user_id {user_id}: {profile_data}")
-        logging.debug(f"DynamoDB response: {response}")
+        logger.debug(f"[update_user_profile] Profile updated for user_id {user_id}: {profile_data}")
+        logger.debug(f"[update_user_profile] DynamoDB response: {response}")
         return True
 
     except ClientError as e:
-        logging.error(f"Profile update failed: {e}")
+        logger.error(f"[update_user_profile] Profile update failed: {e}")
         return False
 
 # --- Post Management ---
@@ -202,7 +203,7 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
                     else:
                         image_refs.append(_sanity_client.upload_image_from_url(img))
                 except Exception as img_err:
-                    logging.error(f"Failed to upload image {img}: {img_err}")
+                    logger.error(f"[create_post_in_db] Failed to upload image {img}: {img_err}")
 
             sanity_payload = {
                 "title": post_data.get("title"),
@@ -219,20 +220,20 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
 
             return _sanity_client.create_document("post", sanity_payload)
         except Exception as e:
-            logging.error(f"Sanity create post failed: {e}")
+            logger.error(f"[create_post_in_db] Sanity create post failed: {e}")
             return None
     else:
         post_id = str(uuid.uuid4())
 
         if 'title' not in post_data or 'description' not in post_data:
-            logging.error("Title and description are mandatory fields.")
+            logger.error("[create_post_in_db] Title and description are mandatory fields.")
             return None
 
         if 'post_type' not in post_data and 'type' in post_data:
             post_data['post_type'] = post_data.pop('type')
 
         if post_data.get('post_type') not in ['gaming', 'anime']:
-            logging.error("Invalid post_type. Must be 'gaming' or 'anime'.")
+            logger.error("[create_post_in_db] Invalid post_type. Must be 'gaming' or 'anime'.")
             return None
 
         post_data.update({
@@ -241,17 +242,17 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
             'created_at': str(datetime.utcnow())
         })
 
-        logging.debug(f"Attempting to save post to DB. Data: {post_data}")
+        logger.debug(f"[create_post_in_db] Attempting to save post to DynamoDB. Data: {post_data}")
 
         try:
             serialized_data = jsonable_encoder(post_data)  
             response = posts_table.put_item(Item=serialized_data)
-            logging.debug(f"Post saved successfully. Response: {response}")
+            logger.debug(f"[create_post_in_db] Post saved successfully. Response: {response}")
             return post_id
         except ClientError as e:
-            logging.error(f"[ClientError] Failed to create post in DB: {e.response['Error']['Message']}")
+            logger.error(f"[create_post_in_db] [ClientError] Failed: {e.response['Error']['Message']}")
         except Exception as e:
-            logging.exception(f"[Exception] Unexpected error while saving post: {e}")
+            logger.exception(f"[create_post_in_db] Unexpected error: {e}")
         return None
 
 def get_post_from_db(post_id: str) -> Optional[dict]:
@@ -259,27 +260,38 @@ def get_post_from_db(post_id: str) -> Optional[dict]:
         try:
             return _sanity_client.get_document(post_id)
         except Exception as e:
-            logging.error(f"Sanity get post failed: {e}")
+            logger.error(f"[get_post_from_db] Sanity get post failed: {e}")
             return None
     else:
         try:
             response = posts_table.get_item(Key={'post_id': post_id})
-            logging.debug(f"Get post response: {response}")  
+            logger.debug(f"[get_post_from_db] Get post response: {response}")  
             return response.get('Item')
         except ClientError as e:
-            logging.error(f"Get post failed: {e}")
+            logger.error(f"[get_post_from_db] Get post failed: {e}")
             return None
 
 def get_posts_by_user(user_id: str) -> List[dict]:
+    """Return all posts owned by user from Sanity or Dynamo."""
+    if _sanity_client:
+        try:
+            query = f'*[_type == "post" && testerId == "{user_id}"] | order(date desc)'
+            results = _sanity_client.query_documents(query)
+            logger.debug(f"[get_posts_by_user] Sanity results: {len(results)} items")
+            return results
+        except Exception as e:
+            logger.error(f"[get_posts_by_user] Sanity query failed: {e}")
+            return []
+    # Dynamo fallback
     try:
         response = posts_table.query(
             IndexName="user_id-index",
             KeyConditionExpression=Key('user_id').eq(user_id)
         )
-        logging.debug(f"Get posts by user response: {response}")  
+        logger.debug(f"[get_posts_by_user] Dynamo response: {response}")
         return response.get('Items', [])
     except ClientError as e:
-        logging.error(f"Get posts by user failed: {e}")
+        logger.error(f"[get_posts_by_user] Dynamo query failed: {e}")
         return []
 
 def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[str]] = None) -> List[dict]:
@@ -295,13 +307,13 @@ def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[s
             query = base_query + (' && ' + ' && '.join(conditions) if conditions else '') + ']'
             return _sanity_client.query_documents(query)
         except Exception as e:
-            logging.error(f"Sanity get all posts failed: {e}")
+            logger.error(f"[get_all_posts_from_db] Sanity get all posts failed: {e}")
             return []
     else:
         try:
             response = posts_table.scan()
-            logging.debug("Scanned posts table successfully.")
-            logging.debug(f"Scan posts table response: {response}")
+            logger.debug("[get_all_posts_from_db] Scanned posts table successfully.")
+            logger.debug(f"[get_all_posts_from_db] Scan posts table response: {response}")
             all_items = response.get('Items', [])
             
             filtered_items = [item for item in all_items if 'title' in item and 'description' in item]
@@ -318,7 +330,7 @@ def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[s
             return filtered_items
 
         except ClientError as e:
-            logging.error(f"Error scanning posts table: {e}")
+            logger.error(f"[get_all_posts_from_db] Error scanning posts table: {e}")
             return []
 
 def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
@@ -337,7 +349,7 @@ def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
                 query += " | order(date desc)"
             return _sanity_client.query_documents(query)
         except Exception as e:
-            logging.error(f"Sanity filter posts failed: {e}")
+            logger.error(f"[filter_posts_from_db] Sanity filter posts failed: {e}")
             return []
     else:
         try:
@@ -356,11 +368,11 @@ def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
                 filter_expr = filter_expr & sub_filter if filter_expr else sub_filter
 
             response = posts_table.scan(FilterExpression=filter_expr) if filter_expr else posts_table.scan()
-            logging.debug("Filtered posts fetched successfully.")
-            logging.debug(f"Filter posts response: {response}")  
+            logger.debug("[filter_posts_from_db] Filtered posts fetched successfully.")
+            logger.debug(f"[filter_posts_from_db] Filter posts response: {response}")  
             return response.get('Items', [])
         except ClientError as e:
-            logging.error(f"Error filtering posts: {e}")
+            logger.error(f"[filter_posts_from_db] Error filtering posts: {e}")
             return []
 
 def update_user_password(user_id: str, new_password: str) -> bool:
@@ -371,11 +383,11 @@ def update_user_password(user_id: str, new_password: str) -> bool:
             UpdateExpression="SET password = :p",
             ExpressionAttributeValues={":p": hashed}
         )
-        logging.debug(f"Password updated for user: {user_id}")
-        logging.debug(f"Password update response: {response}")  
+        logger.debug(f"[update_user_password] Password updated for user: {user_id}")
+        logger.debug(f"[update_user_password] Password update response: {response}")  
         return True
     except ClientError as e:
-        logging.error(f"Password update failed for user {user_id}: {e}")
+        logger.error(f"[update_user_password] Password update failed for user {user_id}: {e}")
         return False
 
 
@@ -390,11 +402,11 @@ def update_user_2fa(user_id: str, secret: str, enabled: bool = False) -> bool:
                 ':e': enabled
             }
         )
-        logging.debug(f"2FA settings updated for user: {user_id}")
-        logging.debug(f"2FA update response: {response}")
+        logger.debug(f"[update_user_2fa] 2FA settings updated for user: {user_id}")
+        logger.debug(f"[update_user_2fa] 2FA update response: {response}")
         return True
     except ClientError as e:
-        logging.error(f"2FA update failed for user {user_id}: {e}")
+        logger.error(f"[update_user_2fa] 2FA update failed for user {user_id}: {e}")
         return False
 
 
@@ -408,5 +420,39 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
         totp = pyotp.TOTP(user['two_factor_secret'])
         return totp.verify(code)
     except Exception as e:
-        logging.error(f"2FA verification failed for user {user_id}: {e}")
+        logger.error(f"[verify_2fa_code] 2FA verification failed for user {user_id}: {e}")
+        return False
+
+# ---------------------------------------------------------------------
+# Delete Post
+# ---------------------------------------------------------------------
+
+def delete_post_in_db(post_id: str, user_id: str) -> bool:
+    """Delete a post from Sanity or DynamoDB depending on environment."""
+    if _sanity_client:
+        try:
+            # Fetch doc to verify ownership
+            doc = _sanity_client.get_document(post_id)
+            if not doc:
+                logger.warning(f"[delete_post_in_db] Document {post_id} not found in Sanity")
+                return False
+            if doc.get("testerId") != user_id:
+                logger.warning("[delete_post_in_db] User does not own this post")
+                return False
+            _sanity_client.delete_document(post_id)
+            logger.debug(f"[delete_post_in_db] Deleted Sanity doc {post_id}")
+            return True
+        except Exception as e:
+            logger.error(f"[delete_post_in_db] Sanity delete failed: {e}")
+            return False
+    # Dynamo fallback
+    try:
+        response = posts_table.delete_item(
+            Key={"post_id": post_id, "user_id": user_id},
+            ConditionExpression=Attr("user_id").eq(user_id)
+        )
+        logger.debug(f"[delete_post_in_db] Dynamo delete response: {response}")
+        return True
+    except ClientError as e:
+        logger.error(f"[delete_post_in_db] Dynamo delete failed: {e}")
         return False
