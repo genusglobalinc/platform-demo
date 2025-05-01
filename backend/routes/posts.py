@@ -52,7 +52,7 @@ class PostCreateRequest(BaseModel):
 # ---------- Routes ----------
 
 @router.post(
-    "/",
+    "",
     dependencies=[Depends(RateLimiter(times=10, seconds=60))]
 )
 async def create_post(
@@ -84,6 +84,16 @@ async def create_post(
         raise HTTPException(status_code=500, detail="Error creating post")
 
     return {"message": "Post created", "post_id": post_id}
+
+# Also expose the same handler at '/posts/' to accept trailing slash requests
+router.add_api_route(
+    path="/",
+    endpoint=create_post,
+    methods=["POST"],
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))],
+    response_model=None,
+    include_in_schema=False,
+)
 
 @router.get("/{post_id}")
 async def get_post(post_id: str):
