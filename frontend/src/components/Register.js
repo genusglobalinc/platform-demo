@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { registerUser, verify2FALogin } from '../api';
 
-const profilePics = ["pic1", "pic2", "pic3"];
+// Default profile pictures will be handled server-side; users can upload later in profile settings
 
 function Register() {
   const [loading, setLoading] = useState(false);
@@ -10,8 +10,6 @@ function Register() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [socialLinks, setSocialLinks] = useState("");
-  const [selectedPic, setSelectedPic] = useState(profilePics[0]);
   const [errorMsg, setErrorMsg] = useState("");
   const [step, setStep] = useState(1); // 1: Registration form, 2: 2FA setup
   const [twoFactorSetup, setTwoFactorSetup] = useState(null);
@@ -23,7 +21,7 @@ function Register() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await registerUser(username, email, password, displayName, socialLinks, selectedPic);
+      const res = await registerUser(username, email, password, displayName);
       setTwoFactorSetup(res.data.two_factor_setup);
       setTempToken(res.data.temp_token);
       setStep(2); // Move to 2FA setup step
@@ -59,23 +57,6 @@ function Register() {
         <input style={styles.input} type="text" placeholder="Display Name" onChange={(e) => setDisplayName(e.target.value)} />
         <input style={styles.input} type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
         <input style={styles.input} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
-        <input style={styles.input} type="text" placeholder="Social Links (comma separated)" onChange={(e) => setSocialLinks(e.target.value)} />
-
-        <p style={{ color: "#ccc", marginBottom: "0.5rem" }}>Choose a Profile Picture:</p>
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-          {profilePics.map((pic) => (
-            <div
-              key={pic}
-              style={{
-                ...styles.picCircle,
-                border: selectedPic === pic ? "3px solid #B388EB" : "2px solid #444"
-              }}
-              onClick={() => setSelectedPic(pic)}
-            >
-              {pic.toUpperCase()}
-            </div>
-          ))}
-        </div>
 
         <button style={styles.button} onClick={handleRegister}>Next: Set Up 2FA</button>
         <p style={styles.alt}>Already have an account? <Link to="/" style={styles.link}>Log in</Link></p>

@@ -2,16 +2,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { uploadAvatar } from "../api";
 
-const profilePics = ["pic1", "pic2", "pic3"];
+// Pre-defined profile pictures configurable by platform admins
+const profilePics = ["default1", "default2", "default3"];
 
 export default function ProfileSettings() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
-  const [selectedPic, setSelectedPic] = useState("");
+  const [selectedPic, setSelectedPic] = useState(profilePics[0]);
   const [status, setStatus] = useState("");
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -106,6 +109,7 @@ export default function ProfileSettings() {
           type="text"
           value={socialLinks}
           onChange={(e) => setSocialLinks(e.target.value)}
+          placeholder="e.g. https://twitter.com/yourhandle"
           style={styles.input}
         />
         <button
@@ -116,7 +120,7 @@ export default function ProfileSettings() {
         </button>
       </div>
 
-      {/* Profile Picture */}
+      {/* Profile Picture (choose from curated list or upload custom)*/}
       <div style={styles.section}>
         <label style={styles.label}>Profile Picture</label>
         <div style={styles.picsRow}>
@@ -138,13 +142,32 @@ export default function ProfileSettings() {
           style={styles.button}
           onClick={() => saveField("profile_picture", selectedPic)}
         >
-          Save
+          Save Picture
         </button>
+        {/* Upload custom avatar */}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+              setUploading(true);
+              const res = await uploadAvatar(file);
+              setSelectedPic(res.profile_picture);
+              setStatus("Profile picture updated!");
+            } catch {
+              setStatus("Error uploading avatar.");
+            } finally {
+              setUploading(false);
+            }
+          }}
+          style={{ marginTop: "1rem" }}
+        />
+        {uploading && <p style={styles.loadingText}>Uploading...</p>}
       </div>
 
       {status && <p style={styles.status}>{status}</p>}
-
-
     </div>
   );
 }

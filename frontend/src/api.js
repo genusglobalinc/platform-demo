@@ -33,16 +33,13 @@ export const verify2FALogin = async (code, tempToken) => {
   });
 };
 
-export const registerUser = async (username, email, password, displayName, socialLinks, profilePic) => {
-  const response = await api.post('/auth/register', {
+export const registerUser = async (username, email, password, displayName) => {
+  return await api.post('/auth/register', {
     username,
     email,
     password,
     display_name: displayName,
-    social_links: socialLinks,
-    profile_pic: profilePic,
   });
-  return response;
 };
 
 export const forgotPassword = (email) =>
@@ -94,3 +91,17 @@ export const createPost = (postData) => {
 
 export const getPost = (postId) =>
   api.get(`/posts/${postId}`);
+
+// Upload user avatar (multipart/form-data)
+export const uploadAvatar = async (file) => {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await api.post('/users/profile/upload-avatar', formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // Let axios set the correct content-type with boundary
+    },
+  });
+  return res.data;
+};
