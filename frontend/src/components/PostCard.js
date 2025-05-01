@@ -18,8 +18,9 @@ const PostCard = ({ post }) => {
     const parts = ref.split("-"); // image-<id>-<dims>-<fmt>
     if (parts.length < 4) return null;
     const id = parts[1];
-    const ext = parts[3];
-    return `https://cdn.sanity.io/images/${projectId}/production/${id}.${ext}`;
+    const dims = parts[2];
+    const fmt = parts[3];
+    return `https://cdn.sanity.io/images/${projectId}/production/${id}-${dims}.${fmt}`;
   };
 
   const firstImageRef = Array.isArray(post.images) && post.images.length > 0 ? post.images[0] : null;
