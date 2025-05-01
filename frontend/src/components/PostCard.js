@@ -9,7 +9,10 @@ const PostCard = ({ post }) => {
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
 
-  const projectId = process.env.REACT_APP_SANITY_PROJECT_ID;
+  // Ensure we can still build asset URLs even if env var isn't set in Render
+  const projectId =
+    process.env.REACT_APP_SANITY_PROJECT_ID || "jpgxw2o8"; // fallback to default project id
+
   const buildSanityUrl = (ref) => {
     if (!ref || !projectId) return null;
     const parts = ref.split("-"); // image-<id>-<dims>-<fmt>
@@ -26,7 +29,10 @@ const PostCard = ({ post }) => {
     post.bannerImage?.url ||
     (post.bannerImage?.image && buildSanityUrl(post.bannerImage.image.asset?._ref)) ||
     (post.bannerImage && buildSanityUrl(post.bannerImage.asset?._ref)) ||
-    (firstImageRef && (typeof firstImageRef === 'string' ? firstImageRef : buildSanityUrl(firstImageRef.asset?._ref))) ||
+    (firstImageRef &&
+      (typeof firstImageRef === "string"
+        ? firstImageRef
+        : buildSanityUrl(firstImageRef.asset?._ref))) ||
     null;
 
   // Determine ownership
@@ -65,17 +71,23 @@ const PostCard = ({ post }) => {
       <div style={styles.content}>
         {/* Studio */}
         {post.studio && (
-          <div style={styles.studioInfo}>
-            <h4 style={styles.studioName}>{post.studio}</h4>
-          </div>
+          <p style={styles.labelText}>
+            <strong>Studio:</strong> {post.studio}
+          </p>
         )}
 
-        {/* Optional title */}
-        {post.title && <h3 style={styles.title}>{post.title}</h3>}
+        {/* Title */}
+        {post.title && (
+          <p style={styles.labelText}>
+            <strong>Title:</strong> {post.title}
+          </p>
+        )}
 
-        {/* Content preview */}
+        {/* Description */}
         {post.description && (
-          <p style={styles.description}>{getContentPreview(post.description, 150)}</p>
+          <p style={styles.labelText}>
+            <strong>Description:</strong> {getContentPreview(post.description, 150)}
+          </p>
         )}
 
         {/* Tags if present */}
@@ -142,17 +154,10 @@ const styles = {
     fontWeight: 'bold',
     color: '#B388EB',
   },
-  title: {
-    margin: '0.5rem 0',
-    fontSize: '1.2rem',
-    color: '#fff',
-    lineHeight: '1.4',
-  },
-  description: {
-    fontSize: '1rem',
-    color: '#ddd',
-    marginBottom: '0.75rem',
-    lineHeight: '1.5',
+  labelText: {
+    margin: "0.25rem 0",
+    fontSize: "0.95rem",
+    color: "#ddd",
   },
   tags: {
     display: 'flex',
@@ -193,11 +198,6 @@ const styles = {
     height: "100%",
     objectFit: "cover",
     borderRadius: "10px",
-  },
-  title: {
-    margin: "0.5rem 0",
-    fontSize: "1.1rem",
-    color: "#fff",
   },
   content: {
     fontSize: "1rem",
