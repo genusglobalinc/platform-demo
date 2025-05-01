@@ -52,7 +52,7 @@ class PostCreateRequest(BaseModel):
 # ---------- Routes ----------
 
 @router.post(
-    "/",
+    "/posts",
     dependencies=[Depends(RateLimiter(times=10, seconds=60))]
 )
 async def create_post(
