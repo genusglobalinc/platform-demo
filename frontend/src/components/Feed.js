@@ -55,7 +55,12 @@ export default function Feed() {
       if (!Array.isArray(body.posts)) {
         throw new Error("Invalid response");
       }
-      setPosts(body.posts);
+      // Sort newest → oldest by created date
+      const sorted = body.posts.slice().sort((a, b) => {
+        const getDate = (p) => new Date(p.created_at || p.date || p._createdAt || 0).getTime();
+        return getDate(b) - getDate(a);
+      });
+      setPosts(sorted);
     } catch (err) {
       console.error("Error loading posts:", err);
       setPosts([]);
@@ -408,9 +413,9 @@ const styles = {
     background: "#5C6BC0",
   },
   feed: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24,
   },
   modalOverlay: {
     position: "fixed",
