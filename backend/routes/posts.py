@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, HttpUrl
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Any, Dict
 import json
 
 from backend.database import (
@@ -25,9 +25,9 @@ class BasePost(BaseModel):
     title: str
     tags: List[str] = []
     studio: str
-    banner_image: HttpUrl
+    banner_image: Union[HttpUrl, Dict[str, Any]]
     description: str
-    images: List[HttpUrl]
+    images: List[Union[HttpUrl, Dict[str, Any]]] = []
 
 class GamingPost(BasePost):
     access_instructions: Optional[str] = None
@@ -39,8 +39,8 @@ class GamingPost(BasePost):
 class AnimePost(BasePost):
     # Override BasePost fields to make them optional / defaulted
     studio: Optional[str] = ""
-    banner_image: Optional[HttpUrl] = "https://via.placeholder.com/600x200"
-    images: List[HttpUrl] = []
+    banner_image: Optional[Union[HttpUrl, Dict[str, Any]]] = "https://via.placeholder.com/600x200"
+    images: List[Union[HttpUrl, Dict[str, Any]]] = []
     streaming_services: List[HttpUrl] = []
     trailer_url: Optional[HttpUrl] = None
     type: str = "anime"
