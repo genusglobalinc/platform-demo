@@ -43,94 +43,122 @@ export default function Profile() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>My Profile</h2>
-        <div style={styles.headerRight}>
-          <button style={styles.backButton} onClick={() => navigate("/feed")}>
-            ← Feed
-          </button>
-          <button
-            style={styles.settingsButton}
-            onClick={() => navigate("/profile/settings")}
-          >
-            Settings
-          </button>
+      {/* Left Sidebar */}
+      <div style={styles.leftSidebar}>
+        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
+        <div style={{ marginBottom: "32px" }}>
+          <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
+          <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
+          <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
         </div>
       </div>
 
-      {profile ? (
-        <div style={styles.details}>
-          <p><strong>Username:</strong> {profile.username}</p>
-          <p><strong>Display Name:</strong> {profile.display_name}</p>
-          <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Social Links:</strong> {profile.social_links}</p>
-          <p><strong>Followers:</strong> {profile.followers}</p>
-          <p><strong>Following:</strong> {profile.following}</p>
-          <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
-          <p><strong>Profile Pic:</strong> {profile.profile_pic}</p>
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        {/* Header */}
+        <div style={styles.header}>
+          <h2 style={styles.title}>My Profile</h2>
+          <div style={styles.headerRight}>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }}
+              style={styles.logoutButton}
+            >
+              Logout
+            </button>
+          </div>
         </div>
-      ) : (
-        <p style={styles.details}>Loading profile...</p>
-      )}
 
-      <div style={styles.postsContainer}>
-        <h3 style={styles.postsTitle}>My Posts</h3>
-        {posts.length > 0 ? (
-          <ul style={styles.postsList}>
-            {posts.map((post, index) => (
-              <li key={index} style={styles.postItem}>
-                <h4>{post.title}</h4>
-                <p>{post.description}</p>
-                {/* Add any other post details here */}
-              </li>
-            ))}
-          </ul>
+        {profile ? (
+          <div style={styles.details}>
+            <p><strong>Username:</strong> {profile.username}</p>
+            <p><strong>Display Name:</strong> {profile.display_name}</p>
+            <p><strong>Email:</strong> {profile.email}</p>
+            <p><strong>Social Links:</strong> {profile.social_links}</p>
+            <p><strong>Followers:</strong> {profile.followers}</p>
+            <p><strong>Following:</strong> {profile.following}</p>
+            <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
+            <p><strong>Profile Pic:</strong> {profile.profile_pic}</p>
+          </div>
         ) : (
-          <p>No posts available.</p>
+          <p style={styles.details}>Loading profile...</p>
         )}
+
+        <div style={styles.postsContainer}>
+          <h3 style={styles.postsTitle}>My Posts</h3>
+          {posts.length > 0 ? (
+            <ul style={styles.postsList}>
+              {posts.map((post, index) => (
+                <li key={index} style={styles.postItem}>
+                  <h4>{post.title}</h4>
+                  <p>{post.description}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No posts available.</p>
+          )}
+        </div>
       </div>
+
+      {/* Right Sidebar */}
+      <div style={styles.rightSidebar}></div>
     </div>
   );
 }
 
 const styles = {
   container: {
-    padding: "2rem",
-    background: "#1e1e1e",
-    color: "#eee",
-    minHeight: "80vh",
+    background: "#111",
+    color: "#fff",
+    minHeight: "100vh",
     fontFamily: "sans-serif",
+    display: "flex",
+  },
+  leftSidebar: {
+    width: "250px",
+    padding: "24px 16px",
+    borderRight: "1px solid #333",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    overflowY: "auto",
+  },
+  mainContent: {
+    flex: 1,
+    padding: "24px",
+    maxWidth: "900px",
+    margin: "0 auto",
+  },
+  rightSidebar: {
+    width: "250px",
+    padding: "24px",
+    borderLeft: "1px solid #333",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1.5rem",
+    marginBottom: 24,
   },
-  title: {
-    fontSize: "2rem",
-    color: "#B388EB",
-    margin: 0,
-  },
-  headerRight: {
-    display: "flex",
-    gap: "12px",
-  },
-  backButton: {
-    background: "#5C6BC0",
+  title: { fontSize: 28, margin: 0 },
+  headerRight: { display: "flex", gap: 16 },
+  logoutButton: {
+    background: "#E57373",
     padding: "8px 16px",
     color: "#fff",
+    borderRadius: 8,
     border: "none",
-    borderRadius: "8px",
     cursor: "pointer",
   },
-  settingsButton: {
-    background: "#4DB6AC",
-    padding: "8px 16px",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
+  navItem: {
+    padding: "12px 8px",
+    borderRadius: "6px",
     cursor: "pointer",
+    marginBottom: "8px",
+    transition: "background 0.2s",
   },
   details: {
     fontSize: "1.1rem",

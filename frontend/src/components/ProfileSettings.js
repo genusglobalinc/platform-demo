@@ -73,101 +73,121 @@ export default function ProfileSettings() {
   return (
     <div style={styles.container}>
       {loading && renderLoadingSpinner()}
-      {/* Top navigation */}
-      <div style={styles.topNav}>
-        <button style={styles.navButton} onClick={() => navigate("/feed")}>
-          ← Feed
-        </button>
-        <button style={styles.navButton} onClick={() => navigate("/profile")}>
-          ← Profile
-        </button>
-      </div>
 
-      <h2 style={styles.header}>Profile Settings</h2>
-
-      {/* Display Name */}
-      <div style={styles.section}>
-        <label style={styles.label}>Display Name</label>
-        <input
-          type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          style={styles.input}
-        />
-        <button
-          style={styles.button}
-          onClick={() => saveField("display_name", displayName)}
-        >
-          Save
-        </button>
-      </div>
-
-      {/* Social Links */}
-      <div style={styles.section}>
-        <label style={styles.label}>Social Links</label>
-        <input
-          type="text"
-          value={socialLinks}
-          onChange={(e) => setSocialLinks(e.target.value)}
-          placeholder="e.g. https://twitter.com/yourhandle"
-          style={styles.input}
-        />
-        <button
-          style={styles.button}
-          onClick={() => saveField("social_links", socialLinks)}
-        >
-          Save
-        </button>
-      </div>
-
-      {/* Profile Picture (choose from curated list or upload custom)*/}
-      <div style={styles.section}>
-        <label style={styles.label}>Profile Picture</label>
-        <div style={styles.picsRow}>
-          {profilePics.map((pic) => (
-            <div
-              key={pic}
-              onClick={() => setSelectedPic(pic)}
-              style={{
-                ...styles.picCircle,
-                border:
-                  selectedPic === pic ? "3px solid #B388EB" : "2px solid #444",
-              }}
-            >
-              {pic.toUpperCase()}
-            </div>
-          ))}
+      {/* Left Sidebar */}
+      <div style={styles.leftSidebar}>
+        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
+        <div style={{ marginBottom: "32px" }}>
+          <div style={styles.navItem} onClick={() => navigate('/feed')}>Home</div>
+          <div style={styles.navItem} onClick={() => navigate('/profile')}>Profile</div>
+          <div style={styles.navItem} onClick={() => navigate('/profile/settings')}>Settings</div>
         </div>
-        <button
-          style={styles.button}
-          onClick={() => saveField("profile_picture", selectedPic)}
-        >
-          Save Picture
-        </button>
-        {/* Upload custom avatar */}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            try {
-              setUploading(true);
-              const res = await uploadAvatar(file);
-              setSelectedPic(res.profile_picture);
-              setStatus("Profile picture updated!");
-            } catch {
-              setStatus("Error uploading avatar.");
-            } finally {
-              setUploading(false);
-            }
-          }}
-          style={{ marginTop: "1rem" }}
-        />
-        {uploading && <p style={styles.loadingText}>Uploading...</p>}
       </div>
 
-      {status && <p style={styles.status}>{status}</p>}
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Profile Settings</h2>
+          <div style={styles.headerRight}>
+            <button
+              onClick={() => {
+                localStorage.removeItem('token');
+                navigate('/login');
+              }}
+              style={styles.logoutButton}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {/* Display Name */}
+        <div style={styles.section}>
+          <label style={styles.label}>Display Name</label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            style={styles.input}
+          />
+          <button
+            style={styles.button}
+            onClick={() => saveField("display_name", displayName)}
+          >
+            Save
+          </button>
+        </div>
+
+        {/* Social Links */}
+        <div style={styles.section}>
+          <label style={styles.label}>Social Links</label>
+          <input
+            type="text"
+            value={socialLinks}
+            onChange={(e) => setSocialLinks(e.target.value)}
+            placeholder="e.g. https://twitter.com/yourhandle"
+            style={styles.input}
+          />
+          <button
+            style={styles.button}
+            onClick={() => saveField("social_links", socialLinks)}
+          >
+            Save
+          </button>
+        </div>
+
+        {/* Profile Picture (choose from curated list or upload custom)*/}
+        <div style={styles.section}>
+          <label style={styles.label}>Profile Picture</label>
+          <div style={styles.picsRow}>
+            {profilePics.map((pic) => (
+              <div
+                key={pic}
+                onClick={() => setSelectedPic(pic)}
+                style={{
+                  ...styles.picCircle,
+                  border:
+                    selectedPic === pic ? "3px solid #B388EB" : "2px solid #444",
+                }}
+              >
+                {pic.toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <button
+            style={styles.button}
+            onClick={() => saveField("profile_picture", selectedPic)}
+          >
+            Save Picture
+          </button>
+          {/* Upload custom avatar */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              try {
+                setUploading(true);
+                const res = await uploadAvatar(file);
+                setSelectedPic(res.profile_picture);
+                setStatus("Profile picture updated!");
+              } catch {
+                setStatus("Error uploading avatar.");
+              } finally {
+                setUploading(false);
+              }
+            }}
+            style={{ marginTop: "1rem" }}
+          />
+          {uploading && <p style={styles.loadingText}>Uploading...</p>}
+        </div>
+
+        {status && <p style={styles.status}>{status}</p>}
+      </div>
+
+      {/* Right Sidebar */}
+      <div style={styles.rightSidebar}></div>
     </div>
   );
 }
@@ -208,36 +228,54 @@ const styles = {
     '100%': { transform: 'translateY(0)', opacity: 1 },
   },
   container: {
-    maxWidth: '600px',
-    margin: '2rem auto',
-    padding: '2rem',
-    background: '#121212',
-    color: '#f5f5f5',
-    borderRadius: '12px',
-    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
-    fontFamily: 'Inter, sans-serif',
+    background: '#111',
+    color: '#fff',
+    minHeight: '100vh',
+    fontFamily: 'sans-serif',
+    display: 'flex',
   },
-  topNav: {
+  leftSidebar: {
+    width: '250px',
+    padding: '24px 16px',
+    borderRight: '1px solid #333',
+    position: 'sticky',
+    top: 0,
+    height: '100vh',
+    overflowY: 'auto',
+  },
+  mainContent: {
+    flex: 1,
+    padding: '24px',
+    maxWidth: '900px',
+    margin: '0 auto',
+  },
+  rightSidebar: {
+    width: '250px',
+    padding: '24px',
+    borderLeft: '1px solid #333',
+  },
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '2rem',
+    marginBottom: 24,
   },
-  navButton: {
-    background: '#B388EB',
+  title: { fontSize: 28, margin: 0 },
+  headerRight: { display: 'flex', gap: 16 },
+  logoutButton: {
+    background: '#E57373',
+    padding: '8px 16px',
     color: '#fff',
+    borderRadius: 8,
     border: 'none',
-    borderRadius: '8px',
-    padding: '8px 20px',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    transition: 'transform 0.1s ease',
   },
-  header: {
-    fontSize: '2rem',
-    color: '#B388EB',
-    textAlign: 'center',
-    marginBottom: '2rem',
+  navItem: {
+    padding: '12px 8px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    marginBottom: '8px',
+    transition: 'background 0.2s',
   },
   section: {
     display: 'flex',
