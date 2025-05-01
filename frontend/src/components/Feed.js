@@ -143,9 +143,9 @@ export default function Feed() {
         
         {/* Navigation Links */}
         <div style={{ marginBottom: "32px" }}>
-          <div style={styles.navItem}>Home</div>
-          <div style={styles.navItem}>Profile</div>
-          <div style={styles.navItem}>Settings</div>
+          <div style={styles.navItem} onClick={() => navigate('/feed')}>Home</div>
+          <div style={styles.navItem} onClick={() => navigate('/profile')}>Profile</div>
+          <div style={styles.navItem} onClick={() => navigate('/profile/settings')}>Settings</div>
         </div>
         
         {/* Genres Filter */}
@@ -202,149 +202,141 @@ export default function Feed() {
       <div style={styles.mainContent}>
         {/* Header */}
         <div style={styles.header}>
-        <h2 style={styles.title}>Discover Playtests</h2>
-        <div style={styles.headerRight}>
-          <button
-            style={styles.createButton}
-            onClick={() => navigate('/create-post')}
-          >
-            + Create Post
-          </button>
+          <h2 style={styles.title}>Discover Playtests</h2>
+          <div style={styles.headerRight}>
+            <button
+              style={styles.createButton}
+              onClick={() => navigate('/create-post')}
+            >
+              + Create Post
+            </button>
 
-          {/* ← NEW Profile button → */}
-          <button
-            style={styles.profileButton}
-            onClick={() => navigate("/profile")}
-          >
-            Profile
-          </button>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-            style={styles.logoutButton}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* Tab buttons */}
-      <div style={styles.tabContainer}>
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === tab ? styles.activeTab : {}),
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Feed */}
-      <div style={styles.feed}>
-        {loading ? (
-          <p>Loading...</p>
-        ) : posts.length === 0 ? (
-          <p>No posts found</p>
-        ) : (
-          posts.map((post) => <PostCard key={post.post_id} post={post} />)
-        )}
-      </div>
-
-      {/* Create‑Post Modal */}
-      {showCreateModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h3>Create a Post</h3>
-
-            <input
-              style={styles.textInput}
-              placeholder="Title *"
-              value={formFields.title}
-              onChange={(e) =>
-                setFormFields({ ...formFields, title: e.target.value })
-              }
-            />
-            <textarea
-              style={{ ...styles.textInput, height: 80 }}
-              placeholder="Description *"
-              value={formFields.description}
-              onChange={(e) =>
-                setFormFields({ ...formFields, description: e.target.value })
-              }
-            />
-
-            {["studio", "banner_image", "images"].map((fld) => (
-              <input
-                key={fld}
-                style={styles.textInput}
-                placeholder={fld.replace("_", " ").toUpperCase()}
-                value={formFields[fld]}
-                onChange={(e) =>
-                  setFormFields({ ...formFields, [fld]: e.target.value })
-                }
-              />
-            ))}
-
-            {/* Genre and Tag Selectors */}
-            <div style={styles.modalSelectorContainer}>
-              <h4>Genre</h4>
-              {Object.keys(GENRES).map((main) => (
-                <button
-                  key={main}
-                  onClick={() => setSelectedMain(main)}
-                  style={{
-                    ...styles.modalSelectorButton,
-                    ...(selectedMain === main ? styles.activeSelector : {}),
-                  }}
-                >
-                  {main}
-                </button>
-              ))}
-              {selectedMain && (
-                <div>
-                  <h4>Tags</h4>
-                  {GENRES[selectedMain].map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() =>
-                        setSelectedSub((prev) =>
-                          prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
-                        )
-                      }
-                      style={{
-                        ...styles.modalSelectorButton,
-                        ...(selectedSub.includes(sub) ? styles.activeSelector : {}),
-                      }}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button
-                style={styles.cancelButton}
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </button>
-              <button style={styles.submitButton} onClick={handlePostSubmit}>
-                Post
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }}
+              style={styles.logoutButton}
+            >
+              Logout
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Tab buttons */}
+        <div style={styles.tabContainer}>
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === tab ? styles.activeTab : {}),
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Feed */}
+        <div style={styles.feed}>
+          {loading ? (
+            <p>Loading...</p>
+          ) : posts.length === 0 ? (
+            <p>No posts found</p>
+          ) : (
+            posts.map((post) => <PostCard key={post.post_id} post={post} />)
+          )}
+        </div>
+
+        {/* Create‑Post Modal */}
+        {showCreateModal && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h3>Create a Post</h3>
+
+              <input
+                style={styles.textInput}
+                placeholder="Title *"
+                value={formFields.title}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, title: e.target.value })
+                }
+              />
+              <textarea
+                style={{ ...styles.textInput, height: 80 }}
+                placeholder="Description *"
+                value={formFields.description}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, description: e.target.value })
+                }
+              />
+
+              {["studio", "banner_image", "images"].map((fld) => (
+                <input
+                  key={fld}
+                  style={styles.textInput}
+                  placeholder={fld.replace("_", " ").toUpperCase()}
+                  value={formFields[fld]}
+                  onChange={(e) =>
+                    setFormFields({ ...formFields, [fld]: e.target.value })
+                  }
+                />
+              ))}
+
+              {/* Genre and Tag Selectors */}
+              <div style={styles.modalSelectorContainer}>
+                <h4>Genre</h4>
+                {Object.keys(GENRES).map((main) => (
+                  <button
+                    key={main}
+                    onClick={() => setSelectedMain(main)}
+                    style={{
+                      ...styles.modalSelectorButton,
+                      ...(selectedMain === main ? styles.activeSelector : {}),
+                    }}
+                  >
+                    {main}
+                  </button>
+                ))}
+                {selectedMain && (
+                  <div>
+                    <h4>Tags</h4>
+                    {GENRES[selectedMain].map((sub) => (
+                      <button
+                        key={sub}
+                        onClick={() =>
+                          setSelectedSub((prev) =>
+                            prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
+                          )
+                        }
+                        style={{
+                          ...styles.modalSelectorButton,
+                          ...(selectedSub.includes(sub) ? styles.activeSelector : {}),
+                        }}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button
+                  style={styles.cancelButton}
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </button>
+                <button style={styles.submitButton} onClick={handlePostSubmit}>
+                  Post
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Right Sidebar - Empty for now but provides balanced spacing */}
