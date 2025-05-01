@@ -185,6 +185,13 @@ const CreatePost = ({ token, onPostCreated }) => {
       return;
     }
 
+    const galleryImages = imageRefs.length
+      ? imageRefs
+      : images
+          .split(",")
+          .map((img) => img.trim())
+          .filter(Boolean); // remove empty strings
+
     const basePost = {
       genre,
       title,
@@ -192,7 +199,7 @@ const CreatePost = ({ token, onPostCreated }) => {
       banner_image: bannerRef || bannerImage,
       description,
       tags: selectedSubgenres,
-      images: imageRefs.length ? imageRefs : images.split(",").map((img) => img.trim()),
+      images: galleryImages,
     };
 
     const fullPostData = { genre, post_data: basePost };
