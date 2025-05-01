@@ -61,6 +61,15 @@ const PostCard = ({ post }) => {
 
   return (
     <div style={styles.card}>
+      {/* Date at the top */}
+      {(post.created_at || post.date || post._createdAt) && (
+        <div style={styles.dateContainer}>
+          <span style={styles.date}>
+            {new Date(post.created_at || post.date || post._createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      )}
+      
       <div style={styles.thumbnail}>
         {bannerSrc ? (
           <img src={bannerSrc} alt={post.title || "Post banner"} style={styles.image} />
@@ -107,11 +116,9 @@ const PostCard = ({ post }) => {
           </button>
         )}
 
-        {/* Additional metadata */}
+        {/* Additional metadata - date has been moved to the top */}
         <div style={styles.metadata}>
-          {(post.created_at || post.date || post._createdAt) && (
-            <span style={styles.date}>{new Date(post.created_at || post.date || post._createdAt).toLocaleDateString()}</span>
-          )}
+          {/* Placeholder for additional metadata if needed */}
         </div>
       </div>
     </div>
@@ -125,10 +132,22 @@ const styles = {
     overflow: 'hidden',
     transition: 'transform 0.3s, box-shadow 0.3s',
     cursor: 'pointer',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+    marginBottom: '24px',
     '&:hover': {
       transform: 'translateY(-4px)',
       boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
     },
+  },
+  dateContainer: {
+    padding: '0.5rem 1rem 0',
+    display: 'flex',
+    justifyContent: 'flex-start',
+  },
+  date: {
+    fontSize: '0.85rem',
+    color: '#888',
+    fontStyle: 'italic',
   },
   thumbnail: {
     position: 'relative',

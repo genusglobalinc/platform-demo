@@ -137,8 +137,71 @@ export default function Feed() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
+      {/* Left Sidebar */}
+      <div style={styles.leftSidebar}>
+        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
+        
+        {/* Navigation Links */}
+        <div style={{ marginBottom: "32px" }}>
+          <div style={styles.navItem}>Home</div>
+          <div style={styles.navItem}>Profile</div>
+          <div style={styles.navItem}>Settings</div>
+        </div>
+        
+        {/* Genres Filter */}
+        <div style={{ marginBottom: "24px" }}>
+          <h4 style={{ marginBottom: "12px" }}>Genres</h4>
+          {Object.keys(GENRES).map((genre) => (
+            <button
+              key={genre}
+              onClick={() => {
+                setSelectedMain(selectedMain === genre ? "" : genre);
+                setSelectedSub([]);
+              }}
+              style={{
+                ...styles.filterButton,
+                ...(selectedMain === genre ? styles.activeFilter : {}),
+                width: "100%",
+                textAlign: "left",
+                marginBottom: "8px",
+              }}
+            >
+              {genre}
+            </button>
+          ))}
+        </div>
+        
+        {/* Tags/Sub Filter */}
+        {selectedMain && (
+          <div>
+            <h4 style={{ marginBottom: "12px" }}>Tags</h4>
+            {GENRES[selectedMain].map((sub) => (
+              <button
+                key={sub}
+                onClick={() =>
+                  setSelectedSub((prev) =>
+                    prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
+                  )
+                }
+                style={{
+                  ...styles.subFilterButton,
+                  ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
+                  width: "100%",
+                  textAlign: "left",
+                  marginBottom: "8px",
+                }}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        {/* Header */}
+        <div style={styles.header}>
         <h2 style={styles.title}>Discover Playtests</h2>
         <div style={styles.headerRight}>
           <button
@@ -168,7 +231,7 @@ export default function Feed() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tab buttons */}
       <div style={styles.tabContainer}>
         {TABS.map((tab) => (
           <button
@@ -183,47 +246,6 @@ export default function Feed() {
           </button>
         ))}
       </div>
-
-      {/* Genre Filters */}
-      <div style={styles.filterBar}>
-        {Object.keys(GENRES).map((main) => (
-          <button
-            key={main}
-            onClick={() => {
-              setSelectedMain(main);
-              setSelectedSub([]); // reset tags on genre change
-            }}
-            style={{
-              ...styles.filterButton,
-              ...(selectedMain === main ? styles.activeFilter : {}),
-            }}
-          >
-            {main}
-          </button>
-        ))}
-      </div>
-
-      {/* Sub‑genre Filters */}
-      {selectedMain && (
-        <div style={styles.subFilterBar}>
-          {GENRES[selectedMain].map((sub) => (
-            <button
-              key={sub}
-              onClick={() =>
-                setSelectedSub((prev) =>
-                  prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
-                )
-              }
-              style={{
-                ...styles.subFilterButton,
-                ...(selectedSub.includes(sub) ? styles.activeSubFilter : {}),
-              }}
-            >
-              {sub}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Feed */}
       <div style={styles.feed}>
@@ -323,17 +345,41 @@ export default function Feed() {
           </div>
         </div>
       )}
+      </div>
+      
+      {/* Right Sidebar - Empty for now but provides balanced spacing */}
+      <div style={styles.rightSidebar}></div>
     </div>
   );
 }
 
 const styles = {
   container: {
-    padding: 24,
     background: "#111",
     color: "#fff",
     minHeight: "100vh",
     fontFamily: "sans-serif",
+    display: "flex",
+  },
+  leftSidebar: {
+    width: "250px",
+    padding: "24px 16px",
+    borderRight: "1px solid #333",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    overflowY: "auto",
+  },
+  mainContent: {
+    flex: 1,
+    padding: "24px",
+    maxWidth: "900px",
+    margin: "0 auto",
+  },
+  rightSidebar: {
+    width: "250px",
+    padding: "24px",
+    borderLeft: "1px solid #333",
   },
   header: {
     display: "flex",
@@ -416,6 +462,17 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 24,
+    width: '100%',
+  },
+  navItem: {
+    padding: "12px 8px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    marginBottom: "8px",
+    transition: "background 0.2s",
+    '&:hover': {
+      background: "#333",
+    },
   },
   modalOverlay: {
     position: "fixed",
