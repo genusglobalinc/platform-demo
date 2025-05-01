@@ -5,7 +5,6 @@ import PostCard from "./PostCard";
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
-  Anime: ["Isekai", "Action", "Horror"],
   Gaming: ["MMO", "First Person Shooter", "Hero Battler"],
 };
 
@@ -22,7 +21,6 @@ export default function Feed() {
     studio: "",
     banner_image: "",
     images: "",
-    streaming_services: "",
   });
 
   const navigate = useNavigate();
@@ -79,7 +77,7 @@ export default function Feed() {
 
     // Build payload dynamically, only including non‑empty fields
     const payload = {
-      genre: (selectedMain || "Gaming").toLowerCase(),
+      genre: "gaming",
       post_data: {
         title: formFields.title.trim(),
         description: formFields.description.trim(),
@@ -99,15 +97,6 @@ export default function Feed() {
       .filter(Boolean);
     if (images.length > 0) {
       payload.post_data.images = images;
-    }
-    if (selectedMain === "Anime") {
-      const services = formFields.streaming_services
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (services.length > 0) {
-        payload.post_data.streaming_services = services;
-      }
     }
 
     try {
@@ -131,7 +120,6 @@ export default function Feed() {
         studio: "",
         banner_image: "",
         images: "",
-        streaming_services: "",
       });
       setSelectedMain("");
       setSelectedSub([]);
@@ -277,20 +265,6 @@ export default function Feed() {
                 }
               />
             ))}
-
-            {selectedMain === "Anime" && (
-              <input
-                style={styles.textInput}
-                placeholder="Streaming Services (comma separated)"
-                value={formFields.streaming_services}
-                onChange={(e) =>
-                  setFormFields({
-                    ...formFields,
-                    streaming_services: e.target.value,
-                  })
-                }
-              />
-            )}
 
             {/* Genre and Tag Selectors */}
             <div style={styles.modalSelectorContainer}>

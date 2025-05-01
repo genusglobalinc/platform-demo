@@ -2,14 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// Available sub-genres (act as tags)
+// Gaming sub-genres only
 const SUBGENRE_OPTIONS = [
   "MMO",
   "First Person Shooter",
   "Hero Battler",
-  "Isekai",
-  "Action",
-  "Horror",
 ];
 
 const CreatePost = ({ token, onPostCreated }) => {
@@ -271,7 +268,6 @@ const CreatePost = ({ token, onPostCreated }) => {
       <label style={styles.label}>Genre:</label>
       <select value={genre} onChange={(e) => setGenre(e.target.value)} style={styles.select}>
         <option value="gaming">Gaming</option>
-        <option value="anime">Anime</option>
       </select>
 
       <label style={styles.label}>Sub-genres / Tags:</label>

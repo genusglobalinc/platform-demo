@@ -23,8 +23,7 @@ export default {
       type: 'string',
       options: {
         list: [
-          { title: 'Gaming', value: 'gaming' },
-          { title: 'Anime', value: 'anime' }
+          { title: 'Gaming', value: 'gaming' }
         ]
       },
       initialValue: 'gaming'

@@ -36,18 +36,9 @@ class GamingPost(BasePost):
     share_post_to_socials: bool = False
     type: str = "gaming"
 
-class AnimePost(BasePost):
-    # Override BasePost fields to make them optional / defaulted
-    studio: Optional[str] = ""
-    banner_image: Optional[Union[HttpUrl, Dict[str, Any]]] = "https://via.placeholder.com/600x200"
-    images: List[Union[HttpUrl, Dict[str, Any]]] = []
-    streaming_services: List[HttpUrl] = []
-    trailer_url: Optional[HttpUrl] = None
-    type: str = "anime"
-
 class PostCreateRequest(BaseModel):
-    genre: str  # Must be "gaming" or "anime"
-    post_data: Union[GamingPost, AnimePost]
+    genre: str  # Must be "gaming" (legacy anime removed)
+    post_data: GamingPost
 
 # ---------- Routes ----------
 
@@ -64,14 +55,11 @@ async def create_post(
     print(f"[create_post] user_id={user_id} payload={payload}")
     genre = post_data.genre.lower()
 
-    if genre not in ["gaming", "anime"]:
-        raise HTTPException(status_code=400, detail="Invalid genre specified")
+    if genre != "gaming":
+        raise HTTPException(status_code=400, detail="Invalid genre specified (only 'gaming' allowed)")
 
-    # Ensure that the post type matches the genre
-    if genre == "gaming":
-        post_data.post_data.type = "gaming"
-    elif genre == "anime":
-        post_data.post_data.type = "anime"
+    # Force post type to gaming to ensure consistency
+    post_data.post_data.type = "gaming"
 
     # Debugging log to confirm the type assignment
     print(f"Post type set to: {post_data.post_data.type}")
