@@ -72,26 +72,7 @@ app.include_router(uploads_router, prefix="/uploads")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-@app.get("/posts/{post_id}", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
-async def get_post(post_id: str, token: str = Depends(oauth2_scheme)):
-    payload = verify_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401)
-    post = get_post_from_db(post_id)
-    if not post:
-        raise HTTPException(status_code=404)
-    return post
-
-@app.post("/posts", dependencies=[Depends(RateLimiter(times=100, seconds=60))])
-async def create_post(post: dict, token: str = Depends(oauth2_scheme)):
-    payload = verify_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401)
-    user = get_user_from_db(payload["sub"])
-    if not user:
-        raise HTTPException(status_code=404)
-    post_id = create_post_in_db(post, user["user_id"])
-    return {"message": "Post created", "post_id": post_id}
+# Duplicate posts endpoints removed; handled by posts_router
 
 @app.get("/users/{user_id}/profile", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def get_user_profile(user_id: str, token: str = Depends(oauth2_scheme)):
