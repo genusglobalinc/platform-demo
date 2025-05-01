@@ -100,7 +100,7 @@ export const uploadAvatar = async (file) => {
   const res = await api.post('/users/profile/upload-avatar', formData, {
     headers: {
       Authorization: `Bearer ${token}`,
-      // Let axios set the correct content-type with boundary
+      'Content-Type': 'multipart/form-data',
     },
   });
   return res.data;
