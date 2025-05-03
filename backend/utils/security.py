@@ -24,6 +24,7 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     try:
         logging.debug(f"Creating access token with data: {data}")  # TODO: Remove later
         to_encode = data.copy()
+        to_encode.update({"user_type": data.get("user_type")})
         expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
         to_encode.update({"exp": expire})
         logging.debug(f"Token expiration time set to: {expire}")  # TODO: Remove later

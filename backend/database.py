@@ -38,6 +38,36 @@ def save_to_dynamodb(item: dict, table_name: str):
 
 # --- User Management ---
 
+def create_user_in_sanity(user_id: str, user_data: dict) -> Optional[str]:
+    """Persist a public (non-sensitive) user profile document in Sanity.
+    This is best-effort; failures are logged but do not block user creation.
+    """
+    if not _sanity_client:
+        logger.info("[create_user_in_sanity] Sanity client not configured; skipping")
+        return None
+
+    # Only include non-sensitive fields
+    doc_data = {
+        "_id": user_id,  # keep IDs aligned across both DBs
+        "username": user_data["username"],
+        "email": user_data["email"],
+        "display_name": user_data.get("display_name", ""),
+        "profile_picture": user_data.get("profile_picture", ""),
+        "social_links": user_data.get("social_links", ""),
+        "followers": 0,
+        "following": 0,
+        "user_type": user_data.get("user_type", "Tester"),
+        "is_verified": user_data.get("is_verified", False),
+        "created_at": str(datetime.utcnow()),
+    }
+    try:
+        doc_id = _sanity_client.create_document("user", doc_data)
+        logger.debug(f"[create_user_in_sanity] Created Sanity user: {doc_id}")
+        return doc_id
+    except Exception as e:
+        logger.error(f"[create_user_in_sanity] Failed to create user in Sanity: {e}")
+        return None
+
 def create_user_in_db(user_data: dict) -> Optional[str]:
     user_id = str(uuid.uuid4())
     item = {
@@ -54,12 +84,15 @@ def create_user_in_db(user_data: dict) -> Optional[str]:
         "is_verified": user_data.get("is_verified", False),
         "created_at": str(datetime.utcnow()),
         "two_factor_secret": user_data.get("two_factor_secret"),
-        "two_factor_enabled": user_data.get("two_factor_enabled", False)
+        "two_factor_enabled": user_data.get("two_factor_enabled", False),
+        "user_type": user_data.get("user_type", "Tester")
     }
     try:
         response = users_table.put_item(Item=item)
         logger.debug(f"[create_user_in_db] Created user: {item}")
         logger.debug(f"[create_user_in_db] Database response: {response}")
+        # Persist a non-sensitive backup of the user profile to Sanity (best-effort)
+        create_user_in_sanity(user_id, user_data)
         return user_id
     except ClientError as e:
         logger.error(f"[create_user_in_db] User creation failed: {e}")

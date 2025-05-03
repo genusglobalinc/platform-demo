@@ -36,6 +36,7 @@ class User(BaseModel):
     updated_at: Optional[datetime]
     two_factor_enabled: bool = False
     two_factor_secret: Optional[str] = None
+    user_type: str  # "Dev" or "Tester"
 
     class Config:
         orm_mode = True
@@ -46,6 +47,7 @@ class UserRegistration(BaseModel):
     email: EmailStr
     password: str
     is_verified: bool = False
+    user_type: str  # "Dev" or "Tester"
 
 # Model for User Verification Response
 class UserVerificationResponse(BaseModel):

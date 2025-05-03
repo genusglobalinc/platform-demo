@@ -52,6 +52,9 @@ async def create_post(
 ):
     payload = verify_access_token(token)
     user_id = payload.get("sub")
+    user_type = payload.get("user_type")
+    if user_type != "Dev":
+        raise HTTPException(status_code=403, detail="Only Dev accounts can create posts")
     print(f"[create_post] user_id={user_id} payload={payload}")
     genre = post_data.genre.lower()
 
