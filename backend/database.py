@@ -187,7 +187,7 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
             return False
         
         totp = pyotp.TOTP(user['two_factor_secret'])
-        return totp.verify(code)
+        return totp.verify(code, valid_window=1)
     except Exception as e:
         logger.error(f"[verify_2fa_code] 2FA verification failed: {e}")
         return False
@@ -467,7 +467,7 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
             return False
 
         totp = pyotp.TOTP(user['two_factor_secret'])
-        return totp.verify(code)
+        return totp.verify(code, valid_window=1)
     except Exception as e:
         logger.error(f"[verify_2fa_code] 2FA verification failed for user {user_id}: {e}")
         return False

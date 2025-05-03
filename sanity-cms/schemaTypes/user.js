@@ -21,11 +21,46 @@ export default {
         type: 'string',
         options: {
           list: [
-            { title: 'Tester', value: 'tester' },
-            { title: 'Company', value: 'company' }
+            { title: 'Tester', value: 'Tester' },
+            { title: 'Dev', value: 'Dev' }
           ]
         },
         validation: Rule => Rule.required()
+      },
+      {
+        name: 'display_name',
+        title: 'Display Name',
+        type: 'string'
+      },
+      {
+        name: 'created_at',
+        title: 'Created At',
+        type: 'datetime'
+      },
+      {
+        name: 'followers',
+        title: 'Followers',
+        type: 'number',
+        initialValue: 0
+      },
+      {
+        name: 'following',
+        title: 'Following',
+        type: 'number',
+        initialValue: 0
+      },
+      {
+        name: 'profile_picture',
+        title: 'Profile Picture',
+        type: 'image',
+        options: {
+          hotspot: true
+        }
+      },
+      {
+        name: 'social_links',
+        title: 'Social Links',
+        type: 'string'
       },
       {
         name: 'isVerified',
