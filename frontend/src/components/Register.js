@@ -10,6 +10,7 @@ function Register() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [userType, setUserType] = useState("Tester"); // "Tester" or "Dev"
   const [errorMsg, setErrorMsg] = useState("");
   const [step, setStep] = useState(1); // 1: Registration form, 2: 2FA setup
   const [twoFactorSetup, setTwoFactorSetup] = useState(null);
@@ -21,7 +22,7 @@ function Register() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await registerUser(username, email, password, displayName);
+      const res = await registerUser(username, email, password, displayName, userType);
       setTwoFactorSetup(res.data.two_factor_setup);
       setTempToken(res.data.temp_token);
       setStep(2); // Move to 2FA setup step
@@ -57,6 +58,10 @@ function Register() {
         <input style={styles.input} type="text" placeholder="Display Name" onChange={(e) => setDisplayName(e.target.value)} />
         <input style={styles.input} type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
         <input style={styles.input} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <select style={styles.input} value={userType} onChange={(e) => setUserType(e.target.value)}>
+          <option value="Tester">Tester</option>
+          <option value="Dev">Developer</option>
+        </select>
 
         <button style={styles.button} onClick={handleRegister}>Next: Set Up 2FA</button>
         <p style={styles.alt}>Already have an account? <Link to="/" style={styles.link}>Log in</Link></p>

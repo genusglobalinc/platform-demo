@@ -33,12 +33,13 @@ export const verify2FALogin = async (code, tempToken) => {
   });
 };
 
-export const registerUser = async (username, email, password, displayName) => {
+export const registerUser = async (username, email, password, displayName, userType) => {
   return await api.post('/auth/register', {
     username,
     email,
     password,
     display_name: displayName,
+    user_type: userType || "Tester",
   });
 };
 

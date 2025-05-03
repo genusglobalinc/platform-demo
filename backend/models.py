@@ -47,7 +47,7 @@ class UserRegistration(BaseModel):
     email: EmailStr
     password: str
     is_verified: bool = False
-    user_type: Optional[str] = "Tester"  # "Dev" or "Tester"
+    user_type: Optional[str] = "Dev"  # "Dev" or "Tester"
 
 # Model for User Verification Response
 class UserVerificationResponse(BaseModel):

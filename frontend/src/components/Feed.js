@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "./PostCard";
+import { getProfileData } from "../api";
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
@@ -22,13 +23,30 @@ export default function Feed() {
     banner_image: "",
     images: "",
   });
+  const [userType, setUserType] = useState(null);
+  const [favoriteGames, setFavoriteGames] = useState([]);
 
   const navigate = useNavigate();
 
-  // Re-fetch whenever genre or tags change
+  // Load user profile once on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const data = await getProfileData();
+        setUserType(data.user_type);
+        setFavoriteGames(Array.isArray(data.favorite_games) ? data.favorite_games : []);
+      } catch (e) {
+        console.error("Failed loading profile", e);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // Re-fetch whenever genre, tags, active tab or favourite games change
   useEffect(() => {
     fetchPosts();
-  }, [selectedMain, selectedSub]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMain, selectedSub, activeTab, favoriteGames]);
 
   async function fetchPosts() {
     setLoading(true);
@@ -40,13 +58,17 @@ export default function Feed() {
 
     try {
       const queryParams = new URLSearchParams();
-      if (selectedMain) {
-        queryParams.append("genre", selectedMain.toLowerCase());
+      if (activeTab === "For You") {
+        // personalised feed based on favourite games
+        favoriteGames.forEach((g) => queryParams.append("tags", g));
+      } else {
+        if (selectedMain) {
+          queryParams.append("genre", selectedMain.toLowerCase());
+        }
+        selectedSub.forEach((tag) => {
+          queryParams.append("tags", tag);
+        });
       }
-      // allow multiple ?tags= entries
-      selectedSub.forEach((tag) => {
-        queryParams.append("tags", tag);
-      });
 
       const res = await fetch(`/posts/?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -149,30 +171,32 @@ export default function Feed() {
         </div>
         
         {/* Genres Filter */}
-        <div style={{ marginBottom: "24px" }}>
-          <h4 style={{ marginBottom: "12px" }}>Genres</h4>
-          {Object.keys(GENRES).map((genre) => (
-            <button
-              key={genre}
-              onClick={() => {
-                setSelectedMain(selectedMain === genre ? "" : genre);
-                setSelectedSub([]);
-              }}
-              style={{
-                ...styles.filterButton,
-                ...(selectedMain === genre ? styles.activeFilter : {}),
-                width: "100%",
-                textAlign: "left",
-                marginBottom: "8px",
-              }}
-            >
-              {genre}
-            </button>
-          ))}
-        </div>
+        {activeTab !== "For You" && (
+          <div style={{ marginBottom: "24px" }}>
+            <h4 style={{ marginBottom: "12px" }}>Genres</h4>
+            {Object.keys(GENRES).map((genre) => (
+              <button
+                key={genre}
+                onClick={() => {
+                  setSelectedMain(selectedMain === genre ? "" : genre);
+                  setSelectedSub([]);
+                }}
+                style={{
+                  ...styles.filterButton,
+                  ...(selectedMain === genre ? styles.activeFilter : {}),
+                  width: "100%",
+                  textAlign: "left",
+                  marginBottom: "8px",
+                }}
+              >
+                {genre}
+              </button>
+            ))}
+          </div>
+        )}
         
         {/* Tags/Sub Filter */}
-        {selectedMain && (
+        {activeTab !== "For You" && selectedMain && (
           <div>
             <h4 style={{ marginBottom: "12px" }}>Tags</h4>
             {GENRES[selectedMain].map((sub) => (
@@ -204,13 +228,14 @@ export default function Feed() {
         <div style={styles.header}>
           <h2 style={styles.title}>Discover Playtests</h2>
           <div style={styles.headerRight}>
-            <button
-              style={styles.createButton}
-              onClick={() => navigate('/create-post')}
-            >
-              + Create Post
-            </button>
-
+            {userType === "Dev" && (
+              <button
+                style={styles.createButton}
+                onClick={() => navigate('/create-post')}
+              >
+                + Create Post
+              </button>
+            )}
             <button
               onClick={() => {
                 localStorage.removeItem("token");
@@ -246,7 +271,9 @@ export default function Feed() {
           ) : posts.length === 0 ? (
             <p>No posts found</p>
           ) : (
-            posts.map((post) => <PostCard key={post.post_id} post={post} />)
+            posts.map((post) => (
+              <PostCard key={post.post_id || post._id} post={post} userType={userType} />
+            ))
           )}
         </div>
 
