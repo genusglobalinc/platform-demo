@@ -45,7 +45,6 @@ export default function Feed() {
   // Re-fetch whenever genre, tags, active tab or favourite games change
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMain, selectedSub, activeTab, favoriteGames]);
 
   async function fetchPosts() {
