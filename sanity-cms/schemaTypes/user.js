@@ -16,7 +16,7 @@ export default {
         validation: Rule => Rule.required().unique()
       },
       {
-        name: 'userType',
+        name: 'user_type',
         title: 'User Type',
         type: 'string',
         options: {
@@ -51,11 +51,8 @@ export default {
       },
       {
         name: 'profile_picture',
-        title: 'Profile Picture',
-        type: 'image',
-        options: {
-          hotspot: true
-        }
+        title: 'Profile Picture URL',
+        type: 'string'
       },
       {
         name: 'social_links',
@@ -63,7 +60,7 @@ export default {
         type: 'string'
       },
       {
-        name: 'isVerified',
+        name: 'is_verified',
         title: 'Email Verified',
         type: 'boolean',
         initialValue: false
