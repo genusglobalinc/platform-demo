@@ -59,7 +59,7 @@ class UserRegistration(BaseModel):
     social_links: Optional[str] = None
     profile_picture: Optional[str] = None
     is_verified: bool = True
-    user_type: str  # "Dev" or "Tester"
+    user_type: Optional[str] = "Tester"  # "Dev" or "Tester"
 
 class UsernameRecoveryRequest(BaseModel):
     user_id: str
