@@ -133,21 +133,40 @@ export default function ProfileSettings() {
   );
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="app-layout">
       {loading && renderLoadingSpinner()}
 
-      {/* Left Sidebar */}
-      <div style={styles.leftSidebar}>
+      {/* Left Sidebar - desktop only */}
+      <div style={styles.leftSidebar} className="sidebar hide-on-small">
         <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
         <div style={{ marginBottom: "32px" }}>
           <div style={styles.navItem} onClick={() => navigate('/feed')}>Home</div>
           <div style={styles.navItem} onClick={() => navigate('/profile')}>Profile</div>
           <div style={styles.navItem} onClick={() => navigate('/profile/settings')}>Settings</div>
         </div>
+        <div
+          style={styles.navItem}
+          onClick={() => {
+            localStorage.clear();
+            navigate("/login");
+          }}
+        >
+          Logout
+        </div>
+      </div>
+
+      {/* Mobile navigation bar - only shown on small screens */}
+      <div className="hide-on-medium" style={styles.mobileNav}>
+        <button style={styles.mobileNavButton} onClick={() => navigate("/feed")}>Feed</button>
+        <button style={styles.mobileNavButton} onClick={() => navigate("/profile")}>Profile</button>
+        <button style={{...styles.mobileNavButton, background: "#333"}}>Settings</button>
+          localStorage.clear();
+          navigate('/login');
+        }}>Logout</button>
       </div>
 
       {/* Main Content */}
-      <div style={styles.mainContent}>
+      <div style={styles.mainContent} className="main-content-responsive responsive-container">
         <div style={styles.header}>
           <h2 style={styles.title}>Profile Settings</h2>
           <div style={styles.headerRight}>
@@ -164,42 +183,20 @@ export default function ProfileSettings() {
         </div>
 
         {/* Display Name */}
-        <div style={styles.section}>
-          <label style={styles.label}>Display Name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            style={styles.input}
-          />
           <button
             style={styles.button}
-            onClick={() => saveField("display_name", displayName)}
+            className="responsive-button"
+            onClick={() => {
+              saveField("display_name", displayName);
+              saveField("social_links", socialLinks);
+            }}
           >
-            Save
-          </button>
-        </div>
-
-        {/* Social Links */}
-        <div style={styles.section}>
-          <label style={styles.label}>Social Links</label>
-          <input
-            type="text"
-            value={socialLinks}
-            onChange={(e) => setSocialLinks(e.target.value)}
-            placeholder="e.g. https://twitter.com/yourhandle"
-            style={styles.input}
-          />
-          <button
-            style={styles.button}
-            onClick={() => saveField("social_links", socialLinks)}
-          >
-            Save
+            Save Profile Info
           </button>
         </div>
 
         {/* Email Verification */}
-        <div style={styles.section}>
+        <div style={styles.section} className="responsive-container">
           <label style={styles.label}>Email Verification</label>
           <div style={styles.emailVerificationContainer}>
             {isEmailVerified ? (

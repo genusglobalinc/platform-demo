@@ -59,7 +59,7 @@ class UserRegistration(BaseModel):
     social_links: Optional[str] = None
     profile_picture: Optional[str] = None
     is_verified: bool = True
-    user_type: Optional[str] = "Tester"  # "Dev" or "Tester"
+    user_type: Optional[str] = "Tester"  # "Dev", "Tester", or "Admin"
 
 class UsernameRecoveryRequest(BaseModel):
     user_id: str
@@ -85,8 +85,8 @@ async def register_user(user_data: UserRegistration):
         logging.debug(f"Attempting to register user: {user_data.username}")
 
         # Validate user_type
-        if user_data.user_type not in ("Dev", "Tester"):
-            raise HTTPException(status_code=400, detail="Invalid user_type. Must be 'Dev' or 'Tester'.")
+        if user_data.user_type not in ("Dev", "Tester", "Admin"):
+            raise HTTPException(status_code=400, detail="Invalid user_type. Must be 'Dev', 'Tester', or 'Admin'.")
 
         if get_user_by_username(user_data.username):
             logging.warning(f"Username already exists: {user_data.username}")
