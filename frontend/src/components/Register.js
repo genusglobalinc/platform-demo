@@ -61,6 +61,7 @@ function Register() {
         <select style={styles.input} value={userType} onChange={(e) => setUserType(e.target.value)}>
           <option value="Tester">Tester</option>
           <option value="Dev">Developer</option>
+          <option value="Admin">Admin</option>
         </select>
 
         <button style={styles.button} onClick={handleRegister}>Next: Set Up 2FA</button>

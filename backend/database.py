@@ -38,6 +38,20 @@ def save_to_dynamodb(item: dict, table_name: str):
 
 # --- User Management ---
 
+def get_user_collection():
+    """Return users table for querying"""
+    return users_table
+
+async def get_user_by_id(user_id: str) -> Optional[Dict]:
+    """Get user by ID for admin functionality"""
+    try:
+        response = users_table.get_item(Key={'user_id': user_id})
+        logger.debug(f"[get_user_by_id] Get user response: {response}")
+        return response.get('Item')
+    except ClientError as e:
+        logger.error(f"[get_user_by_id] User retrieval failed: {e}")
+        return None
+
 def create_user_in_sanity(user_id: str, user_data: dict) -> Optional[str]:
     """Persist a public (non-sensitive) user profile document in Sanity.
     This is best-effort; failures are logged but do not block user creation.

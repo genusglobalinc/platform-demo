@@ -15,6 +15,17 @@ export default function ProfileSettings() {
   const [selectedPic, setSelectedPic] = useState(profilePics[0]);
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
+  
+  // Demographic information states
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [location, setLocation] = useState("");
+  const [preferredPlatforms, setPreferredPlatforms] = useState("");
+  const [gamingExperience, setGamingExperience] = useState("");
+  const [favoriteGenres, setFavoriteGenres] = useState("");
+  const [weeklyPlaytime, setWeeklyPlaytime] = useState("");
+  const [previousPlaytestExperience, setPreviousPlaytestExperience] = useState("");
+  
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -30,6 +41,16 @@ export default function ProfileSettings() {
         setDisplayName(data.display_name || "");
         setSocialLinks(data.social_links || "");
         setSelectedPic(data.profile_picture || profilePics[0]);
+        
+        // Set demographic information if available
+        setAge(data.age || "");
+        setGender(data.gender || "");
+        setLocation(data.location || "");
+        setPreferredPlatforms(data.preferred_platforms || "");
+        setGamingExperience(data.gaming_experience || "");
+        setFavoriteGenres(data.favorite_genres || "");
+        setWeeklyPlaytime(data.weekly_playtime || "");
+        setPreviousPlaytestExperience(data.previous_playtest_experience || "");
       })
       .catch(() => {
         setStatus("Failed to load profile.");
@@ -183,6 +204,148 @@ export default function ProfileSettings() {
           {uploading && <p style={styles.loadingText}>Uploading...</p>}
         </div>
 
+        {/* Demographic Information Section */}
+        <div style={{...styles.section, marginTop: '2rem'}}>
+          <h3 style={{marginBottom: '1rem', color: '#B388EB'}}>Demographic Information</h3>
+          <p style={{marginBottom: '1rem', fontSize: '0.9rem', opacity: '0.8'}}>
+            Providing detailed demographic information can increase your chances of being selected for playtests
+          </p>
+          
+          {/* Age */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Age</label>
+            <select
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              style={styles.input}
+            >
+              <option value="">Select Age Range</option>
+              <option value="Under 18">Under 18</option>
+              <option value="18-24">18-24</option>
+              <option value="25-34">25-34</option>
+              <option value="35-44">35-44</option>
+              <option value="45-54">45-54</option>
+              <option value="55+">55+</option>
+            </select>
+          </div>
+          
+          {/* Gender */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              style={styles.input}
+            >
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-binary">Non-binary</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+          
+          {/* Location */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="City, Country"
+              style={styles.input}
+            />
+          </div>
+          
+          {/* Preferred Platforms */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Preferred Gaming Platforms</label>
+            <input
+              type="text"
+              value={preferredPlatforms}
+              onChange={(e) => setPreferredPlatforms(e.target.value)}
+              placeholder="e.g. PC, PlayStation, Xbox, Switch, Mobile"
+              style={styles.input}
+            />
+          </div>
+          
+          {/* Gaming Experience */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Gaming Experience</label>
+            <select
+              value={gamingExperience}
+              onChange={(e) => setGamingExperience(e.target.value)}
+              style={styles.input}
+            >
+              <option value="">Select Experience Level</option>
+              <option value="Casual">Casual</option>
+              <option value="Regular">Regular</option>
+              <option value="Enthusiast">Enthusiast</option>
+              <option value="Competitive">Competitive</option>
+              <option value="Professional">Professional</option>
+            </select>
+          </div>
+          
+          {/* Favorite Genres */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Favorite Game Genres</label>
+            <input
+              type="text"
+              value={favoriteGenres}
+              onChange={(e) => setFavoriteGenres(e.target.value)}
+              placeholder="e.g. RPG, FPS, Strategy, Adventure"
+              style={styles.input}
+            />
+          </div>
+          
+          {/* Weekly Playtime */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Weekly Gameplay Hours</label>
+            <select
+              value={weeklyPlaytime}
+              onChange={(e) => setWeeklyPlaytime(e.target.value)}
+              style={styles.input}
+            >
+              <option value="">Select Hours per Week</option>
+              <option value="0-5">0-5 hours</option>
+              <option value="6-10">6-10 hours</option>
+              <option value="11-20">11-20 hours</option>
+              <option value="21-30">21-30 hours</option>
+              <option value="30+">30+ hours</option>
+            </select>
+          </div>
+          
+          {/* Previous Playtest Experience */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Previous Playtest Experience</label>
+            <textarea
+              value={previousPlaytestExperience}
+              onChange={(e) => setPreviousPlaytestExperience(e.target.value)}
+              placeholder="Please describe any previous experience with game playtesting"
+              style={{...styles.input, minHeight: '80px', resize: 'vertical'}}
+            />
+          </div>
+          
+          <button
+            style={styles.button}
+            onClick={() => {
+              const demographicData = {
+                age,
+                gender,
+                location,
+                preferred_platforms: preferredPlatforms,
+                gaming_experience: gamingExperience,
+                favorite_genres: favoriteGenres,
+                weekly_playtime: weeklyPlaytime,
+                previous_playtest_experience: previousPlaytestExperience
+              };
+              saveField("demographic_info", demographicData);
+            }}
+          >
+            Save Demographic Information
+          </button>
+        </div>
+        
         {status && <p style={styles.status}>{status}</p>}
       </div>
 
@@ -205,6 +368,9 @@ const styles = {
     justifyContent: 'center',
     background: 'rgba(0, 0, 0, 0.8)',
     zIndex: 1000,
+  },
+  demoField: {
+    marginBottom: '1rem',
   },
   spinner: {
     width: '50px',

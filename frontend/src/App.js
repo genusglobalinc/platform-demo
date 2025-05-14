@@ -8,6 +8,7 @@ import ForgotEmail from './components/ForgotEmail';
 import ForgotPassword from './components/ForgotPassword';
 import CreatePost from './components/CreatePost';
 import ProfileSettings from './components/ProfileSettings';
+import Admin from './components/Admin';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/create-post" element={<CreatePost />} />
         <Route path="/forgot-email" element={<ForgotEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
   );

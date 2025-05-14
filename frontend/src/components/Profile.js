@@ -81,6 +81,39 @@ export default function Profile() {
             <p><strong>Following:</strong> {profile.following}</p>
             <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
             <p><strong>Profile Pic:</strong> {profile.profile_pic}</p>
+            
+            {profile.demographic_info && Object.keys(profile.demographic_info).length > 0 && (
+              <div style={styles.demographicSection}>
+                <h3 style={{color: '#B388EB', marginBottom: '1rem'}}>Demographic Information</h3>
+                {profile.demographic_info.age && (
+                  <p><strong>Age Range:</strong> {profile.demographic_info.age}</p>
+                )}
+                {profile.demographic_info.gender && (
+                  <p><strong>Gender:</strong> {profile.demographic_info.gender}</p>
+                )}
+                {profile.demographic_info.location && (
+                  <p><strong>Location:</strong> {profile.demographic_info.location}</p>
+                )}
+                {profile.demographic_info.preferred_platforms && (
+                  <p><strong>Preferred Platforms:</strong> {profile.demographic_info.preferred_platforms}</p>
+                )}
+                {profile.demographic_info.gaming_experience && (
+                  <p><strong>Gaming Experience:</strong> {profile.demographic_info.gaming_experience}</p>
+                )}
+                {profile.demographic_info.favorite_genres && (
+                  <p><strong>Favorite Genres:</strong> {profile.demographic_info.favorite_genres}</p>
+                )}
+                {profile.demographic_info.weekly_playtime && (
+                  <p><strong>Weekly Playtime:</strong> {profile.demographic_info.weekly_playtime}</p>
+                )}
+                {profile.demographic_info.previous_playtest_experience && (
+                  <div>
+                    <p><strong>Previous Playtest Experience:</strong></p>
+                    <p style={{marginLeft: '1rem'}}>{profile.demographic_info.previous_playtest_experience}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <p style={styles.details}>Loading profile...</p>
@@ -116,6 +149,13 @@ const styles = {
     minHeight: "100vh",
     fontFamily: "sans-serif",
     display: "flex",
+  },
+  demographicSection: {
+    marginTop: '2rem',
+    background: '#2a2a2a',
+    padding: '1.5rem',
+    borderRadius: '8px',
+    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)',
   },
   leftSidebar: {
     width: "250px",

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import HTTPException
-from typing import Union
+from fastapi import HTTPException, Depends, status
+from typing import Union, Optional
 from passlib.context import CryptContext
 import logging
 import os
@@ -88,3 +88,35 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         logging.error(f"Password verification failed: {e}")
         print(f"Password verification failed: {e}")  # TODO: Remove later
         raise HTTPException(status_code=401, detail="Invalid credentials (verification error)")
+
+
+async def get_current_user(token: str) -> dict:
+    """Get the current user from the token."""
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    from ..database import get_user_by_id  # Import here to avoid circular imports
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+async def get_admin_user(token: str) -> dict:
+    """Get the current user and verify they are an admin."""
+    user = await get_current_user(token)
+    if user.get("user_type") != "Admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return user
