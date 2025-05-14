@@ -1,13 +1,19 @@
 # backend/routes/user.py
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from pydantic import BaseModel
-from typing import Optional, List, Dict
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List, Dict, Any
 import logging
 from fastapi.security import OAuth2PasswordBearer
 import base64
+import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
 
-from backend.database import get_user_from_db, update_user_profile, _sanity_client
+from backend.database import get_user_from_db, update_user_profile, _sanity_client, get_posts_by_user
 from backend.utils.security import verify_access_token
+from backend.config import get_settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
@@ -18,6 +24,12 @@ class UpdateProfileRequest(BaseModel):
     display_name: Optional[str] = None
     social_links: Optional[Dict[str, str]] = None
     profile_picture: Optional[str] = None
+    
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    
+class VerifyEmailCodeRequest(BaseModel):
+    code: str
 
 @router.get("/profile")
 async def get_profile(token: str = Depends(oauth2_scheme)):
@@ -58,6 +70,132 @@ async def get_user_posts(
 # ---------------------------------------------------------------------
 # Upload avatar endpoint
 # ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Email verification endpoints
+# ---------------------------------------------------------------------
+
+@router.post("/profile/send-verification-email", status_code=status.HTTP_200_OK)
+async def send_verification_email(token: str = Depends(oauth2_scheme)):
+    """Send an email verification code to the user's email."""
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = get_user_from_db(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Generate a verification code (6-digit random code)
+    verification_code = str(uuid.uuid4())[:6].upper()
+    
+    # Store the verification code and expiration time
+    expires_at = datetime.utcnow() + timedelta(minutes=15)  # Code expires in 15 minutes
+    verification_data = {
+        "email_verification_code": verification_code,
+        "email_verification_expiry": str(expires_at)
+    }
+    
+    success = update_user_profile(user_id, verification_data)
+    if not success:
+        raise HTTPException(status_code=500, detail="Error storing verification code")
+    
+    # Send verification email
+    settings = get_settings()
+    recipient_email = user.get("email")
+    
+    # Create email message
+    msg = MIMEMultipart()
+    msg["Subject"] = "Verify Your Email - Lost Gates"
+    msg["From"] = settings.email_sender
+    msg["To"] = recipient_email
+    
+    # Create HTML content
+    html_content = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <h2 style="color: #B388EB;">Lost Gates Email Verification</h2>
+                <p>Hello {user.get('display_name') or user.get('username')},</p>
+                <p>Thank you for updating your email address. To complete verification, please use the code below:</p>
+                <div style="background-color: #f7f7f7; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
+                    <h2 style="margin: 0; letter-spacing: 3px; color: #333;">{verification_code}</h2>
+                </div>
+                <p>This code will expire in 15 minutes.</p>
+                <p>If you didn't request this verification, please ignore this email.</p>
+                <p>Best regards,<br>The Lost Gates Team</p>
+            </div>
+        </body>
+    </html>
+    """
+    
+    # Attach HTML content
+    msg.attach(MIMEText(html_content, "html"))
+    
+    try:
+        # Connect to SMTP server and send email
+        with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
+            if settings.smtp_use_tls:
+                server.starttls()
+            server.login(settings.smtp_username, settings.smtp_password)
+            server.send_message(msg)
+            
+        return {"message": "Verification email sent successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send verification email: {str(e)}"
+        )
+
+@router.post("/profile/verify-email-code", status_code=status.HTTP_200_OK)
+async def verify_email_code(
+    request: VerifyEmailCodeRequest,
+    token: str = Depends(oauth2_scheme)
+):
+    """Verify the email verification code."""
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user = get_user_from_db(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if there's a valid verification code
+    stored_code = user.get("email_verification_code")
+    expiry_str = user.get("email_verification_expiry")
+    
+    if not stored_code or not expiry_str:
+        raise HTTPException(status_code=400, detail="No verification code found")
+    
+    # Check if code has expired
+    try:
+        expiry = datetime.fromisoformat(expiry_str)
+        if datetime.utcnow() > expiry:
+            raise HTTPException(status_code=400, detail="Verification code has expired")
+    except ValueError:
+        raise HTTPException(status_code=500, detail="Invalid expiry date format")
+    
+    # Verify the code
+    if request.code != stored_code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    
+    # Mark email as verified and clear verification data
+    verification_data = {
+        "is_email_verified": True,
+        "email_verification_code": None,
+        "email_verification_expiry": None
+    }
+    
+    success = update_user_profile(user_id, verification_data)
+    if not success:
+        raise HTTPException(status_code=500, detail="Error updating verification status")
+    
+    return {"message": "Email verified successfully"}
 
 @router.post("/profile/upload-avatar")
 async def upload_avatar(

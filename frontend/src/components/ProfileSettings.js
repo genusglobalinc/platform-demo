@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { uploadAvatar } from "../api";
+import { uploadAvatar, sendVerificationEmail, verifyEmailCode } from "../api";
 
 // Pre-defined profile pictures configurable by platform admins
 const profilePics = ["default1", "default2", "default3"];
@@ -15,6 +15,13 @@ export default function ProfileSettings() {
   const [selectedPic, setSelectedPic] = useState(profilePics[0]);
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
+  
+  // Email verification states
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isEmailSending, setIsEmailSending] = useState(false);
   
   // Demographic information states
   const [age, setAge] = useState("");
@@ -41,6 +48,9 @@ export default function ProfileSettings() {
         setDisplayName(data.display_name || "");
         setSocialLinks(data.social_links || "");
         setSelectedPic(data.profile_picture || profilePics[0]);
+        
+        // Set email verification status
+        setIsEmailVerified(data.is_email_verified || false);
         
         // Set demographic information if available
         setAge(data.age || "");
@@ -75,6 +85,37 @@ export default function ProfileSettings() {
       setProfile(res.data);
     } catch {
       setStatus(`Error updating ${field.replace("_", " ")}.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Email verification handlers
+  const handleSendVerificationEmail = async () => {
+    try {
+      setIsEmailSending(true);
+      setVerificationStatus('');
+      await sendVerificationEmail();
+      setShowVerification(true);
+      setVerificationStatus('Verification code sent! Check your email.');
+    } catch (error) {
+      setVerificationStatus(`Error sending verification email: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsEmailSending(false);
+    }
+  };
+  
+  const handleVerifyEmail = async () => {
+    try {
+      setLoading(true);
+      setVerificationStatus('');
+      await verifyEmailCode(verificationCode);
+      setIsEmailVerified(true);
+      setShowVerification(false);
+      setVerificationStatus('');
+      setStatus('Email verified successfully!');
+    } catch (error) {
+      setVerificationStatus(`Verification failed: ${error.response?.data?.detail || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -157,21 +198,88 @@ export default function ProfileSettings() {
           </button>
         </div>
 
-        {/* Profile Picture (choose from curated list or upload custom)*/}
+        {/* Email Verification */}
+        <div style={styles.section}>
+          <label style={styles.label}>Email Verification</label>
+          <div style={styles.emailVerificationContainer}>
+            {isEmailVerified ? (
+              <div style={styles.verifiedEmail}>
+                <p>
+                  <span role="img" aria-label="verified">✅</span> Your email is verified
+                </p>
+              </div>
+            ) : showVerification ? (
+              <div style={styles.verificationForm}>
+                <p style={styles.verificationInstructions}>
+                  Enter the verification code sent to your email:
+                </p>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  style={styles.input}
+                  placeholder="Verification code"
+                  maxLength={6}
+                />
+                <div style={styles.verificationActions}>
+                  <button
+                    style={styles.button}
+                    onClick={handleVerifyEmail}
+                    disabled={loading || !verificationCode}
+                  >
+                    Verify Email
+                  </button>
+                  <button
+                    style={{...styles.button, background: '#333'}}
+                    onClick={() => {
+                      setShowVerification(false);
+                      setVerificationCode('');
+                      setVerificationStatus('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {verificationStatus && (
+                  <p style={styles.verificationStatus}>
+                    {verificationStatus}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div style={styles.unverifiedEmail}>
+                <p>Your email is not verified. Verify your email to increase your chances of being selected for playtests.</p>
+                <button
+                  style={styles.button}
+                  onClick={handleSendVerificationEmail}
+                  disabled={isEmailSending}
+                >
+                  {isEmailSending ? 'Sending...' : 'Verify Email Now'}
+                </button>
+                {verificationStatus && (
+                  <p style={styles.verificationStatus}>
+                    {verificationStatus}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Profile Picture */}
         <div style={styles.section}>
           <label style={styles.label}>Profile Picture</label>
           <div style={styles.picsRow}>
             {profilePics.map((pic) => (
               <div
                 key={pic}
-                onClick={() => setSelectedPic(pic)}
                 style={{
                   ...styles.picCircle,
-                  border:
-                    selectedPic === pic ? "3px solid #B388EB" : "2px solid #444",
+                  border: selectedPic === pic ? "2px solid #b388eb" : "none",
                 }}
+                onClick={() => setSelectedPic(pic)}
               >
-                {pic.toUpperCase()}
+                {pic}
               </div>
             ))}
           </div>
@@ -179,9 +287,9 @@ export default function ProfileSettings() {
             style={styles.button}
             onClick={() => saveField("profile_picture", selectedPic)}
           >
-            Save Picture
+            Save
           </button>
-          {/* Upload custom avatar */}
+
           <input
             type="file"
             accept="image/*"
@@ -371,6 +479,45 @@ const styles = {
   },
   demoField: {
     marginBottom: '1rem',
+  },
+  emailVerificationContainer: {
+    marginTop: '0.5rem',
+  },
+  verifiedEmail: {
+    padding: '0.75rem',
+    background: 'rgba(40, 167, 69, 0.1)',
+    border: '1px solid rgba(40, 167, 69, 0.2)',
+    borderRadius: '6px',
+    marginBottom: '1rem',
+  },
+  unverifiedEmail: {
+    padding: '0.75rem',
+    background: 'rgba(255, 193, 7, 0.1)',
+    border: '1px solid rgba(255, 193, 7, 0.2)',
+    borderRadius: '6px',
+    marginBottom: '1rem',
+  },
+  verificationForm: {
+    padding: '1rem',
+    background: '#222',
+    borderRadius: '6px',
+    marginBottom: '1rem',
+  },
+  verificationInstructions: {
+    marginBottom: '1rem',
+    fontSize: '0.9rem',
+  },
+  verificationActions: {
+    display: 'flex',
+    gap: '0.75rem',
+    marginTop: '1rem',
+  },
+  verificationStatus: {
+    marginTop: '1rem',
+    padding: '0.5rem',
+    borderRadius: '4px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    fontSize: '0.9rem',
   },
   spinner: {
     width: '50px',

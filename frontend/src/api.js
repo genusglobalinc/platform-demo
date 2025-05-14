@@ -94,6 +94,26 @@ export const getPost = (postId) =>
   api.get(`/posts/${postId}`);
 
 // Upload user avatar (multipart/form-data)
+export const sendVerificationEmail = async () => {
+  const token = localStorage.getItem("token");
+  const res = await api.post('/users/profile/send-verification-email', {}, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
+export const verifyEmailCode = async (code) => {
+  const token = localStorage.getItem("token");
+  const res = await api.post('/users/profile/verify-email-code', { code }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return res.data;
+};
+
 export const uploadAvatar = async (file) => {
   const token = localStorage.getItem("token");
   const formData = new FormData();
