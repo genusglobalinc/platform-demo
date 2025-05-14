@@ -160,6 +160,7 @@ export default function ProfileSettings() {
         <button style={styles.mobileNavButton} onClick={() => navigate("/feed")}>Feed</button>
         <button style={styles.mobileNavButton} onClick={() => navigate("/profile")}>Profile</button>
         <button style={{...styles.mobileNavButton, background: "#333"}}>Settings</button>
+        <button style={styles.mobileNavButton} onClick={() => {
           localStorage.clear();
           navigate('/login');
         }}>Logout</button>
