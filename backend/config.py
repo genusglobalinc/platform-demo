@@ -17,8 +17,15 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")"""
 
 import os
-from pydantic import BaseSettings
 from dotenv import load_dotenv
+
+# Handle compatibility with different Pydantic versions
+try:
+    # Try Pydantic v2.x import first
+    from pydantic_settings import BaseSettings
+except ImportError:
+    # Fall back to Pydantic v1.x import
+    from pydantic import BaseSettings
 
 load_dotenv()
 
