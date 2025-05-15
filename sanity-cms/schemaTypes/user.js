@@ -22,7 +22,8 @@ export default {
         options: {
           list: [
             { title: 'Tester', value: 'Tester' },
-            { title: 'Dev', value: 'Dev' }
+            { title: 'Dev', value: 'Dev' },
+            { title: 'Admin', value: 'Admin' }
           ]
         },
         validation: Rule => Rule.required()
