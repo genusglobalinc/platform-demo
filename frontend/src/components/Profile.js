@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
+import jwtDecode from "jwt-decode";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -34,6 +35,13 @@ export default function Profile() {
     }
   };
 
+  // Determine admin quickly from token so we can show nav immediately
+  let isAdminToken = false;
+  try {
+    const tk = localStorage.getItem("token");
+    if (tk) isAdminToken = jwtDecode(tk).user_type === "Admin";
+  } catch {}
+
   return (
     <div className="responsive-container" style={styles.container}>
       {/* Left Sidebar */}
@@ -43,7 +51,7 @@ export default function Profile() {
           <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
           <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
           <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
-          {profile && profile.user_type === "Admin" && (
+          {(isAdminToken || (profile && profile.user_type === "Admin")) && (
             <div
               style={{ ...styles.navItem, background: "#333" }}
               onClick={() => navigate("/admin")}
