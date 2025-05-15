@@ -25,6 +25,7 @@ class UpdateProfileRequest(BaseModel):
     display_name: Optional[str] = None
     social_links: Optional[Dict[str, str]] = None
     profile_picture: Optional[str] = None
+    demographic_info: Optional[Dict[str, Any]] = None  # nested demographic data
     
 class EmailVerificationRequest(BaseModel):
     email: EmailStr

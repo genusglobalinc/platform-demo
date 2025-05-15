@@ -43,7 +43,10 @@ const PostCard = ({ post }) => {
     if (authToken) currentUser = jwtDecode(authToken);
   } catch {}
 
-  const canDelete = currentUser && (post.user_id === currentUser.sub || post.testerId === currentUser.sub);
+  // Admins can delete any post; otherwise only owners/testers can
+  const canDelete =
+    currentUser &&
+    (currentUser.user_type === "Admin" || post.user_id === currentUser.sub || post.testerId === currentUser.sub);
 
   const handleDelete = async () => {
     if (!canDelete) return;

@@ -7,6 +7,17 @@ import { uploadAvatar, sendVerificationEmail, verifyEmailCode } from "../api";
 // Pre-defined profile pictures configurable by platform admins
 const profilePics = ["default1", "default2", "default3"];
 
+// Dropdown option lists
+const usStates = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
+];
+
+const platformOptions = ["PC","PlayStation","Xbox","Switch","Mobile"];
+
+const genreOptions = [
+  "Action","Adventure","RPG","Shooter","Strategy","Sports","Puzzle","Simulation","Horror","Racing"
+];
+
 export default function ProfileSettings() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -26,10 +37,11 @@ export default function ProfileSettings() {
   // Demographic information states
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
-  const [location, setLocation] = useState("");
-  const [preferredPlatforms, setPreferredPlatforms] = useState("");
+  const [locationCity, setLocationCity] = useState("");
+  const [locationState, setLocationState] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [gamingExperience, setGamingExperience] = useState("");
-  const [favoriteGenres, setFavoriteGenres] = useState("");
+  const [selectedGenres, setSelectedGenres] = useState([]);
   const [weeklyPlaytime, setWeeklyPlaytime] = useState("");
   const [previousPlaytestExperience, setPreviousPlaytestExperience] = useState("");
   
@@ -55,10 +67,11 @@ export default function ProfileSettings() {
         // Set demographic information if available
         setAge(data.age || "");
         setGender(data.gender || "");
-        setLocation(data.location || "");
-        setPreferredPlatforms(data.preferred_platforms || "");
+        setLocationCity(data.location_city || "");
+        setLocationState(data.location_state || "");
+        setSelectedPlatforms(Array.isArray(data.preferred_platforms) ? data.preferred_platforms : (data.preferred_platforms || "").split(',').map(s=>s.trim()).filter(Boolean));
         setGamingExperience(data.gaming_experience || "");
-        setFavoriteGenres(data.favorite_genres || "");
+        setSelectedGenres(Array.isArray(data.favorite_genres) ? data.favorite_genres : (data.favorite_genres || "").split(',').map(s=>s.trim()).filter(Boolean));
         setWeeklyPlaytime(data.weekly_playtime || "");
         setPreviousPlaytestExperience(data.previous_playtest_experience || "");
       })
@@ -356,25 +369,40 @@ export default function ProfileSettings() {
           {/* Location */}
           <div style={styles.demoField}>
             <label style={styles.label}>Location</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City, Country"
-              style={styles.input}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={locationCity}
+                onChange={(e) => setLocationCity(e.target.value)}
+                placeholder="City"
+                style={{ ...styles.input, flex: 2 }}
+              />
+              <select
+                value={locationState}
+                onChange={(e) => setLocationState(e.target.value)}
+                style={{ ...styles.input, flex: 1 }}
+              >
+                <option value="">State</option>
+                {usStates.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           {/* Preferred Platforms */}
           <div style={styles.demoField}>
-            <label style={styles.label}>Preferred Gaming Platforms</label>
-            <input
-              type="text"
-              value={preferredPlatforms}
-              onChange={(e) => setPreferredPlatforms(e.target.value)}
-              placeholder="e.g. PC, PlayStation, Xbox, Switch, Mobile"
-              style={styles.input}
-            />
+            <label style={styles.label}>Preferred Gaming Platforms (Ctrl/Cmd+Click to multi-select)</label>
+            <select
+              multiple
+              value={selectedPlatforms}
+              onChange={(e) => setSelectedPlatforms(Array.from(e.target.selectedOptions, (o) => o.value))}
+              style={{ ...styles.input, height: '100px' }}
+            >
+              {platformOptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
           
           {/* Gaming Experience */}
@@ -396,14 +424,17 @@ export default function ProfileSettings() {
           
           {/* Favorite Genres */}
           <div style={styles.demoField}>
-            <label style={styles.label}>Favorite Game Genres</label>
-            <input
-              type="text"
-              value={favoriteGenres}
-              onChange={(e) => setFavoriteGenres(e.target.value)}
-              placeholder="e.g. RPG, FPS, Strategy, Adventure"
-              style={styles.input}
-            />
+            <label style={styles.label}>Favorite Genres (Ctrl/Cmd+Click to multi-select)</label>
+            <select
+              multiple
+              value={selectedGenres}
+              onChange={(e) => setSelectedGenres(Array.from(e.target.selectedOptions, (o) => o.value))}
+              style={{ ...styles.input, height: '120px' }}
+            >
+              {genreOptions.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
           </div>
           
           {/* Weekly Playtime */}
@@ -440,12 +471,13 @@ export default function ProfileSettings() {
               const demographicData = {
                 age,
                 gender,
-                location,
-                preferred_platforms: preferredPlatforms,
+                location_city: locationCity,
+                location_state: locationState,
+                preferred_platforms: selectedPlatforms,
                 gaming_experience: gamingExperience,
-                favorite_genres: favoriteGenres,
+                favorite_genres: selectedGenres,
                 weekly_playtime: weeklyPlaytime,
-                previous_playtest_experience: previousPlaytestExperience
+                previous_playtest_experience: previousPlaytestExperience,
               };
               saveField("demographic_info", demographicData);
             }}
