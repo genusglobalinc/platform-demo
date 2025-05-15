@@ -207,18 +207,43 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
         return False
 
 def update_user_profile(user_id: str, profile_data: dict) -> bool:
-    """
-    Update arbitrary profile fields for the given user_id.
+    """Update arbitrary profile fields for the given user_id.
+
+    Handles DynamoDB restrictions where `None` values cannot be set; attributes
+    with a value of `None` are instead **removed**. This ensures email-verification
+    clearing (setting the code to `None`) works without raising a validation error.
     """
     try:
-        update_expression = "SET " + ", ".join(f"{k} = :{k}" for k in profile_data.keys())
-        expression_values = {f":{k}": v for k, v in profile_data.items()}
+        # Build SET expressions for non-None values
+        set_parts = []
+        expr_values = {}
+        for key, val in profile_data.items():
+            if val is not None:
+                set_parts.append(f"{key} = :{key}")
+                expr_values[f":{key}"] = val
 
-        response = users_table.update_item(
-            Key={'user_id': user_id},                     
-            UpdateExpression=update_expression,
-            ExpressionAttributeValues=expression_values
-        )
+        # Build REMOVE expressions for None values
+        remove_parts = [key for key, val in profile_data.items() if val is None]
+
+        update_expr_segments = []
+        if set_parts:
+            update_expr_segments.append("SET " + ", ".join(set_parts))
+        if remove_parts:
+            update_expr_segments.append("REMOVE " + ", ".join(remove_parts))
+
+        if not update_expr_segments:
+            # Nothing to update
+            logger.warning("[update_user_profile] No valid fields provided to update.")
+            return True
+
+        update_kwargs = {
+            "Key": {"user_id": user_id},
+            "UpdateExpression": " ".join(update_expr_segments),
+        }
+        if expr_values:
+            update_kwargs["ExpressionAttributeValues"] = expr_values
+
+        response = users_table.update_item(**update_kwargs)
         logger.debug(f"[update_user_profile] Profile updated for user_id {user_id}: {profile_data}")
         logger.debug(f"[update_user_profile] DynamoDB response: {response}")
         return True
@@ -226,8 +251,6 @@ def update_user_profile(user_id: str, profile_data: dict) -> bool:
     except ClientError as e:
         logger.error(f"[update_user_profile] Profile update failed: {e}")
         return False
-
-# --- Post Management ---
 
 def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
     if _sanity_client:

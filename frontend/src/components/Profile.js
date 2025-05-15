@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProfileData } from "../api"; // Your existing API helper for fetching profile
+import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -26,18 +26,11 @@ export default function Profile() {
 
   const fetchUserPosts = async (userId) => {
     try {
-      const token = localStorage.getItem("authToken"); // Ensure token is retrieved
-      const res = await fetch(`${API_BASE_URL}/users/${userId}/posts`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`, // Include token in the request headers
-        },
-      });
-      const data = await res.json();
-      return data;
+      const posts = await getUserPosts(userId);
+      return posts;
     } catch (err) {
       console.error("Error fetching user posts", err);
-      return []; // Return an empty array if there's an error
+      return [];
     }
   };
 

@@ -371,8 +371,14 @@ async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends
             logging.error(f"Invalid 2FA code for user: {user_id}")
             raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
-        # Generate the actual access token
-        access_token = create_access_token(data={"sub": user_id, "temp": False})
+        # Generate the actual access token including user_type for downstream role checks
+        access_token = create_access_token(
+            data={
+                "sub": user_id,
+                "user_type": user.get("user_type", "Tester"),
+                "temp": False,
+            }
+        )
         return {"access_token": access_token, "token_type": "bearer"}
 
     except JWTError:
