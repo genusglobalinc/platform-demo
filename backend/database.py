@@ -510,6 +510,36 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
         return False
 
 # ---------------------------------------------------------------------
+# Pending Posts
+# ---------------------------------------------------------------------
+
+def get_pending_posts_from_db() -> List[dict]:
+    """Return all posts that are not yet approved (is_approved == False)."""
+
+    if _sanity_client:
+        try:
+            query = '*[_type == "post" && (!defined(is_approved) || is_approved != true)] | order(_createdAt desc)'
+            results = _sanity_client.query_documents(query)
+            logger.debug(f"[get_pending_posts_from_db] Sanity results: {len(results)} items")
+            return results
+        except Exception as e:
+            logger.error(f"[get_pending_posts_from_db] Sanity query failed: {e}")
+            return []
+
+    # DynamoDB fallback
+    try:
+        from boto3.dynamodb.conditions import Attr
+        scan_kwargs = {
+            "FilterExpression": Attr("is_approved").ne(True) | Attr("is_approved").not_exists(),
+        }
+        response = posts_table.scan(**scan_kwargs)
+        logger.debug(f"[get_pending_posts_from_db] Dynamo response: {response}")
+        return response.get("Items", [])
+    except ClientError as e:
+        logger.error(f"[get_pending_posts_from_db] Dynamo scan failed: {e}")
+        return []
+
+# ---------------------------------------------------------------------
 # Delete Post
 # ---------------------------------------------------------------------
 

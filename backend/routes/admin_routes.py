@@ -7,8 +7,10 @@ from email.mime.application import MIMEApplication
 from pydantic import BaseModel
 import os
 from ..utils.security import get_current_user, get_admin_user
-from ..database import get_user_collection, get_user_by_id
+from ..database import (get_user_collection, get_user_by_id, get_post_from_db,
+                        update_user_profile, get_pending_posts_from_db)
 from ..config import get_settings
+from ..notifications import send_notification
 
 router = APIRouter(
     prefix="/admin",
@@ -22,6 +24,10 @@ class EmailRequest(BaseModel):
 class EmailResponse(BaseModel):
     success: bool
     recipient: str
+
+class PostApprovalRequest(BaseModel):
+    post_id: str
+    approve: bool = True  # False means reject (delete)
 
 @router.get("/users", response_model=List[Dict[str, Any]])
 async def get_users(current_user: dict = Depends(get_admin_user)):
@@ -103,3 +109,81 @@ async def send_demographic_email(request: EmailRequest, current_user: dict = Dep
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send email: {str(e)}"
         )
+
+# ------------------------------ Post Approval ------------------------------
+
+@router.post("/approve-post", status_code=200)
+async def approve_post(request: PostApprovalRequest, current_user: dict = Depends(get_admin_user)):
+    """Approve or reject a pending post. When approved, set is_approved=True and notify poster.
+    If reject is chosen, the post is deleted.
+    """
+    
+    post = get_post_from_db(request.post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    # Only allow approving if currently not approved
+    if request.approve:
+        if post.get("is_approved"):
+            return {"message": "Post already approved"}
+
+        # Update in Sanity or Dynamo
+        success = False
+        if _sanity_client := getattr(post, "_sanity_client", None):
+            try:
+                _sanity_client.patch_document(request.post_id, {"is_approved": True})
+                success = True
+            except Exception as e:
+                logging.error(f"[approve_post] Sanity patch failed: {e}")
+        else:
+            # DynamoDB update via user profile isn't appropriate; patch directly
+            try:
+                from boto3.dynamodb.conditions import Attr
+                import boto3
+                dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
+                posts_table = dynamodb.Table("Posts")
+                posts_table.update_item(
+                    Key={"post_id": request.post_id},
+                    UpdateExpression="SET is_approved = :t",
+                    ExpressionAttributeValues={":t": True},
+                )
+                success = True
+            except Exception as e:
+                logging.error(f"[approve_post] Dynamo patch failed: {e}")
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to approve post")
+
+        # Send notification to tester and dev (if testerId field present)
+        recipient_ids = [post.get("testerId"), post.get("user_id")]
+        for rid in filter(None, recipient_ids):
+            send_notification(
+                rid,
+                message="Your post has been approved by admin.",
+                metadata={"post_id": request.post_id},
+            )
+
+        return {"message": "Post approved"}
+
+    # -------------------- Reject/Delete --------------------
+    from ..database import delete_post_in_db
+
+    owner_id = post.get("testerId") or post.get("user_id")
+    if not delete_post_in_db(request.post_id, owner_id):
+        raise HTTPException(status_code=500, detail="Failed to delete post")
+
+    if owner_id:
+        send_notification(
+            owner_id,
+            message="Your post has been rejected and removed by admin.",
+            metadata={"post_id": request.post_id},
+        )
+
+    return {"message": "Post rejected and deleted"}
+
+# ------------------------------ Pending Posts ------------------------------
+
+@router.get("/pending-posts", response_model=List[Dict[str, Any]])
+async def list_pending_posts(current_user: dict = Depends(get_admin_user)):
+    """Return all posts that are awaiting admin approval."""
+    return get_pending_posts_from_db()

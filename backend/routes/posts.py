@@ -35,6 +35,7 @@ class GamingPost(BasePost):
     rewards: Optional[str] = None
     share_post_to_socials: bool = False
     type: str = "gaming"
+    is_approved: bool = False  # Add is_approved field to GamingPost schema
 
 class PostCreateRequest(BaseModel):
     genre: str  # Must be "gaming" (legacy anime removed)
@@ -66,6 +67,9 @@ async def create_post(
 
     # Debugging log to confirm the type assignment
     print(f"Post type set to: {post_data.post_data.type}")
+
+    # Posts need admin approval before visible
+    post_data.post_data.is_approved = False  # mark as pending approval
 
     # Ensure serializable payload before sending to DynamoDB
     serialized_post_data = post_data.post_data.model_dump()

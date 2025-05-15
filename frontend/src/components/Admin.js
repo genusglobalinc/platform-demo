@@ -9,6 +9,8 @@ export default function Admin() {
   const [emailStatus, setEmailStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [profile, setProfile] = useState(null);
+  const [pendingPosts, setPendingPosts] = useState([]);
+  const [postStatus, setPostStatus] = useState("");
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -17,6 +19,8 @@ export default function Admin() {
     fetchProfile();
     // Fetch users with demographic info
     fetchUsers();
+    // Load pending posts as well
+    fetchPendingPosts();
   }, []);
 
   const fetchProfile = async () => {
@@ -53,6 +57,20 @@ export default function Admin() {
     }
   };
 
+  const fetchPendingPosts = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get("/admin/pending-posts", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPendingPosts(res.data);
+    } catch (err) {
+      console.error("Failed to load pending posts", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sendEmail = async (userId) => {
     try {
       setLoading(true);
@@ -66,6 +84,24 @@ export default function Admin() {
     } catch (err) {
       setEmailStatus(`Failed to send email: ${err.response?.data?.detail || err.message}`);
       console.error("Email sending error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePostApproval = async (postId, approve = true) => {
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        "/admin/approve-post",
+        { post_id: postId, approve },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPostStatus(res.data.message);
+      // refresh list
+      fetchPendingPosts();
+    } catch (err) {
+      setPostStatus(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false);
     }
@@ -128,6 +164,38 @@ export default function Admin() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
           />
+        </div>
+
+        {/* Pending Posts */}
+        <div style={styles.usersList}>
+          <h3 style={styles.sectionTitle}>Pending Posts</h3>
+          {pendingPosts.length === 0 ? (
+            <p>No posts awaiting approval.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {pendingPosts.map((p) => (
+                <div key={p._id || p.post_id} style={{ background: "#222", padding: 16, borderRadius: 8 }}>
+                  <h4 style={{ margin: 0 }}>{p.title}</h4>
+                  <p style={{ opacity: 0.8 }}>{p.description?.slice(0, 120)}...</p>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button
+                      style={{ ...styles.emailButton, background: "#28a745", color: "#fff" }}
+                      onClick={() => updatePostApproval(p._id || p.post_id, true)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      style={{ ...styles.emailButton, background: "#E57373", color: "#fff" }}
+                      onClick={() => updatePostApproval(p._id || p.post_id, false)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {postStatus && <p style={{ marginTop: 8 }}>{postStatus}</p>}
         </div>
 
         {/* Users List */}

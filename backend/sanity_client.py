@@ -96,6 +96,36 @@ class SanityClient:
         raise RuntimeError(f"Sanity query failed: {resp.text}")
 
     # ------------------------------------------------------------------
+    # Patch helpers
+    # ------------------------------------------------------------------
+    def patch_document(self, doc_id: str, patch: dict) -> bool:
+        """Apply a partial update (set) to a document.
+
+        Example::
+            client.patch_document("myDocId", {"is_approved": True})
+
+        Internally this uses the `/data/mutate` endpoint with a `patch` mutation.
+        """
+        if not patch:
+            raise ValueError("patch cannot be empty")
+
+        url = f"{self.base_url}/data/mutate/{self.dataset}?returnIds=false"
+        payload = {
+            "mutations": [
+                {
+                    "patch": {
+                        "id": doc_id,
+                        "set": patch,
+                    }
+                }
+            ]
+        }
+        resp = requests.post(url, json=payload, headers=self._headers(), timeout=10)
+        if resp.status_code == 200:
+            return True
+        raise RuntimeError(f"Sanity patch_document failed: {resp.text}")
+
+    # ------------------------------------------------------------------
     # Delete helpers
     # ------------------------------------------------------------------
     def delete_document(self, doc_id: str) -> bool:
