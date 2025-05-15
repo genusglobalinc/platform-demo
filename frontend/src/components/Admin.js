@@ -49,7 +49,8 @@ export default function Admin() {
       const res = await axios.get("/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(res.data);
+      const userArr = Array.isArray(res.data) ? res.data : res.data?.users || [];
+      setUsers(userArr);
     } catch (err) {
       console.error("Failed to load users", err);
     } finally {
@@ -114,7 +115,7 @@ export default function Admin() {
     </div>
   );
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = (Array.isArray(users) ? users : []).filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     return (
       user.username.toLowerCase().includes(searchLower) ||

@@ -62,11 +62,21 @@ async def update_profile(
 @router.get("/{user_id}/posts")
 async def get_user_posts(
     user_id: str,
-    token: dict = Depends(verify_access_token)
+    token: str = Depends(oauth2_scheme)
 ):
+    """Return posts created by a specific user.
+
+    Token is supplied via the Authorization header (Bearer scheme) like all other
+    authenticated routes. We validate it and enforce that users can only access
+    their own posts unless future requirements change to allow public access.
+    """
+
+    payload = verify_access_token(token)
+
     # ensure they can only fetch their own posts (or drop this check if you want public profiles)
-    if token.get("sub") != user_id:
+    if payload.get("sub") != user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
+
     return get_posts_by_user(user_id)
 
 # ---------------------------------------------------------------------
