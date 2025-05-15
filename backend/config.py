@@ -23,18 +23,27 @@ from dotenv import load_dotenv
 try:
     # Try Pydantic v2.x import first
     from pydantic_settings import BaseSettings
+    from pydantic import Field
 except ImportError:
     # Fall back to Pydantic v1.x import
-    from pydantic import BaseSettings
+    from pydantic import BaseSettings, Field
 
 load_dotenv()
 
 class Settings(BaseSettings):
-    # AWS Configuration
-    aws_region: str = os.getenv("AWS_REGION")
-    secret_key: str = os.getenv("SECRET_KEY")
-    dynamodb_table: str = os.getenv("DYNAMODB_TABLE")
-    
+    """Environment settings. Only some are strictly required by all endpoints.
+
+    Optional values default to an empty string so Pydantic does not raise a
+    validation error if the variable is missing (e.g. when only email-related
+    settings are needed)."""
+
+    # AWS Configuration (optional for endpoints that don't hit DynamoDB)
+    aws_region: str = Field(default_factory=lambda: os.getenv("AWS_REGION", ""))
+    dynamodb_table: str = Field(default_factory=lambda: os.getenv("DYNAMODB_TABLE", ""))
+
+    # Security (required)
+    secret_key: str = Field(default_factory=lambda: os.getenv("SECRET_KEY", ""))
+
     # Email Configuration
     email_sender: str = os.getenv("EMAIL_SENDER", "noreply@lostgates.com")
     smtp_server: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
