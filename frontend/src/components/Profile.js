@@ -43,6 +43,14 @@ export default function Profile() {
           <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
           <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
           <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
+          {profile && profile.user_type === "Admin" && (
+            <div
+              style={{ ...styles.navItem, background: "#333" }}
+              onClick={() => navigate("/admin")}
+            >
+              Admin
+            </div>
+          )}
         </div>
       </div>
 

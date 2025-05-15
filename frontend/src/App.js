@@ -9,6 +9,7 @@ import ForgotPassword from './components/ForgotPassword';
 import CreatePost from './components/CreatePost';
 import ProfileSettings from './components/ProfileSettings';
 import Admin from './components/Admin';
+import PostDetails from './components/PostDetails';
 import './styles/responsive.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/forgot-email" element={<ForgotEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/posts/:postId" element={<PostDetails />} />
       </Routes>
     </Router>
   );

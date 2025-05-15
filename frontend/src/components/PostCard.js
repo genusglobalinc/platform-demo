@@ -1,5 +1,6 @@
 // frontend/src/components/PostCard.js
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import jwtDecode from "jwt-decode";
 
@@ -62,8 +63,10 @@ const PostCard = ({ post }) => {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
-    <div style={styles.card}>
+    <div style={styles.card} onClick={() => navigate(`/posts/${post._id || post.post_id}`)}>
       {/* Date at the top */}
       {(post.created_at || post.date || post._createdAt) && (
         <div style={styles.dateContainer}>
