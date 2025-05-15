@@ -157,9 +157,9 @@ export default function Feed() {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="responsive-container" style={styles.container}>
       {/* Left Sidebar */}
-      <div style={styles.leftSidebar}>
+      <div className="left-sidebar" style={styles.leftSidebar}>
         <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
         
         {/* Navigation Links */}
@@ -222,7 +222,7 @@ export default function Feed() {
       </div>
       
       {/* Main Content */}
-      <div style={styles.mainContent}>
+      <div className="main-content" style={styles.mainContent}>
         {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.title}>Discover Playtests</h2>
@@ -366,7 +366,7 @@ export default function Feed() {
       </div>
       
       {/* Right Sidebar - Empty for now but provides balanced spacing */}
-      <div style={styles.rightSidebar}></div>
+      <div className="right-sidebar" style={styles.rightSidebar}></div>
     </div>
   );
 }

@@ -88,11 +88,11 @@ export default function Admin() {
   });
 
   return (
-    <div style={styles.container}>
+    <div className="responsive-container" style={styles.container}>
       {loading && renderLoadingSpinner()}
 
       {/* Left Sidebar */}
-      <div style={styles.leftSidebar}>
+      <div className="left-sidebar" style={styles.leftSidebar}>
         <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
         <div style={{ marginBottom: "32px" }}>
           <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
@@ -103,7 +103,7 @@ export default function Admin() {
       </div>
 
       {/* Main Content */}
-      <div style={styles.mainContent}>
+      <div className="main-content" style={styles.mainContent}>
         <div style={styles.header}>
           <h2 style={styles.title}>Admin Dashboard</h2>
           <div style={styles.headerRight}>
@@ -268,7 +268,7 @@ export default function Admin() {
       </div>
 
       {/* Right Sidebar */}
-      <div style={styles.rightSidebar}></div>
+      <div className="right-sidebar" style={styles.rightSidebar}></div>
     </div>
   );
 }

@@ -1,8 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; // ⬅️ add Navigate
-import './styles/main.css'; // Main styles
-import './styles/responsive.css'; // Responsive styles
-import './styles/components.css'; // Component-specific styles
 import Login from './components/Login';
 import Register from './components/Register';
 import Feed from './components/Feed';
@@ -12,6 +9,7 @@ import ForgotPassword from './components/ForgotPassword';
 import CreatePost from './components/CreatePost';
 import ProfileSettings from './components/ProfileSettings';
 import Admin from './components/Admin';
+import './styles/responsive.css';
 
 function App() {
   return (

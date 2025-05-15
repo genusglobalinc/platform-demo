@@ -252,7 +252,7 @@ const CreatePost = ({ token, onPostCreated }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={styles.container}>
+    <form onSubmit={handleSubmit} className="responsive-container" style={styles.container}>
       <h2 style={styles.title}>Create Post</h2>
       {error && <p style={styles.error}>{error}</p>}
 
