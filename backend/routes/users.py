@@ -19,6 +19,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 router = APIRouter(tags=["Users"])  # 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class UpdateProfileRequest(BaseModel):
     display_name: Optional[str] = None
@@ -77,77 +78,96 @@ async def get_user_posts(
 
 @router.post("/profile/send-verification-email", status_code=status.HTTP_200_OK)
 async def send_verification_email(token: str = Depends(oauth2_scheme)):
-    """Send an email verification code to the user's email."""
-    payload = verify_access_token(token)
-    user_id = payload.get("sub")
-    
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user = get_user_from_db(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Generate a verification code (6-digit random code)
-    verification_code = str(uuid.uuid4())[:6].upper()
-    
-    # Store the verification code and expiration time
-    expires_at = datetime.utcnow() + timedelta(minutes=15)  # Code expires in 15 minutes
-    verification_data = {
-        "email_verification_code": verification_code,
-        "email_verification_expiry": str(expires_at)
-    }
-    
-    success = update_user_profile(user_id, verification_data)
-    if not success:
-        raise HTTPException(status_code=500, detail="Error storing verification code")
-    
-    # Send verification email
-    settings = get_settings()
-    recipient_email = user.get("email")
-    
-    # Create email message
-    msg = MIMEMultipart()
-    msg["Subject"] = "Verify Your Email - Lost Gates"
-    msg["From"] = settings.email_sender
-    msg["To"] = recipient_email
-    
-    # Create HTML content
-    html_content = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-                <h2 style="color: #B388EB;">Lost Gates Email Verification</h2>
-                <p>Hello {user.get('display_name') or user.get('username')},</p>
-                <p>Thank you for updating your email address. To complete verification, please use the code below:</p>
-                <div style="background-color: #f7f7f7; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
-                    <h2 style="margin: 0; letter-spacing: 3px; color: #333;">{verification_code}</h2>
-                </div>
-                <p>This code will expire in 15 minutes.</p>
-                <p>If you didn't request this verification, please ignore this email.</p>
-                <p>Best regards,<br>The Lost Gates Team</p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    # Attach HTML content
-    msg.attach(MIMEText(html_content, "html"))
-    
+    """Send an email verification code to the user's email with detailed logging."""
+    logger.info("[/profile/send-verification-email] Request received")
+
     try:
-        # Connect to SMTP server and send email
-        with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
-            if settings.smtp_use_tls:
-                server.starttls()
-            server.login(settings.smtp_username, settings.smtp_password)
-            server.send_message(msg)
-            
-        return {"message": "Verification email sent successfully"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send verification email: {str(e)}"
+        payload = verify_access_token(token)
+        user_id = payload.get("sub")
+
+        if not user_id:
+            logger.warning("[/profile/send-verification-email] Missing user_id in token")
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        user = get_user_from_db(user_id)
+        if not user:
+            logger.warning(f"[/profile/send-verification-email] User not found: {user_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        recipient_email = user.get("email")
+        if not recipient_email:
+            logger.warning(f"[/profile/send-verification-email] User {user_id} has no email")
+            raise HTTPException(status_code=400, detail="User has no email on file")
+
+        # Generate a 6-digit random code (numbers only for ease of entry)
+        verification_code = "".join(str(uuid.uuid4().int)[:6])
+        expires_at = datetime.utcnow() + timedelta(minutes=15)
+
+        logger.debug(f"[/profile/send-verification-email] Code {verification_code} expires at {expires_at}")
+
+        # Persist code to DB
+        verification_data = {
+            "email_verification_code": verification_code,
+            "email_verification_expiry": str(expires_at),
+        }
+
+        try:
+            if not update_user_profile(user_id, verification_data):
+                raise RuntimeError("DynamoDB update returned False")
+        except Exception as e:
+            logger.exception("[/profile/send-verification-email] Failed to store code")
+            raise HTTPException(status_code=500, detail=f"DB error storing verification code: {e}")
+
+        settings = get_settings()
+        logger.debug(
+            f"[/profile/send-verification-email] SMTP server={settings.smtp_server}:{settings.smtp_port} TLS={settings.smtp_use_tls} user={settings.smtp_username}"
         )
+
+        if not settings.smtp_username or not settings.smtp_password:
+            raise HTTPException(status_code=500, detail="SMTP credentials not configured on server")
+
+        # Construct email message
+        msg = MIMEMultipart()
+        msg["Subject"] = "Verify Your Email - Lost Gates"
+        msg["From"] = settings.email_sender
+        msg["To"] = recipient_email
+
+        html_content = f"""
+        <html>
+            <body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">
+                <div style=\"max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;\">
+                    <h2 style=\"color: #B388EB;\">Lost Gates Email Verification</h2>
+                    <p>Hello {user.get('display_name') or user.get('username')},</p>
+                    <p>Please use the verification code below:</p>
+                    <div style=\"background-color: #f7f7f7; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;\">
+                        <h2 style=\"margin: 0; letter-spacing: 3px; color: #333;\">{verification_code}</h2>
+                    </div>
+                    <p>This code expires in 15 minutes.</p>
+                </div>
+            </body>
+        </html>"""
+
+        msg.attach(MIMEText(html_content, "html"))
+
+        # Send via SMTP
+        try:
+            with smtplib.SMTP(settings.smtp_server, settings.smtp_port, timeout=10) as server:
+                if settings.smtp_use_tls:
+                    server.starttls()
+                server.login(settings.smtp_username, settings.smtp_password)
+                server.send_message(msg)
+            logger.info(f"[/profile/send-verification-email] Verification email sent to {recipient_email}")
+            return {"message": "Verification email sent successfully"}
+        except Exception as e:
+            logger.exception("[/profile/send-verification-email] SMTP send failed")
+            raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
+
+    except HTTPException:
+        # Already logged / has meaningful detail
+        raise
+    except Exception as e:
+        logger.exception("[/profile/send-verification-email] Unhandled exception")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/profile/verify-email-code", status_code=status.HTTP_200_OK)
 async def verify_email_code(
