@@ -160,7 +160,6 @@ export default function ProfileSettings() {
         <button style={styles.mobileNavButton} onClick={() => navigate("/feed")}>Feed</button>
         <button style={styles.mobileNavButton} onClick={() => navigate("/profile")}>Profile</button>
         <button style={{...styles.mobileNavButton, background: "#333"}}>Settings</button>
-        <button style={styles.mobileNavButton} onClick={() => {
           localStorage.clear();
           navigate('/login');
         }}>Logout</button>
@@ -456,7 +455,7 @@ export default function ProfileSettings() {
       </div>
 
       {/* Right Sidebar */}
-      <div style={styles.rightSidebar} className="hide-on-small"></div>
+      <div style={styles.rightSidebar}></div>
     </div>
   );
 }
@@ -587,32 +586,6 @@ const styles = {
     cursor: 'pointer',
     marginBottom: '8px',
     transition: 'background 0.2s',
-  },
-  mobileNav: {
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: '#1a1a1a',
-    padding: '12px',
-    display: 'flex',
-    justifyContent: 'space-around',
-    borderTop: '1px solid #333',
-    zIndex: 100,
-  },
-  mobileNavButton: {
-    background: '#222',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px',
-    fontSize: '0.9rem',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    margin: '0 4px',
   },
   section: {
     display: 'flex',
