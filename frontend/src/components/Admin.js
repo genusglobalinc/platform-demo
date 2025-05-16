@@ -64,7 +64,8 @@ export default function Admin() {
       const res = await axios.get("/admin/pending-posts", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setPendingPosts(res.data);
+      const list = Array.isArray(res.data) ? res.data : res.data?.posts || [];
+      setPendingPosts(list);
     } catch (err) {
       console.error("Failed to load pending posts", err);
     } finally {
@@ -170,11 +171,11 @@ export default function Admin() {
         {/* Pending Posts */}
         <div style={styles.usersList}>
           <h3 style={styles.sectionTitle}>Pending Posts</h3>
-          {pendingPosts.length === 0 ? (
+          {(Array.isArray(pendingPosts) ? pendingPosts : []).length === 0 ? (
             <p>No posts awaiting approval.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {pendingPosts.map((p) => (
+              {(Array.isArray(pendingPosts) ? pendingPosts : []).map((p) => (
                 <div key={p._id || p.post_id} style={{ background: "#222", padding: 16, borderRadius: 8 }}>
                   <h4 style={{ margin: 0 }}>{p.title}</h4>
                   <p style={{ opacity: 0.8 }}>{p.description?.slice(0, 120)}...</p>

@@ -51,14 +51,6 @@ export default function Profile() {
           <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
           <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
           <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
-          {(isAdminToken || (profile && profile.user_type === "Admin")) && (
-            <div
-              style={{ ...styles.navItem, background: "#333" }}
-              onClick={() => navigate("/admin")}
-            >
-              Admin
-            </div>
-          )}
         </div>
       </div>
 
@@ -67,6 +59,14 @@ export default function Profile() {
         {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.title}>My Profile</h2>
+          {(isAdminToken || (profile && profile.user_type === "Admin")) && (
+            <button
+              style={{ ...styles.logoutButton, background: "#B388EB" }}
+              onClick={() => navigate("/admin")}
+            >
+              Go to Admin
+            </button>
+          )}
           <div style={styles.headerRight}>
             <button
               onClick={() => {
