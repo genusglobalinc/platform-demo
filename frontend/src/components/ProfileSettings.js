@@ -23,6 +23,7 @@ export default function ProfileSettings() {
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
+  const [steamId, setSteamId] = useState("");
   const [selectedPic, setSelectedPic] = useState(profilePics[0]);
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -59,6 +60,7 @@ export default function ProfileSettings() {
         setProfile(data);
         setDisplayName(data.display_name || "");
         setSocialLinks(data.social_links || "");
+        setSteamId(data.steam_id || "");
         setSelectedPic(data.profile_picture || profilePics[0]);
         
         // Set email verification status
@@ -208,6 +210,24 @@ export default function ProfileSettings() {
             onClick={() => saveField("social_links", socialLinks)}
           >
             Save
+          </button>
+        </div>
+
+        {/* Steam Account */}
+        <div style={styles.section}>
+          <label style={styles.label}>Steam ID or Vanity URL</label>
+          <input
+            type="text"
+            value={steamId}
+            onChange={(e) => setSteamId(e.target.value)}
+            placeholder="e.g. 76561198012345678 or mycoolname"
+            style={styles.input}
+          />
+          <button
+            style={styles.button}
+            onClick={() => saveField("steam_id", steamId)}
+          >
+            Connect Steam
           </button>
         </div>
 

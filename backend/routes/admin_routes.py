@@ -21,6 +21,10 @@ router = APIRouter(
 class EmailRequest(BaseModel):
     user_id: str
 
+class BulkEmailRequest(BaseModel):
+    user_ids: List[str]
+    email_address: str
+
 class EmailResponse(BaseModel):
     success: bool
     recipient: str
@@ -104,6 +108,87 @@ async def send_demographic_email(request: EmailRequest, current_user: dict = Dep
             server.send_message(msg)
             
         return {"success": True, "recipient": current_user.get("email")}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email: {str(e)}"
+        )
+
+@router.post("/send-bulk-demographic-email", response_model=EmailResponse)
+async def send_bulk_demographic_email(request: BulkEmailRequest, current_user: dict = Depends(get_admin_user)):
+    """Send demographic information for multiple users via email. Only accessible by admin users."""
+    if not request.user_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No users selected"
+        )
+    
+    settings = get_settings()
+    
+    # Collect demographic information for all users
+    users_data = []
+    for user_id in request.user_ids:
+        user = await get_user_by_id(user_id)
+        if user and user.get("demographic_info"):
+            users_data.append(user)
+    
+    if not users_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="None of the selected users have demographic information"
+        )
+    
+    # Prepare email content
+    msg = MIMEMultipart()
+    msg["Subject"] = f"Demographic Information for {len(users_data)} Users"
+    msg["From"] = settings.email_sender
+    msg["To"] = request.email_address
+    
+    # Create HTML content
+    html_content = f"""
+    <html>
+        <body>
+            <h2>Demographic Information for {len(users_data)} Users</h2>
+    """
+    
+    # Add demographic information for each user
+    for user in users_data:
+        html_content += f"""
+        <div style="margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
+            <h3>{user.get('display_name') or user.get('username')}</h3>
+            <p><strong>User ID:</strong> {user.get('_id')}</p>
+            <p><strong>Username:</strong> {user.get('username')}</p>
+            <p><strong>Email:</strong> {user.get('email')}</p>
+            <p><strong>Account Type:</strong> {user.get('user_type')}</p>
+            <h4>Demographic Information</h4>
+        """
+        
+        # Add demographic information
+        demo_info = user.get("demographic_info", {})
+        for key, value in demo_info.items():
+            # Format key_name to be more readable (e.g., "preferred_platforms" -> "Preferred Platforms")
+            formatted_key = key.replace("_", " ").title()
+            html_content += f"<p><strong>{formatted_key}:</strong> {value}</p>\n"
+        
+        html_content += "</div>"
+    
+    html_content += """
+        </body>
+    </html>
+    """
+    
+    # Attach HTML content
+    msg.attach(MIMEText(html_content, "html"))
+    
+    try:
+        # Connect to SMTP server and send email
+        with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
+            if settings.smtp_use_tls:
+                server.starttls()
+            server.login(settings.smtp_username, settings.smtp_password)
+            server.send_message(msg)
+            
+        return {"success": True, "recipient": request.email_address}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

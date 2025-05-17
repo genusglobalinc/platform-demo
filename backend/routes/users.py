@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 import logging
+import os
+import requests
 from fastapi.security import OAuth2PasswordBearer
 import base64
 import uuid
@@ -21,17 +23,63 @@ router = APIRouter(tags=["Users"])  #
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+STEAM_API_KEY = os.getenv("STEAM_API_KEY")
+
 class UpdateProfileRequest(BaseModel):
     display_name: Optional[str] = None
     social_links: Optional[Dict[str, str]] = None
     profile_picture: Optional[str] = None
     demographic_info: Optional[Dict[str, Any]] = None  # nested demographic data
-    
+    steam_id: Optional[str] = None  # 64-bit SteamID or vanity URL
+
 class EmailVerificationRequest(BaseModel):
     email: EmailStr
     
 class VerifyEmailCodeRequest(BaseModel):
     code: str
+
+def _fetch_steam_profile(steam_input: str) -> Optional[Dict[str, Any]]:
+    """Return basic Steam profile info or None if not found.
+
+    steam_input can be a 64-bit SteamID or a vanityURL. We first attempt to
+    resolve vanityURLs when the input is not all digits.
+    """
+    try:
+        if not STEAM_API_KEY:
+            logger.warning("STEAM_API_KEY not configured; skipping Steam lookup")
+            return None
+
+        # Resolve vanity URL to steamid64 if needed
+        steamid = steam_input
+        if not steam_input.isdigit():
+            vanity_resp = requests.get(
+                "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/",
+                params={"key": STEAM_API_KEY, "vanityurl": steam_input}, timeout=10
+            ).json()
+            if vanity_resp.get("response", {}).get("success") == 1:
+                steamid = vanity_resp["response"]["steamid"]
+            else:
+                logger.warning("Vanity Steam URL could not be resolved")
+                return None
+
+        # Fetch player summaries
+        summ_resp = requests.get(
+            "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/",
+            params={"key": STEAM_API_KEY, "steamids": steamid}, timeout=10
+        ).json()
+        players = summ_resp.get("response", {}).get("players", [])
+        if not players:
+            return None
+        p = players[0]
+        return {
+            "steam_id": steamid,
+            "persona_name": p.get("personaname"),
+            "avatar": p.get("avatarfull"),
+            "profile_url": p.get("profileurl"),
+        }
+    except Exception as e:
+        logger.error(f"Steam API lookup failed: {e}")
+        return None
 
 @router.get("/profile")
 async def get_profile(token: str = Depends(oauth2_scheme)):
@@ -51,11 +99,26 @@ async def update_profile(
     payload = verify_access_token(token)
     user_id = payload.get("sub")
     updates = update_data.dict(exclude_unset=True)
+
+    # Handle Steam integration
+    if "steam_id" in updates:
+        steam_profile = _fetch_steam_profile(updates["steam_id"])
+        if steam_profile:
+            updates["steam_profile"] = steam_profile
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
     success = update_user_profile(user_id, updates)
     if not success:
         raise HTTPException(status_code=500, detail="Error updating profile")
+
+    # Sync to Sanity (best-effort)
+    if _sanity_client:
+        try:
+            _sanity_client.patch_document(user_id, updates)
+        except Exception as e:
+            logger.warning(f"Failed to patch Sanity user doc: {e}")
+
     return {"message": "Profile updated successfully"}
 
 # ─── NEW ───

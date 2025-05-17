@@ -227,7 +227,7 @@ export default function Feed() {
         <div style={styles.header}>
           <h2 style={styles.title}>Discover Playtests</h2>
           <div style={styles.headerRight}>
-            {userType === "Dev" && (
+            {(userType === "Dev" || userType === "Admin") && (
               <button
                 style={styles.createButton}
                 onClick={() => navigate('/create-post')}

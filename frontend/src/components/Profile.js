@@ -86,6 +86,20 @@ export default function Profile() {
             <p><strong>Display Name:</strong> {profile.display_name}</p>
             <p><strong>Email:</strong> {profile.email}</p>
             <p><strong>Social Links:</strong> {profile.social_links}</p>
+            {profile.steam_profile && (
+              <div style={{marginTop: '1rem'}}>
+                <h3 style={{color:'#66c0f4'}}>Steam Profile</h3>
+                <div style={{display:'flex', alignItems:'center',gap:'1rem'}}>
+                  {profile.steam_profile.avatar && (
+                    <img src={profile.steam_profile.avatar} alt="Steam avatar" style={{width:64,height:64,borderRadius:8}} />
+                  )}
+                  <div>
+                    <p><strong>Persona:</strong> {profile.steam_profile.persona_name}</p>
+                    <a href={profile.steam_profile.profile_url} target="_blank" rel="noopener noreferrer" style={{color:'#66c0f4'}}>View on Steam</a>
+                  </div>
+                </div>
+              </div>
+            )}
             <p><strong>Followers:</strong> {profile.followers}</p>
             <p><strong>Following:</strong> {profile.following}</p>
             <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
