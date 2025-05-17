@@ -288,6 +288,7 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
                 "images": image_refs,
                 "testerId": user_id,
                 "status": "draft",
+                "is_approved": False,  # mark as pending approval for admin
                 "date": str(datetime.utcnow()),
             }
 
@@ -321,6 +322,10 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
         if post_data.get('post_type') not in ['gaming']:
             logger.error("[create_post_in_db] Invalid post_type. Must be 'gaming'.")
             return None
+
+        # Ensure the approval field exists so filtering works correctly
+        if 'is_approved' not in post_data:
+            post_data['is_approved'] = False
 
         post_data.update({
             'post_id': post_id,
