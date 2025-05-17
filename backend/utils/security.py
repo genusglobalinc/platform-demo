@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordBearer
 from typing import Union, Optional
 from passlib.context import CryptContext
 import logging
@@ -12,6 +13,9 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# OAuth2 scheme used to extract the Bearer token from the Authorization header
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__default_rounds=12, deprecated="auto")
@@ -90,8 +94,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         raise HTTPException(status_code=401, detail="Invalid credentials (verification error)")
 
 
-async def get_current_user(token: str) -> dict:
-    """Get the current user from the token."""
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """Get the current user from the Bearer token provided in the Authorization header."""
     payload = verify_access_token(token)
     user_id = payload.get("sub")
     if not user_id:
@@ -111,8 +115,8 @@ async def get_current_user(token: str) -> dict:
     return user
 
 
-async def get_admin_user(token: str) -> dict:
-    """Get the current user and verify they are an admin."""
+async def get_admin_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """Return the authenticated admin user or raise 403/401 accordingly."""
     user = await get_current_user(token)
     if user.get("user_type") != "Admin":
         raise HTTPException(
