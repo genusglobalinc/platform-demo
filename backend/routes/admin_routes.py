@@ -38,21 +38,33 @@ async def get_users(
     limit: int = Query(10, ge=1, le=100),
     current_user: dict = Depends(get_admin_user),
 ):
-    """Get users with pagination. Only accessible by admin users.
+    """Get users with pagination. Handles both Mongo-style and DynamoDB backends."""
 
-    Returns a dict with total user count and the list of users for the requested page.
-    """
     users_collection = get_user_collection()
 
-    total = await users_collection.count_documents({})
+    # ---------------- Mongo / Motor style ----------------
+    if hasattr(users_collection, "count_documents"):
+        total = await users_collection.count_documents({})
+        cursor = users_collection.find({}).skip(skip).limit(limit)
+        users: List[Dict[str, Any]] = []
+        async for user in cursor:
+            user["_id"] = str(user.get("_id", ""))
+            users.append(user)
+        return {"total": total, "users": users}
 
-    cursor = users_collection.find({}).skip(skip).limit(limit)
-    users: List[Dict[str, Any]] = []
-    async for user in cursor:
-        user["_id"] = str(user["_id"])
-        users.append(user)
-
-    return {"total": total, "users": users}
+    # ---------------- DynamoDB style ----------------
+    try:
+        # Dynamo doesn't support native offset; scan entire table (OK for small user counts)
+        response = users_collection.scan()
+        all_items = response.get("Items", [])
+        total = len(all_items)
+        paged_items = all_items[skip : skip + limit]
+        # For compatibility with frontend, mimic Mongo field names
+        for u in paged_items:
+            u["_id"] = u.get("user_id", "")
+        return {"total": total, "users": paged_items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {e}")
 
 @router.post("/send-demographic-email", response_model=EmailResponse)
 async def send_demographic_email(request: EmailRequest, current_user: dict = Depends(get_admin_user)):
