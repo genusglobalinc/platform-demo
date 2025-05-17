@@ -383,7 +383,8 @@ def get_posts_by_user(user_id: str) -> List[dict]:
 def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[str]] = None) -> List[dict]:
     if _sanity_client:
         try:
-            base_query = '*[_type == "post"'
+            # Only return approved posts (if field exists) OR posts created before approval existed (field missing)
+            base_query = '*[_type == "post" && (is_approved == true || !defined(is_approved))'
             conditions = []
             if post_type:
                 conditions.append(f'postType == "{post_type}"')
@@ -402,7 +403,11 @@ def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[s
             logger.debug(f"[get_all_posts_from_db] Scan posts table response: {response}")
             all_items = response.get('Items', [])
             
-            filtered_items = [item for item in all_items if 'title' in item and 'description' in item]
+            # Keep only approved posts (treat older posts without the field as approved)
+            filtered_items = [
+                item for item in all_items
+                if item.get('is_approved', True) is True and 'title' in item and 'description' in item
+            ]
 
             if post_type:
                 filtered_items = [item for item in filtered_items if item.get('post_type') == post_type]
@@ -422,7 +427,8 @@ def get_all_posts_from_db(post_type: Optional[str] = None, tags: Optional[List[s
 def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
     if _sanity_client:
         try:
-            query_parts = ['*[_type == "post"']
+            # Base: only approved posts
+            query_parts = ['*[_type == "post" && (is_approved == true || !defined(is_approved))']
             if main:
                 query_parts.append(f'postType == "{main.lower()}"')
             if subs:
@@ -453,7 +459,13 @@ def filter_posts_from_db(tab: str, main: str, subs: list) -> List[dict]:
 
                 filter_expr = filter_expr & sub_filter if filter_expr else sub_filter
 
-            response = posts_table.scan(FilterExpression=filter_expr) if filter_expr else posts_table.scan()
+            # Build approval filter: approved or missing field
+            approval_filter = Attr('is_approved').eq(True) | Attr('is_approved').not_exists()
+
+            # Combine with approval filter
+            filter_expr = filter_expr & approval_filter if filter_expr else approval_filter
+
+            response = posts_table.scan(FilterExpression=filter_expr)
             logger.debug("[filter_posts_from_db] Filtered posts fetched successfully.")
             logger.debug(f"[filter_posts_from_db] Filter posts response: {response}")  
             return response.get('Items', [])
