@@ -70,7 +70,7 @@ app.include_router(users_router, prefix="/users")
 app.include_router(posts_router, prefix="/posts")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(uploads_router, prefix="/uploads")
-app.include_router(admin_router, prefix="/admin")
+app.include_router(admin_router)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
