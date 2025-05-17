@@ -101,7 +101,14 @@ export default {
           { title: 'Archived', value: 'archived' }
         ]
       },
-      validation: Rule => Rule.required()
+      initialValue: 'draft'
+    },
+    {
+      name: 'is_approved',
+      title: 'Is Approved',
+      type: 'boolean',
+      description: 'Whether this post has been approved by an admin',
+      initialValue: false
     }
   ],
   preview: {
