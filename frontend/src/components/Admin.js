@@ -115,7 +115,9 @@ export default function Admin() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPostStatus(res.data.message);
-      // refresh list
+      // Optimistically remove from list, then refresh to stay in sync
+      setPendingPosts((prev) => prev.filter((x) => (x._id || x.post_id) !== postId));
+      // refresh list from backend to ensure consistency
       fetchPendingPosts();
     } catch (err) {
       setPostStatus(err.response?.data?.detail || err.message);
@@ -225,7 +227,16 @@ export default function Admin() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {(Array.isArray(pendingPosts) ? pendingPosts : []).map((p) => (
                 <div key={p._id || p.post_id} style={{ background: "#222", padding: 16, borderRadius: 8 }}>
-                  <h4 style={{ margin: 0 }}>{getPostField(p, "title")}</h4>
+                  <h4 style={{ margin: 0 }}>
+                    <a
+                      href={`/posts/${p._id || p.post_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "#B388EB", textDecoration: "none" }}
+                    >
+                      {getPostField(p, "title")}
+                    </a>
+                  </h4>
                   <p style={{ opacity: 0.8 }}>{getPostField(p, "description").slice(0, 120)}{getPostField(p, "description").length > 120 ? "..." : ""}</p>
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <button
@@ -531,8 +542,8 @@ const styles = {
     marginBottom: "32px",
   },
   usersGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+    display: "flex",
+    flexDirection: "column",
     gap: "16px",
   },
   userCard: {
