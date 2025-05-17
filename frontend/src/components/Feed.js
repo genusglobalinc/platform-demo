@@ -33,6 +33,8 @@ export default function Feed() {
     const loadProfile = async () => {
       try {
         const data = await getProfileData();
+        console.log("Profile data:", data);
+        console.log("User type:", data.user_type);
         setUserType(data.user_type);
         setFavoriteGames(Array.isArray(data.favorite_games) ? data.favorite_games : []);
       } catch (e) {
@@ -227,10 +229,14 @@ export default function Feed() {
         <div style={styles.header}>
           <h2 style={styles.title}>Discover Playtests</h2>
           <div style={styles.headerRight}>
-            {(userType === "Dev" || userType === "Admin") && (
+            {/* Debug info */}
+            <div style={{display: 'none'}}>User Type: {userType}</div>
+            
+            {/* Show create post button for Dev and Admin accounts */}
+            {(userType?.toLowerCase() === "dev" || userType?.toLowerCase() === "admin") && (
               <button
                 style={styles.createButton}
-                onClick={() => navigate('/create-post')}
+                onClick={() => setShowCreateModal(true)}
               >
                 + Create Post
               </button>

@@ -50,10 +50,13 @@ export default function Admin() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log("Fetching users...");
       const res = await axios.get("/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("Users API response:", res.data);
       const userArr = Array.isArray(res.data) ? res.data : res.data?.users || [];
+      console.log("Processed users array:", userArr);
       setUsers(userArr);
     } catch (err) {
       console.error("Failed to load users", err);
@@ -131,6 +134,7 @@ export default function Admin() {
   };
   
   const selectAllUsersOnPage = () => {
+    // Make sure we're using the normalized user IDs
     const currentPageUsers = paginatedUsers.map(user => user.user_id);
     const allSelected = currentPageUsers.every(id => selectedUsers.includes(id));
     
@@ -174,11 +178,26 @@ export default function Admin() {
     </div>
   );
 
-  const filteredUsers = (Array.isArray(users) ? users : []).filter((user) => {
+  // Normalize user objects to handle both Sanity and DynamoDB formats
+  const normalizeUser = (user) => {
+    return {
+      user_id: user._id || user.user_id,
+      username: user.username,
+      email: user.email,
+      display_name: user.display_name,
+      user_type: user.user_type,
+      demographic_info: user.demographic_info || null,
+      // Add other fields as needed
+    };
+  };
+
+  const normalizedUsers = (Array.isArray(users) ? users : []).map(normalizeUser);
+  
+  const filteredUsers = normalizedUsers.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      user.username.toLowerCase().includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower) ||
+      (user.username && user.username.toLowerCase().includes(searchLower)) ||
+      (user.email && user.email.toLowerCase().includes(searchLower)) ||
       (user.display_name && user.display_name.toLowerCase().includes(searchLower))
     );
   });

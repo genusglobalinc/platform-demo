@@ -36,13 +36,21 @@ class PostApprovalRequest(BaseModel):
 @router.get("/users", response_model=List[Dict[str, Any]])
 async def get_users(current_user: dict = Depends(get_admin_user)):
     """Get all users with their demographic information. Only accessible by admin users."""
-    users_collection = get_user_collection()
-    users = []
+    # Prioritize Sanity for user data
+    if _sanity_client:
+        try:
+            # Query all user documents from Sanity
+            query = '*[_type == "user"]'
+            users = _sanity_client.query_documents(query)
+            print(f"Found {len(users)} users in Sanity")
+            return users
+        except Exception as e:
+            print(f"Error fetching users from Sanity: {e}")
     
-    async for user in users_collection.find({}):
-        # Convert ObjectId to string for JSON serialization
-        user["_id"] = str(user["_id"])
-        users.append(user)
+    # Fallback to DynamoDB if Sanity is not available
+    from ..database import get_all_users
+    users = get_all_users()
+    print(f"Found {len(users)} users in DynamoDB")
     
     return users
 
@@ -128,8 +136,22 @@ async def send_bulk_demographic_email(request: BulkEmailRequest, current_user: d
     # Collect demographic information for all users
     users_data = []
     for user_id in request.user_ids:
-        user = await get_user_by_id(user_id)
-        if user and user.get("demographic_info"):
+        # Try to get user from Sanity first
+        user = None
+        if _sanity_client:
+            try:
+                query = f'*[_type == "user" && _id == "{user_id}"][0]'
+                user = _sanity_client.query_documents(query)
+                if user:
+                    print(f"Found user {user_id} in Sanity")
+            except Exception as e:
+                print(f"Error fetching user {user_id} from Sanity: {e}")
+        
+        # Fallback to DynamoDB if not found in Sanity
+        if not user:
+            user = await get_user_by_id(user_id)
+            
+        if user and (user.get("demographic_info") or user.get("demographic_info")):
             users_data.append(user)
     
     if not users_data:
