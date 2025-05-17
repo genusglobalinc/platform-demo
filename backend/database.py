@@ -42,17 +42,6 @@ def get_user_collection():
     """Return users table for querying"""
     return users_table
 
-def get_all_users() -> List[Dict]:
-    """Get all users from DynamoDB"""
-    try:
-        response = users_table.scan()
-        users = response.get('Items', [])
-        logger.debug(f"[get_all_users] Found {len(users)} users")
-        return users
-    except ClientError as e:
-        logger.error(f"[get_all_users] Failed to get users: {e}")
-        return []
-
 async def get_user_by_id(user_id: str) -> Optional[Dict]:
     """Get user by ID for admin functionality"""
     try:

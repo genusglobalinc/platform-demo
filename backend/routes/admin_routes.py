@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 import smtplib
 from email.mime.text import MIMEText
@@ -21,38 +21,38 @@ router = APIRouter(
 class EmailRequest(BaseModel):
     user_id: str
 
-class BulkEmailRequest(BaseModel):
-    user_ids: List[str]
-    email_address: str
-
 class EmailResponse(BaseModel):
     success: bool
     recipient: str
+
+class EmailBatchRequest(BaseModel):
+    user_ids: List[str]
 
 class PostApprovalRequest(BaseModel):
     post_id: str
     approve: bool = True  # False means reject (delete)
 
-@router.get("/users", response_model=List[Dict[str, Any]])
-async def get_users(current_user: dict = Depends(get_admin_user)):
-    """Get all users with their demographic information. Only accessible by admin users."""
-    # Prioritize Sanity for user data
-    if _sanity_client:
-        try:
-            # Query all user documents from Sanity
-            query = '*[_type == "user"]'
-            users = _sanity_client.query_documents(query)
-            print(f"Found {len(users)} users in Sanity")
-            return users
-        except Exception as e:
-            print(f"Error fetching users from Sanity: {e}")
-    
-    # Fallback to DynamoDB if Sanity is not available
-    from ..database import get_all_users
-    users = get_all_users()
-    print(f"Found {len(users)} users in DynamoDB")
-    
-    return users
+@router.get("/users", response_model=Dict[str, Any])
+async def get_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: dict = Depends(get_admin_user),
+):
+    """Get users with pagination. Only accessible by admin users.
+
+    Returns a dict with total user count and the list of users for the requested page.
+    """
+    users_collection = get_user_collection()
+
+    total = await users_collection.count_documents({})
+
+    cursor = users_collection.find({}).skip(skip).limit(limit)
+    users: List[Dict[str, Any]] = []
+    async for user in cursor:
+        user["_id"] = str(user["_id"])
+        users.append(user)
+
+    return {"total": total, "users": users}
 
 @router.post("/send-demographic-email", response_model=EmailResponse)
 async def send_demographic_email(request: EmailRequest, current_user: dict = Depends(get_admin_user)):
@@ -122,99 +122,66 @@ async def send_demographic_email(request: EmailRequest, current_user: dict = Dep
             detail=f"Failed to send email: {str(e)}"
         )
 
-@router.post("/send-bulk-demographic-email", response_model=EmailResponse)
-async def send_bulk_demographic_email(request: BulkEmailRequest, current_user: dict = Depends(get_admin_user)):
-    """Send demographic information for multiple users via email. Only accessible by admin users."""
+# ---------------------- Send Demographics (Batch) ----------------------
+
+@router.post("/send-demographic-email-batch", response_model=EmailResponse)
+async def send_demographic_email_batch(
+    request: EmailBatchRequest, current_user: dict = Depends(get_admin_user)
+):
+    """Send demographic information for multiple users in a single email."""
+
     if not request.user_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No user IDs provided")
+
+    valid_users: List[Dict[str, Any]] = []
+    for uid in request.user_ids:
+        user = await get_user_by_id(uid)
+        if user and user.get("demographic_info"):
+            user["_id"] = str(user.get("_id"))
+            valid_users.append(user)
+
+    if not valid_users:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No users selected"
+            detail="None of the selected users have demographic information",
         )
-    
+
     settings = get_settings()
-    
-    # Collect demographic information for all users
-    users_data = []
-    for user_id in request.user_ids:
-        # Try to get user from Sanity first
-        user = None
-        if _sanity_client:
-            try:
-                query = f'*[_type == "user" && _id == "{user_id}"][0]'
-                user = _sanity_client.query_documents(query)
-                if user:
-                    print(f"Found user {user_id} in Sanity")
-            except Exception as e:
-                print(f"Error fetching user {user_id} from Sanity: {e}")
-        
-        # Fallback to DynamoDB if not found in Sanity
-        if not user:
-            user = await get_user_by_id(user_id)
-            
-        if user and (user.get("demographic_info") or user.get("demographic_info")):
-            users_data.append(user)
-    
-    if not users_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="None of the selected users have demographic information"
-        )
-    
-    # Prepare email content
+
     msg = MIMEMultipart()
-    msg["Subject"] = f"Demographic Information for {len(users_data)} Users"
+    msg["Subject"] = f"Demographic Information for {len(valid_users)} Users"
     msg["From"] = settings.email_sender
-    msg["To"] = request.email_address
-    
-    # Create HTML content
-    html_content = f"""
-    <html>
-        <body>
-            <h2>Demographic Information for {len(users_data)} Users</h2>
-    """
-    
-    # Add demographic information for each user
-    for user in users_data:
-        html_content += f"""
-        <div style="margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
-            <h3>{user.get('display_name') or user.get('username')}</h3>
-            <p><strong>User ID:</strong> {user.get('_id')}</p>
-            <p><strong>Username:</strong> {user.get('username')}</p>
-            <p><strong>Email:</strong> {user.get('email')}</p>
-            <p><strong>Account Type:</strong> {user.get('user_type')}</p>
-            <h4>Demographic Information</h4>
-        """
-        
-        # Add demographic information
+    msg["To"] = current_user.get("email")
+
+    html_content = "<html><body>"
+    html_content += f"<h2>Demographic Information Report (Total: {len(valid_users)})</h2>"
+
+    for user in valid_users:
+        html_content += f"<h3>{user.get('display_name') or user.get('username')}</h3>"
+        html_content += f"<p><strong>User ID:</strong> {user.get('_id')}</p>"
+        html_content += f"<p><strong>Email:</strong> {user.get('email')}</p>"
         demo_info = user.get("demographic_info", {})
         for key, value in demo_info.items():
-            # Format key_name to be more readable (e.g., "preferred_platforms" -> "Preferred Platforms")
             formatted_key = key.replace("_", " ").title()
-            html_content += f"<p><strong>{formatted_key}:</strong> {value}</p>\n"
-        
-        html_content += "</div>"
-    
-    html_content += """
-        </body>
-    </html>
-    """
-    
-    # Attach HTML content
+            html_content += f"<p><strong>{formatted_key}:</strong> {value}</p>"
+        html_content += "<hr />"
+
+    html_content += "</body></html>"
+
     msg.attach(MIMEText(html_content, "html"))
-    
+
     try:
-        # Connect to SMTP server and send email
         with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
             if settings.smtp_use_tls:
                 server.starttls()
             server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(msg)
-            
-        return {"success": True, "recipient": request.email_address}
+
+        return {"success": True, "recipient": current_user.get("email")}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send email: {str(e)}"
+            detail=f"Failed to send email: {str(e)}",
         )
 
 # ------------------------------ Post Approval ------------------------------

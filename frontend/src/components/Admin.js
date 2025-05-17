@@ -11,12 +11,14 @@ export default function Admin() {
   const [profile, setProfile] = useState(null);
   const [pendingPosts, setPendingPosts] = useState([]);
   const [postStatus, setPostStatus] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [bulkEmailAddress, setBulkEmailAddress] = useState("");
-  const usersPerPage = 10;
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
+  // Pagination & selection state
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
     // Load profile to check if user is admin
@@ -25,7 +27,7 @@ export default function Admin() {
     fetchUsers();
     // Load pending posts as well
     fetchPendingPosts();
-  }, []);
+  }, [page]);
 
   const fetchProfile = async () => {
     try {
@@ -50,14 +52,12 @@ export default function Admin() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log("Fetching users...");
-      const res = await axios.get("/admin/users", {
+      const res = await axios.get(`/admin/users?skip=${(page - 1) * pageSize}&limit=${pageSize}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Users API response:", res.data);
-      const userArr = Array.isArray(res.data) ? res.data : res.data?.users || [];
-      console.log("Processed users array:", userArr);
-      setUsers(userArr);
+      const arr = res.data?.users || [];
+      setUsers(arr);
+      setTotalUsers(res.data?.total || arr.length);
     } catch (err) {
       console.error("Failed to load users", err);
     } finally {
@@ -97,61 +97,6 @@ export default function Admin() {
       setLoading(false);
     }
   };
-  
-  const sendBulkEmail = async () => {
-    if (!bulkEmailAddress || selectedUsers.length === 0) {
-      setEmailStatus("Please provide an email address and select at least one user");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setEmailStatus("");
-      const res = await axios.post(
-        "/admin/send-bulk-demographic-email",
-        { 
-          user_ids: selectedUsers,
-          email_address: bulkEmailAddress 
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setEmailStatus(`Demographic data for ${selectedUsers.length} users sent to ${bulkEmailAddress}`);
-      setSelectedUsers([]);
-    } catch (err) {
-      setEmailStatus(`Failed to send bulk email: ${err.response?.data?.detail || err.message}`);
-      console.error("Bulk email sending error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const toggleUserSelection = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
-  
-  const selectAllUsersOnPage = () => {
-    // Make sure we're using the normalized user IDs
-    const currentPageUsers = paginatedUsers.map(user => user.user_id);
-    const allSelected = currentPageUsers.every(id => selectedUsers.includes(id));
-    
-    if (allSelected) {
-      // Deselect all on current page
-      setSelectedUsers(prev => prev.filter(id => !currentPageUsers.includes(id)));
-    } else {
-      // Select all on current page
-      const newSelected = [...selectedUsers];
-      currentPageUsers.forEach(id => {
-        if (!newSelected.includes(id)) {
-          newSelected.push(id);
-        }
-      });
-      setSelectedUsers(newSelected);
-    }
-  };
 
   const updatePostApproval = async (postId, approve = true) => {
     try {
@@ -178,39 +123,45 @@ export default function Admin() {
     </div>
   );
 
-  // Normalize user objects to handle both Sanity and DynamoDB formats
-  const normalizeUser = (user) => {
-    return {
-      user_id: user._id || user.user_id,
-      username: user.username,
-      email: user.email,
-      display_name: user.display_name,
-      user_type: user.user_type,
-      demographic_info: user.demographic_info || null,
-      // Add other fields as needed
-    };
-  };
-
-  const normalizedUsers = (Array.isArray(users) ? users : []).map(normalizeUser);
-  
-  const filteredUsers = normalizedUsers.filter((user) => {
+  const filteredUsers = (Array.isArray(users) ? users : []).filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      (user.username && user.username.toLowerCase().includes(searchLower)) ||
-      (user.email && user.email.toLowerCase().includes(searchLower)) ||
+      user.username.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
       (user.display_name && user.display_name.toLowerCase().includes(searchLower))
     );
   });
-  
-  // Calculate pagination
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const paginatedUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  
-  const paginate = (pageNumber) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
+
+  // Toggle single-user selection checkbox
+  const toggleSelect = (uid) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) {
+        next.delete(uid);
+      } else {
+        next.add(uid);
+      }
+      return next;
+    });
+  };
+
+  // Send demographics for all selected users
+  const sendBatchEmail = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      setLoading(true);
+      setEmailStatus("");
+      const res = await axios.post(
+        "/admin/send-demographic-email-batch",
+        { user_ids: Array.from(selectedIds) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEmailStatus(`Email sent successfully to ${res.data.recipient}`);
+    } catch (err) {
+      setEmailStatus(`Failed to send email: ${err.response?.data?.detail || err.message}`);
+      console.error("Batch email error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -289,134 +240,78 @@ export default function Admin() {
           {postStatus && <p style={{ marginTop: 8 }}>{postStatus}</p>}
         </div>
 
-        {/* Users */}
+        {/* Users List */}
         <div style={styles.usersList}>
-          <h3 style={styles.sectionTitle}>
-            Users ({filteredUsers.length} total)
-          </h3>
-          
-          {/* Bulk Email Controls */}
-          <div style={styles.bulkEmailContainer}>
-            <div style={styles.bulkEmailHeader}>
-              <h4>Bulk Email Selected Users</h4>
-              <div style={styles.selectedCount}>
-                {selectedUsers.length} selected
-              </div>
-            </div>
-            <div style={styles.bulkEmailControls}>
-              <input
-                type="email"
-                placeholder="Enter recipient email address"
-                value={bulkEmailAddress}
-                onChange={(e) => setBulkEmailAddress(e.target.value)}
-                style={styles.bulkEmailInput}
-              />
-              <button
-                onClick={sendBulkEmail}
-                disabled={selectedUsers.length === 0 || !bulkEmailAddress}
-                style={{
-                  ...styles.bulkEmailButton,
-                  opacity: selectedUsers.length === 0 || !bulkEmailAddress ? 0.5 : 1
-                }}
-              >
-                Send Demographics
-              </button>
-            </div>
-            {emailStatus && <div style={styles.emailStatus}>{emailStatus}</div>}
+          <h3 style={styles.sectionTitle}>Users</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span>Total: {totalUsers}</span>
+            <button
+              style={{
+                ...styles.emailButton,
+                opacity: selectedIds.size === 0 ? 0.5 : 1,
+                cursor: selectedIds.size === 0 ? "default" : "pointer",
+              }}
+              disabled={selectedIds.size === 0}
+              onClick={sendBatchEmail}
+            >
+              Email Selected ({selectedIds.size})
+            </button>
           </div>
-          
-          {/* Users Table */}
-          <div style={styles.usersTable}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>
-                    <input 
-                      type="checkbox" 
-                      checked={paginatedUsers.length > 0 && paginatedUsers.every(user => selectedUsers.includes(user.user_id))}
-                      onChange={selectAllUsersOnPage}
-                      style={styles.checkbox}
-                    />
-                  </th>
-                  <th style={styles.tableHeader}>Username</th>
-                  <th style={styles.tableHeader}>Display Name</th>
-                  <th style={styles.tableHeader}>Email</th>
-                  <th style={styles.tableHeader}>Account Type</th>
-                  <th style={styles.tableHeader}>Demographics</th>
-                  <th style={styles.tableHeader}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedUsers.map((user) => (
-                  <tr 
-                    key={user.user_id} 
+          {filteredUsers.length > 0 ? (
+            <div style={styles.usersGrid}>
+              {filteredUsers.map((user) => {
+                const uid = user.user_id || user._id;
+                return (
+                  <div
+                    key={uid}
                     style={{
-                      ...styles.tableRow,
-                      ...(selectedUser?.user_id === user.user_id ? styles.selectedRow : {})
+                      ...styles.userCard,
+                      ...(selectedUser?.user_id === uid ? styles.selectedUserCard : {}),
                     }}
+                    onClick={() => setSelectedUser(user)}
                   >
-                    <td style={styles.tableCell}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedUsers.includes(user.user_id)}
-                        onChange={() => toggleUserSelection(user.user_id)}
-                        style={styles.checkbox}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                    <td style={styles.tableCell}>{user.username}</td>
-                    <td style={styles.tableCell}>{user.display_name || '-'}</td>
-                    <td style={styles.tableCell}>{user.email}</td>
-                    <td style={styles.tableCell}>{user.user_type}</td>
-                    <td style={styles.tableCell}>
-                      {user.demographic_info ? (
-                        <span style={styles.tagDemographic}>Yes</span>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(uid)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleSelect(uid)}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <h4 style={styles.userName}>{user.display_name || user.username}</h4>
+                    <p style={styles.userEmail}>{user.email}</p>
+                    <p style={styles.userType}>{user.user_type}</p>
+                    <div style={styles.hasDemographics}>
+                      {user.demographic_info && Object.keys(user.demographic_info).length > 0 ? (
+                        <span style={styles.tagDemographic}>Has Demographics</span>
                       ) : (
-                        <span style={styles.tagNoDemographic}>No</span>
+                        <span style={styles.tagNoDemographic}>No Demographics</span>
                       )}
-                    </td>
-                    <td style={styles.tableCell}>
-                      <button 
-                        style={styles.viewButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedUser(user);
-                        }}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={styles.pagination}>
-              <button 
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                style={{
-                  ...styles.paginationButton,
-                  opacity: currentPage === 1 ? 0.5 : 1
-                }}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p>No users found matching your search criteria.</p>
+          )}
+          {totalUsers > pageSize && (
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+              <button
+                style={styles.emailButton}
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                &laquo; Prev
+                Prev
               </button>
-              <div style={styles.pageInfo}>
-                Page {currentPage} of {totalPages}
-              </div>
-              <button 
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                style={{
-                  ...styles.paginationButton,
-                  opacity: currentPage === totalPages ? 0.5 : 1
-                }}
+              <span>
+                Page {page} / {Math.ceil(totalUsers / pageSize) || 1}
+              </span>
+              <button
+                style={styles.emailButton}
+                disabled={page >= Math.ceil(totalUsers / pageSize)}
+                onClick={() => setPage((p) => Math.min(Math.ceil(totalUsers / pageSize), p + 1))}
               >
-                Next &raquo;
+                Next
               </button>
             </div>
           )}
@@ -543,106 +438,6 @@ const styles = {
     justifyContent: "center",
     background: "rgba(0, 0, 0, 0.8)",
     zIndex: 1000,
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginTop: "16px",
-    backgroundColor: "#222",
-    borderRadius: "8px",
-    overflow: "hidden",
-  },
-  tableHeader: {
-    padding: "12px 16px",
-    textAlign: "left",
-    backgroundColor: "#333",
-    color: "#B388EB",
-    fontWeight: "bold",
-  },
-  tableRow: {
-    borderBottom: "1px solid #333",
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-  },
-  selectedRow: {
-    backgroundColor: "#333",
-  },
-  tableCell: {
-    padding: "12px 16px",
-    textAlign: "left",
-  },
-  checkbox: {
-    cursor: "pointer",
-    width: "18px",
-    height: "18px",
-  },
-  viewButton: {
-    padding: "6px 12px",
-    backgroundColor: "#B388EB",
-    color: "#121212",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-  pagination: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: "24px",
-    gap: "16px",
-  },
-  paginationButton: {
-    padding: "8px 16px",
-    backgroundColor: "#333",
-    color: "#fff",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-  },
-  pageInfo: {
-    fontSize: "14px",
-    color: "#B388EB",
-  },
-  bulkEmailContainer: {
-    backgroundColor: "#222",
-    padding: "16px",
-    borderRadius: "8px",
-    marginBottom: "24px",
-  },
-  bulkEmailHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "16px",
-  },
-  selectedCount: {
-    backgroundColor: "#B388EB",
-    color: "#121212",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    fontWeight: "bold",
-  },
-  bulkEmailControls: {
-    display: "flex",
-    gap: "16px",
-  },
-  bulkEmailInput: {
-    flex: 1,
-    padding: "10px 16px",
-    backgroundColor: "#333",
-    color: "#fff",
-    border: "1px solid #444",
-    borderRadius: "4px",
-  },
-  bulkEmailButton: {
-    padding: "10px 16px",
-    backgroundColor: "#B388EB",
-    color: "#121212",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: "bold",
   },
   spinner: {
     width: "50px",
