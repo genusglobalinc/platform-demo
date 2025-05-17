@@ -20,6 +20,14 @@ export default function Admin() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // Helper to safely access title/description regardless of nesting
+  const getPostField = (post, field) => {
+    if (!post) return "";
+    if (post[field] !== undefined && post[field] !== null) return post[field];
+    if (post.post_data && post.post_data[field] !== undefined) return post.post_data[field];
+    return "";
+  };
+
   useEffect(() => {
     // Load profile to check if user is admin
     fetchProfile();
@@ -217,8 +225,8 @@ export default function Admin() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {(Array.isArray(pendingPosts) ? pendingPosts : []).map((p) => (
                 <div key={p._id || p.post_id} style={{ background: "#222", padding: 16, borderRadius: 8 }}>
-                  <h4 style={{ margin: 0 }}>{p.title}</h4>
-                  <p style={{ opacity: 0.8 }}>{p.description?.slice(0, 120)}...</p>
+                  <h4 style={{ margin: 0 }}>{getPostField(p, "title")}</h4>
+                  <p style={{ opacity: 0.8 }}>{getPostField(p, "description").slice(0, 120)}{getPostField(p, "description").length > 120 ? "..." : ""}</p>
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <button
                       style={{ ...styles.emailButton, background: "#28a745", color: "#fff" }}
