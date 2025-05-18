@@ -266,19 +266,36 @@ async def email_registrants(
     msg["From"] = settings.email_sender
     msg["To"] = recipient_email
 
+    # Helper to flatten nested dict keys
+    def _flatten(data: dict, parent_key: str = "", sep: str = "_"):
+        items = {}
+        for k, v in (data or {}).items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.update(_flatten(v, new_key, sep=sep))
+            else:
+                items[new_key] = v
+        return items
+
     # Build CSV from registrant profiles
     import csv, io, zipfile
     output = io.StringIO()
-    fieldnames = ["user_id", "name", "email", "registered_at"]
+
+    rows = []
+    fieldnames_set = set()
+    for r in registrants:
+        uid = r.get("user_id")
+        profile = get_user_from_db(uid) or {}
+        flattened_profile = _flatten(profile)
+        row = {"user_id": uid, **flattened_profile}
+        rows.append(row)
+        fieldnames_set.update(row.keys())
+
+    fieldnames = sorted(fieldnames_set)
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
-    for r in registrants:
-        writer.writerow({
-            "user_id": r.get("user_id"),
-            "name": r.get("name"),
-            "email": r.get("email"),
-            "registered_at": r.get("registered_at"),
-        })
+    for row in rows:
+        writer.writerow(row)
 
     csv_bytes = output.getvalue().encode()
     zip_buffer = io.BytesIO()
