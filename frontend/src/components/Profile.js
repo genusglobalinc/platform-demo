@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
 import axios from "axios";
+import clsx from "clsx";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [msg, setMsg] = useState("");
+  const [postStatuses, setPostStatuses] = useState({}); // per-post notifications
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,18 +48,21 @@ export default function Profile() {
   } catch {}
   const isDev = userType === "Dev";
 
+  const setPostStatus = (id, message) =>
+    setPostStatuses((prev) => ({ ...prev, [id]: message }));
+
   // --- Helpers ---
   const emailRegistrants = async (postId) => {
     try {
-      setMsg("");
+      setPostStatus(postId, "Sending email...");
       await axios.post(
         `/posts/${postId}/email-registrants`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMsg("Email sent successfully");
+      setPostStatus(postId, "Email sent!");
     } catch (err) {
-      setMsg(`Failed to send email: ${err.response?.data?.detail || err.message}`);
+      setPostStatus(postId, `Failed: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -156,6 +161,11 @@ export default function Profile() {
                 )}
               </div>
             )}
+            {profile && (
+              <p style={{ color: profile.is_verified ? "#0f0" : "#f66", marginBottom: 8 }}>
+                Email status: {profile.is_verified ? "Verified" : "Not verified"}
+              </p>
+            )}
           </div>
         ) : (
           <p style={styles.details}>Loading profile...</p>
@@ -180,6 +190,11 @@ export default function Profile() {
                       >
                         Collect Registrations
                       </button>
+                    )}
+                    {postStatuses[post.post_id || post._id] && (
+                      <p style={{ marginTop: 4, fontSize: "0.85rem", color: "#B388EB" }}>
+                        {postStatuses[post.post_id || post._id]}
+                      </p>
                     )}
                   </li>
                 ))}

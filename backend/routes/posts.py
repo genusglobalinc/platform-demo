@@ -240,6 +240,11 @@ async def email_registrants(
     if current_user_id != owner_id and user_type != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to email registrants")
 
+    # Ensure the initiating user's email is verified
+    initiator = get_user_from_db(current_user_id)
+    if not initiator or not initiator.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Please verify your email before collecting registrations")
+
     owner_user = get_user_from_db(owner_id)
     if not owner_user:
         raise HTTPException(status_code=404, detail="Developer account not found")
