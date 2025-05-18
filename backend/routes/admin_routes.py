@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from pydantic import BaseModel
 import os
+import datetime
 from ..utils.security import get_current_user, get_admin_user
 from ..database import (get_user_collection, get_user_by_id, get_post_from_db,
                         update_user_profile, get_pending_posts_from_db)
@@ -214,10 +215,17 @@ async def approve_post(request: PostApprovalRequest, current_user: dict = Depend
             return {"message": "Post already approved"}
 
         # Update in Sanity or Dynamo
+        from backend.database import _sanity_client
         success = False
-        if _sanity_client := getattr(post, "_sanity_client", None):
+        if _sanity_client:
             try:
-                _sanity_client.patch_document(request.post_id, {"is_approved": True})
+                _sanity_client.patch_document(
+                    request.post_id,
+                    {
+                        "is_approved": True,
+                        "approved_at": datetime.datetime.utcnow().isoformat()
+                    },
+                )
                 success = True
             except Exception as e:
                 logging.error(f"[approve_post] Sanity patch failed: {e}")
@@ -230,8 +238,8 @@ async def approve_post(request: PostApprovalRequest, current_user: dict = Depend
                 posts_table = dynamodb.Table("Posts")
                 posts_table.update_item(
                     Key={"post_id": request.post_id},
-                    UpdateExpression="SET is_approved = :t",
-                    ExpressionAttributeValues={":t": True},
+                    UpdateExpression="SET is_approved = :t, approved_at = :a",
+                    ExpressionAttributeValues={":t": True, ":a": datetime.datetime.utcnow().isoformat()},
                 )
                 success = True
             except Exception as e:
