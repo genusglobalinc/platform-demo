@@ -17,6 +17,7 @@ from backend.database import (
     delete_post_in_db,
     posts_table,
     _sanity_client,
+    get_user_from_db,
 )
 from backend.utils.security import verify_access_token
 from fastapi_limiter.depends import RateLimiter
@@ -227,8 +228,21 @@ async def email_registrants(
         raise HTTPException(status_code=404, detail="Post not found")
 
     owner_id = post.get("testerId") or post.get("user_id")
-    if user_type not in ("Dev", "Admin") and current_user_id != owner_id:
+
+    # Only the owner Dev or an Admin may request
+    if current_user_id != owner_id and user_type != "Admin":
         raise HTTPException(status_code=403, detail="Not authorized to email registrants")
+
+    owner_user = get_user_from_db(owner_id)
+    if not owner_user:
+        raise HTTPException(status_code=404, detail="Developer account not found")
+
+    recipient_email = owner_user.get("email")
+    if not recipient_email:
+        raise HTTPException(status_code=400, detail="Developer email missing")
+
+    if not owner_user.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Developer email not verified")
 
     registrants = post.get("registrants", [])
     if not registrants:
@@ -238,13 +252,13 @@ async def email_registrants(
     msg = MIMEMultipart()
     msg["Subject"] = f"Registrants for {post.get('title')}"
     msg["From"] = settings.email_sender
-    msg["To"] = payload.get("email")
+    msg["To"] = recipient_email
 
     html = "<html><body>"
     html += f"<h2>Registrants ({len(registrants)})</h2><ul>"
     for r in registrants:
         html += f"<li>{r.get('name')} ({r.get('email')}) at {r.get('registered_at')}</li>"
-    html += "</ul></body></html"
+    html += "</ul></body></html>"
 
     msg.attach(MIMEText(html, "html"))
 
@@ -252,10 +266,12 @@ async def email_registrants(
         with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
             if settings.smtp_use_tls:
                 server.starttls()
-            server.login(settings.smtp_username, settings.smtp_password)
+            # Login only if credentials provided
+            if settings.smtp_username and settings.smtp_password:
+                server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(msg)
     except Exception as e:
         logging.error(f"[email_registrants] SMTP error: {e}")
         raise HTTPException(status_code=500, detail="Email sending failed")
 
-    return {"success": True, "recipient": payload.get("email")}
+    return {"success": True, "recipient": recipient_email}
