@@ -242,7 +242,7 @@ async def email_registrants(
 
     # Ensure the initiating user's email is verified
     initiator = get_user_from_db(current_user_id)
-    if not initiator or not initiator.get("is_verified", False):
+    if not initiator or not initiator.get("is_email_verified", False):
         raise HTTPException(status_code=403, detail="Please verify your email before collecting registrations")
 
     owner_user = get_user_from_db(owner_id)
@@ -253,7 +253,7 @@ async def email_registrants(
     if not recipient_email:
         raise HTTPException(status_code=400, detail="Developer email missing")
 
-    if not owner_user.get("is_verified", False):
+    if not owner_user.get("is_email_verified", False):
         raise HTTPException(status_code=403, detail="Developer email not verified")
 
     registrants = post.get("registrants", [])
@@ -266,13 +266,47 @@ async def email_registrants(
     msg["From"] = settings.email_sender
     msg["To"] = recipient_email
 
-    html = "<html><body>"
-    html += f"<h2>Registrants ({len(registrants)})</h2><ul>"
+    # Build CSV from registrant profiles
+    import csv, io, zipfile
+    output = io.StringIO()
+    fieldnames = ["user_id", "name", "email", "registered_at"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
     for r in registrants:
-        html += f"<li>{r.get('name')} ({r.get('email')}) at {r.get('registered_at')}</li>"
-    html += "</ul></body></html>"
+        writer.writerow({
+            "user_id": r.get("user_id"),
+            "name": r.get("name"),
+            "email": r.get("email"),
+            "registered_at": r.get("registered_at"),
+        })
 
-    msg.attach(MIMEText(html, "html"))
+    csv_bytes = output.getvalue().encode()
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("registrants.csv", csv_bytes)
+    zip_buffer.seek(0)
+
+    from email.mime.base import MIMEBase
+    from email import encoders
+
+    attachment = MIMEBase('application', 'zip')
+    attachment.set_payload(zip_buffer.read())
+    encoders.encode_base64(attachment)
+    attachment.add_header('Content-Disposition', 'attachment', filename='registrants.zip')
+
+    body_html = f"""
+    <html><body>
+      <p>Hello {owner_user.get('display_name') or owner_user.get('username')},</p>
+      <p>Thanks for using Lost Gates! Here are the registrants for your event <strong>{post.get('title')}</strong>.</p>
+      <p>The attached ZIP contains an Excel-ready CSV with full details.</p>
+      <p>Good luck with your playtest!</p>
+      <hr>
+      <p style='font-size:12px'>Lost Gates Team</p>
+    </body></html>
+    """
+
+    msg.attach(MIMEText(body_html, "html"))
+    msg.attach(attachment)
 
     try:
         with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
