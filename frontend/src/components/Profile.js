@@ -49,7 +49,7 @@ export default function Profile() {
   // --- Helpers ---
   const collectRegistrations = async (postId) => {
     // Must have verified email first
-    if (!profile?.is_verified) {
+    if (!profile?.is_email_verified) {
       setPostMsgs((prev) => ({ ...prev, [postId]: "Verify email first to export." }));
       return;
     }
@@ -110,7 +110,7 @@ export default function Profile() {
             <p><strong>Username:</strong> {profile.username}</p>
             <p><strong>Display Name:</strong> {profile.display_name}</p>
             <p><strong>Email:</strong> {profile.email}</p>
-            <p><strong>Email Verified:</strong> {profile.is_verified ? "Yes" : "No"}</p>
+            <p><strong>Email Verified:</strong> {profile.is_email_verified ? "Yes" : "No"}</p>
             <p><strong>Social Links:</strong> {profile.social_links}</p>
             {profile.steam_profile && (
               <div style={{marginTop: '1rem'}}>
@@ -184,7 +184,7 @@ export default function Profile() {
                       <button
                         style={styles.emailRegistrantsBtn}
                         onClick={() => collectRegistrations(post.post_id || post._id)}
-                        disabled={!profile?.is_verified}
+                        disabled={!profile?.is_email_verified}
                       >
                         Collect Registrations
                       </button>
