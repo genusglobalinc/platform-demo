@@ -21,6 +21,7 @@ router = APIRouter(
 
 class EmailRequest(BaseModel):
     user_id: str
+    recipient_email: Optional[str] = None
 
 class EmailResponse(BaseModel):
     success: bool
@@ -28,6 +29,7 @@ class EmailResponse(BaseModel):
 
 class EmailBatchRequest(BaseModel):
     user_ids: List[str]
+    recipient_email: Optional[str] = None
 
 class PostApprovalRequest(BaseModel):
     post_id: str
@@ -92,7 +94,8 @@ async def send_demographic_email(request: EmailRequest, current_user: dict = Dep
     msg["Subject"] = f"Demographic Information for {user.get('display_name') or user.get('username')}"
     msg["From"] = settings.email_sender
     # Send to developers (in this implementation, we'll send to the admin's email)
-    msg["To"] = current_user.get("email")
+    recipient = request.recipient_email or current_user.get("email")
+    msg["To"] = recipient
     
     # Create HTML content
     html_content = f"""
@@ -128,7 +131,7 @@ async def send_demographic_email(request: EmailRequest, current_user: dict = Dep
             server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(msg)
             
-        return {"success": True, "recipient": current_user.get("email")}
+        return {"success": True, "recipient": recipient}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -161,10 +164,12 @@ async def send_demographic_email_batch(
 
     settings = get_settings()
 
+    recipient = request.recipient_email or current_user.get("email")
+
     msg = MIMEMultipart()
     msg["Subject"] = f"Demographic Information for {len(valid_users)} Users"
     msg["From"] = settings.email_sender
-    msg["To"] = current_user.get("email")
+    msg["To"] = recipient
 
     html_content = "<html><body>"
     html_content += f"<h2>Demographic Information Report (Total: {len(valid_users)})</h2>"
@@ -190,7 +195,7 @@ async def send_demographic_email_batch(
             server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(msg)
 
-        return {"success": True, "recipient": current_user.get("email")}
+        return {"success": True, "recipient": recipient}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

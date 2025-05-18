@@ -156,20 +156,20 @@ export default function Admin() {
   };
 
   // Send demographics for all selected users
-  const sendBatchEmail = async () => {
+  const sendBatchEmail = async (recipient) => {
     if (selectedIds.size === 0) return;
     try {
       setLoading(true);
       setEmailStatus("");
       const res = await axios.post(
         "/admin/send-demographic-email-batch",
-        { user_ids: Array.from(selectedIds) },
+        { user_ids: Array.from(selectedIds), recipient_email: recipient },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setEmailStatus(`Email sent successfully to ${res.data.recipient}`);
     } catch (err) {
       setEmailStatus(`Failed to send email: ${err.response?.data?.detail || err.message}`);
-      console.error("Batch email error:", err);
+      console.error("Batch email sending error:", err);
     } finally {
       setLoading(false);
     }
@@ -271,7 +271,15 @@ export default function Admin() {
                 cursor: selectedIds.size === 0 ? "default" : "pointer",
               }}
               disabled={selectedIds.size === 0}
-              onClick={sendBatchEmail}
+              onClick={() => {
+                if (selectedIds.size === 0) return;
+                const email = prompt("Enter recipient email address:");
+                if (!email) {
+                  alert("Recipient e-mail is required");
+                  return;
+                }
+                sendBatchEmail(email);
+              }}
             >
               Email Selected ({selectedIds.size})
             </button>
