@@ -78,49 +78,6 @@ export default {
       of: [{ type: 'image' }]
     },
     {
-      name: 'access_instructions',
-      title: 'Access Instructions',
-      type: 'text',
-      description: 'Instructions given to testers to access the build'
-    },
-    {
-      name: 'rewards',
-      title: 'Rewards',
-      type: 'string',
-      description: 'Any incentives for testers (gift cards, keys, etc.)'
-    },
-    {
-      name: 'has_nda',
-      title: 'NDA Required',
-      type: 'boolean',
-      description: 'Does this test require signing an NDA?'
-    },
-    {
-      name: 'share_post_to_socials',
-      title: 'Share Post To Socials',
-      type: 'boolean',
-      description: 'Whether the post should be auto-shared to socials when approved',
-      initialValue: false
-    },
-    {
-      name: 'registrants',
-      title: 'Registrants',
-      type: 'array',
-      of: [
-        {
-          type: 'object',
-          fields: [
-            { name: 'user_id', title: 'User ID', type: 'string' },
-            { name: 'name', title: 'Name', type: 'string' },
-            { name: 'email', title: 'Email', type: 'string' },
-            { name: 'registered_at', title: 'Registered At', type: 'datetime' }
-          ]
-        }
-      ],
-      readOnly: true,
-      description: 'Users who signed up for this test event'
-    },
-    {
       name: 'testerId',
       title: 'Tester ID',
       type: 'string',
@@ -152,6 +109,31 @@ export default {
       type: 'boolean',
       description: 'Whether this post has been approved by an admin',
       initialValue: false
+    },
+    {
+      name: 'approved_at',
+      title: 'Approved At',
+      type: 'datetime',
+      readOnly: true,
+      description: 'Timestamp when this post was approved by an admin'
+    },
+    {
+      name: 'registrants',
+      title: 'Registrants',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            { name: 'name', title: 'Name', type: 'string' },
+            { name: 'email', title: 'Email', type: 'string' },
+            { name: 'user_id', title: 'User ID', type: 'string' },
+            { name: 'registered_at', title: 'Registered At', type: 'datetime' }
+          ]
+        }
+      ],
+      readOnly: true,
+      description: 'Users who have registered for this event'
     }
   ],
   preview: {
