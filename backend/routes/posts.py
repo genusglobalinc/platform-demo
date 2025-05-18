@@ -183,6 +183,11 @@ async def register_for_post(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
+    # Prevent duplicate registration (same user id already in list)
+    existing_regs = post.get("registrants", [])
+    if any(r.get("user_id") == user_id for r in existing_regs):
+        raise HTTPException(status_code=400, detail="You have already registered for this event")
+
     registrant = {
         "_key": str(uuid.uuid4()),
         "user_id": user_id,
@@ -204,7 +209,9 @@ async def register_for_post(
             posts_table.update_item(
                 Key={"post_id": post_id},
                 UpdateExpression="SET registrants = list_append(if_not_exists(registrants, :empty), :r)",
-                ExpressionAttributeValues={":r": [registrant], ":empty": []},
+                ConditionExpression="attribute_not_exists(registrants) OR NOT contains(registrants[0].user_id, :uid)",
+                ExpressionAttributeValues={":r": [registrant], ":empty": [], ":uid": user_id},
+                ExpressionAttributeNames={"#reg": "registrants"},
             )
         except Exception as e:
             logging.error(f"[register_for_post] Dynamo update failed: {e}")

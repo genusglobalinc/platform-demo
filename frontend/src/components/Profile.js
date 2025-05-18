@@ -178,7 +178,7 @@ export default function Profile() {
                         style={styles.emailRegistrantsBtn}
                         onClick={() => emailRegistrants(post.post_id || post._id)}
                       >
-                        Email Registrants
+                        Collect Registrations
                       </button>
                     )}
                   </li>
