@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
 import axios from "axios";
+import classNames from "classnames";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [msg, setMsg] = useState("");
-  const [postStatuses, setPostStatuses] = useState({}); // per-post notifications
+  const [postMsgs, setPostMsgs] = useState({}); // per-post feedback
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,30 +47,25 @@ export default function Profile() {
   } catch {}
   const isDev = userType === "Dev";
 
-  const setPostStatus = (id, message) =>
-    setPostStatuses((prev) => ({ ...prev, [id]: message }));
-
   // --- Helpers ---
-  const emailRegistrants = async (postId) => {
-    try {
-      setPostStatus(postId, "Sending email...");
-      await axios.post(
-        `/posts/${postId}/email-registrants`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPostStatus(postId, "Email sent!");
-    } catch (err) {
-      setPostStatus(postId, `Failed: ${err.response?.data?.detail || err.message}`);
+  const collectRegistrations = async (postId) => {
+    // Must have verified email first
+    if (!profile?.is_verified) {
+      setPostMsgs((prev) => ({ ...prev, [postId]: "Verify email first to export." }));
+      return;
     }
-  };
-
-  const parseVerified = (val) => {
-    if (val === true) return true;
-    if (val === false) return false;
-    if (val === 1 || val === "1") return true;
-    if (typeof val === "string") return val.toLowerCase() === "true";
-    return false;
+    try {
+      setPostMsgs((prev) => ({ ...prev, [postId]: "Sending..." }));
+      await axios.post(`/posts/${postId}/email-registrants`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPostMsgs((prev) => ({ ...prev, [postId]: "Email sent ✔" }));
+    } catch (err) {
+      setPostMsgs((prev) => ({
+        ...prev,
+        [postId]: err.response?.data?.detail || err.message,
+      }));
+    }
   };
 
   return (
@@ -116,6 +111,7 @@ export default function Profile() {
             <p><strong>Username:</strong> {profile.username}</p>
             <p><strong>Display Name:</strong> {profile.display_name}</p>
             <p><strong>Email:</strong> {profile.email}</p>
+            <p><strong>Email Verified:</strong> {profile.is_verified ? "Yes" : "No"}</p>
             <p><strong>Social Links:</strong> {profile.social_links}</p>
             {profile.steam_profile && (
               <div style={{marginTop: '1rem'}}>
@@ -168,11 +164,6 @@ export default function Profile() {
                 )}
               </div>
             )}
-            {profile && (
-              <p style={{ color: parseVerified(profile.is_verified) ? "#0f0" : "#f66", marginBottom: 8 }}>
-                Email status: {parseVerified(profile.is_verified) ? "Verified" : "Not verified"}
-              </p>
-            )}
           </div>
         ) : (
           <p style={styles.details}>Loading profile...</p>
@@ -193,14 +184,15 @@ export default function Profile() {
                     {post.registrants && post.registrants.length > 0 && (
                       <button
                         style={styles.emailRegistrantsBtn}
-                        onClick={() => emailRegistrants(post.post_id || post._id)}
+                        onClick={() => collectRegistrations(post.post_id || post._id)}
+                        disabled={!profile?.is_verified}
                       >
                         Collect Registrations
                       </button>
                     )}
-                    {postStatuses[post.post_id || post._id] && (
-                      <p style={{ marginTop: 4, fontSize: "0.85rem", color: "#B388EB" }}>
-                        {postStatuses[post.post_id || post._id]}
+                    {postMsgs[post.post_id || post._id] && (
+                      <p style={{ fontSize: "0.8rem", marginTop: 4 }}>
+                        {postMsgs[post.post_id || post._id]}
                       </p>
                     )}
                   </li>
@@ -210,7 +202,6 @@ export default function Profile() {
               <p>No posts available.</p>
             )
           )}
-          {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
         </div>
       </div>
 

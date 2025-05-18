@@ -281,7 +281,7 @@ export default function ProfileSettings() {
               </div>
             ) : (
               <div style={styles.unverifiedEmail}>
-                <p>Your email is not verified. Verify your email to access the full features.</p>
+                <p>Verify your email to access the full features.</p>
                 <button
                   style={styles.button}
                   onClick={handleSendVerificationEmail}
