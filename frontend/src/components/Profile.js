@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
 import axios from "axios";
-import classNames from "classnames";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
