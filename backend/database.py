@@ -289,6 +289,7 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
                 "testerId": user_id,
                 "status": "draft",
                 "is_approved": False,  # mark as pending approval for admin
+                "registrants": [],
                 "date": str(datetime.utcnow()),
             }
 
@@ -326,6 +327,9 @@ def create_post_in_db(post_data: dict, user_id: str) -> Optional[str]:
         # Ensure the approval field exists so filtering works correctly
         if 'is_approved' not in post_data:
             post_data['is_approved'] = False
+
+        if 'registrants' not in post_data:
+            post_data['registrants'] = []
 
         post_data.update({
             'post_id': post_id,

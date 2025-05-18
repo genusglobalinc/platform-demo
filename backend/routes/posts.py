@@ -3,6 +3,11 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, HttpUrl
 from typing import List, Union, Optional, Any, Dict
 import json
+import uuid, logging
+from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
 
 from backend.database import (
     get_post_from_db,
@@ -10,9 +15,12 @@ from backend.database import (
     get_all_posts_from_db,
     filter_posts_from_db,
     delete_post_in_db,
+    posts_table,
+    _sanity_client,
 )
 from backend.utils.security import verify_access_token
 from fastapi_limiter.depends import RateLimiter
+from backend.config import get_settings
 
 # This will read the bearer token from the Authorization header for us
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -40,6 +48,12 @@ class GamingPost(BasePost):
 class PostCreateRequest(BaseModel):
     genre: str  # Must be "gaming" (legacy anime removed)
     post_data: GamingPost
+
+# ---------- Registration Schemas ----------
+
+class RegistrationRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
 
 # ---------- Routes ----------
 
@@ -149,3 +163,99 @@ async def delete_post(post_id: str, token: str = Depends(oauth2_scheme)):
     if not success:
         raise HTTPException(status_code=403, detail="Delete failed or not authorized")
     return {"message": "Post deleted"}
+
+# ----------------- Registration -----------------
+
+@router.post("/{post_id}/register")
+async def register_for_post(
+    post_id: str,
+    reg: RegistrationRequest,
+    token: str = Depends(oauth2_scheme),
+):
+    payload = verify_access_token(token)
+    user_id = payload.get("sub")
+    user_type = payload.get("user_type")
+    if user_type != "Tester":
+        raise HTTPException(status_code=403, detail="Only Tester accounts can register for events")
+
+    post = get_post_from_db(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    registrant = {
+        "_key": str(uuid.uuid4()),
+        "user_id": user_id,
+        "name": reg.name or payload.get("display_name") or payload.get("username"),
+        "email": reg.email or payload.get("email"),
+        "registered_at": datetime.utcnow().isoformat(),
+    }
+
+    if _sanity_client:
+        try:
+            current_regs = post.get("registrants", [])
+            new_regs = current_regs + [registrant]
+            _sanity_client.patch_document(post_id, {"registrants": new_regs})
+        except Exception as e:
+            logging.error(f"[register_for_post] Sanity patch failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to register for event")
+    else:
+        try:
+            posts_table.update_item(
+                Key={"post_id": post_id},
+                UpdateExpression="SET registrants = list_append(if_not_exists(registrants, :empty), :r)",
+                ExpressionAttributeValues={":r": [registrant], ":empty": []},
+            )
+        except Exception as e:
+            logging.error(f"[register_for_post] Dynamo update failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to register for event")
+
+    return {"message": "Successfully registered"}
+
+# ----------------- Email Registrants -----------------
+
+@router.post("/{post_id}/email-registrants")
+async def email_registrants(
+    post_id: str,
+    token: str = Depends(oauth2_scheme),
+):
+    payload = verify_access_token(token)
+    current_user_id = payload.get("sub")
+    user_type = payload.get("user_type")
+
+    post = get_post_from_db(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    owner_id = post.get("testerId") or post.get("user_id")
+    if user_type not in ("Dev", "Admin") and current_user_id != owner_id:
+        raise HTTPException(status_code=403, detail="Not authorized to email registrants")
+
+    registrants = post.get("registrants", [])
+    if not registrants:
+        raise HTTPException(status_code=400, detail="No registrants to email")
+
+    settings = get_settings()
+    msg = MIMEMultipart()
+    msg["Subject"] = f"Registrants for {post.get('title')}"
+    msg["From"] = settings.email_sender
+    msg["To"] = payload.get("email")
+
+    html = "<html><body>"
+    html += f"<h2>Registrants ({len(registrants)})</h2><ul>"
+    for r in registrants:
+        html += f"<li>{r.get('name')} ({r.get('email')}) at {r.get('registered_at')}</li>"
+    html += "</ul></body></html"
+
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
+            if settings.smtp_use_tls:
+                server.starttls()
+            server.login(settings.smtp_username, settings.smtp_password)
+            server.send_message(msg)
+    except Exception as e:
+        logging.error(f"[email_registrants] SMTP error: {e}")
+        raise HTTPException(status_code=500, detail="Email sending failed")
+
+    return {"success": True, "recipient": payload.get("email")}

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
+import axios from "axios";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,11 +38,28 @@ export default function Profile() {
   };
 
   // Determine admin quickly from token so we can show nav immediately
-  let isAdminToken = false;
+  let userType = "";
+  let token = "";
   try {
-    const tk = localStorage.getItem("token");
-    if (tk) isAdminToken = jwtDecode(tk).user_type === "Admin";
+    token = localStorage.getItem("token") || "";
+    if (token) userType = jwtDecode(token).user_type;
   } catch {}
+  const isDev = userType === "Dev";
+
+  // --- Helpers ---
+  const emailRegistrants = async (postId) => {
+    try {
+      setMsg("");
+      await axios.post(
+        `/posts/${postId}/email-registrants`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMsg("Email sent successfully");
+    } catch (err) {
+      setMsg(`Failed to send email: ${err.response?.data?.detail || err.message}`);
+    }
+  };
 
   return (
     <div className="responsive-container" style={styles.container}>
@@ -59,7 +78,7 @@ export default function Profile() {
         {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.title}>My Profile</h2>
-          {(isAdminToken || (profile && profile.user_type === "Admin")) && (
+          {(isDev || (profile && profile.user_type === "Admin")) && (
             <button
               style={{ ...styles.logoutButton, background: "#B388EB" }}
               onClick={() => navigate("/admin")}
@@ -143,19 +162,33 @@ export default function Profile() {
         )}
 
         <div style={styles.postsContainer}>
-          <h3 style={styles.postsTitle}>My Posts</h3>
-          {posts.length > 0 ? (
-            <ul style={styles.postsList}>
-              {posts.map((post, index) => (
-                <li key={index} style={styles.postItem}>
-                  <h4>{post.title}</h4>
-                  <p>{post.description}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No posts available.</p>
+          {isDev && <h3 style={styles.postsTitle}>My Posts</h3>}
+          {isDev && (
+            posts.length > 0 ? (
+              <ul style={styles.postsList}>
+                {posts.map((post, index) => (
+                  <li key={index} style={styles.postItem}>
+                    <h4>{post.title}</h4>
+                    <p>{post.description}</p>
+                    <p style={{ fontSize: "0.9rem", color: "#B388EB" }}>
+                      Registrants: {post.registrants ? post.registrants.length : 0}
+                    </p>
+                    {post.registrants && post.registrants.length > 0 && (
+                      <button
+                        style={styles.emailRegistrantsBtn}
+                        onClick={() => emailRegistrants(post.post_id || post._id)}
+                      >
+                        Email Registrants
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No posts available.</p>
+            )
           )}
+          {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
         </div>
       </div>
 
@@ -247,5 +280,14 @@ const styles = {
     padding: "1rem",
     borderRadius: "8px",
     marginBottom: "1rem",
+  },
+  emailRegistrantsBtn: {
+    background: "#B388EB",
+    border: "none",
+    padding: "6px 12px",
+    color: "#fff",
+    borderRadius: 6,
+    cursor: "pointer",
+    marginTop: 4,
   },
 };

@@ -1,6 +1,7 @@
 // frontend/src/components/PostDetails.js
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import jwtDecode from "jwt-decode";
 
 // Helper to build Sanity asset URLs similar to PostCard
 const buildSanityUrl = (ref, projectId = process.env.REACT_APP_SANITY_PROJECT_ID || "jpgxw2o8") => {
@@ -37,6 +38,39 @@ export default function PostDetails() {
     };
     fetchPost();
   }, [postId]);
+
+  // --- Registration ---
+  const registerForEvent = async () => {
+    const token = localStorage.getItem("token") || "";
+    let userType = "";
+    try {
+      if (token) userType = jwtDecode(token).user_type;
+    } catch {}
+    if (userType !== "Tester") {
+      alert("Only Tester accounts can sign up for events");
+      return;
+    }
+
+    const name = prompt("Enter your name:");
+    if (!name) return;
+    const email = prompt("Enter your email:");
+    if (!email) return;
+
+    try {
+      const res = await fetch(`/posts/${postId}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, email }),
+      });
+      if (!res.ok) throw new Error("Registration failed");
+      alert("Successfully registered!");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -132,6 +166,13 @@ export default function PostDetails() {
             ))}
           </div>
         )}
+
+        {/* Registration Button */}
+        <div style={{ marginTop: "2rem" }}>
+          <button onClick={registerForEvent} style={{ ...styles.backBtn, color: "#fff", background: "#B388EB", padding: "8px 16px", borderRadius: 8 }}>
+            Sign Up For Playtest
+          </button>
+        </div>
       </div>
     </div>
   );
