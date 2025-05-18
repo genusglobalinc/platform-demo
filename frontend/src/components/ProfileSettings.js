@@ -22,6 +22,7 @@ export default function ProfileSettings() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
   const [steamId, setSteamId] = useState("");
   const [selectedPic, setSelectedPic] = useState(profilePics[0]);
@@ -59,6 +60,7 @@ export default function ProfileSettings() {
         const data = res.data;
         setProfile(data);
         setDisplayName(data.display_name || "");
+        setEmail(data.email || "");
         setSocialLinks(data.social_links || "");
         setSteamId(data.steam_id || "");
         setSelectedPic(data.profile_picture || profilePics[0]);
@@ -192,6 +194,20 @@ export default function ProfileSettings() {
             onClick={() => saveField("display_name", displayName)}
           >
             Save
+          </button>
+        </div>
+
+        {/* Email */}
+        <div style={styles.section}>
+          <label style={styles.label}>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={styles.input}
+          />
+          <button style={styles.button} onClick={() => saveField("email", email)}>
+            Update Email
           </button>
         </div>
 

@@ -13,7 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
-from backend.database import get_user_from_db, update_user_profile, _sanity_client, get_posts_by_user
+from backend.database import get_user_from_db, update_user_profile, _sanity_client, get_posts_by_user, get_user_by_email
 from backend.utils.security import verify_access_token
 from backend.config import get_settings
 
@@ -31,6 +31,7 @@ class UpdateProfileRequest(BaseModel):
     profile_picture: Optional[str] = None
     demographic_info: Optional[Dict[str, Any]] = None  # nested demographic data
     steam_id: Optional[str] = None  # 64-bit SteamID or vanity URL
+    email: Optional[EmailStr] = None
 
 class EmailVerificationRequest(BaseModel):
     email: EmailStr
@@ -105,6 +106,23 @@ async def update_profile(
         steam_profile = _fetch_steam_profile(updates["steam_id"])
         if steam_profile:
             updates["steam_profile"] = steam_profile
+
+    # Handle email change
+    if "email" in updates:
+        new_email = updates["email"].lower()
+        current_user = get_user_from_db(user_id)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if new_email != current_user.get("email", "").lower():
+            # Email uniqueness check
+            if get_user_by_email(new_email):
+                raise HTTPException(status_code=400, detail="Email already in use")
+
+            # Reset verification status and codes
+            updates["is_email_verified"] = False
+            updates["email_verification_code"] = None
+            updates["email_verification_expiry"] = None
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
