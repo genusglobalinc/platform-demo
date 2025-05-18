@@ -65,6 +65,14 @@ export default function Profile() {
     }
   };
 
+  const parseVerified = (val) => {
+    if (val === true) return true;
+    if (val === false) return false;
+    if (val === 1 || val === "1") return true;
+    if (typeof val === "string") return val.toLowerCase() === "true";
+    return false;
+  };
+
   return (
     <div className="responsive-container" style={styles.container}>
       {/* Left Sidebar */}
@@ -161,8 +169,8 @@ export default function Profile() {
               </div>
             )}
             {profile && (
-              <p style={{ color: profile.is_verified ? "#0f0" : "#f66", marginBottom: 8 }}>
-                Email status: {profile.is_verified ? "Verified" : "Not verified"}
+              <p style={{ color: parseVerified(profile.is_verified) ? "#0f0" : "#f66", marginBottom: 8 }}>
+                Email status: {parseVerified(profile.is_verified) ? "Verified" : "Not verified"}
               </p>
             )}
           </div>
