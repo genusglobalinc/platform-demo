@@ -184,7 +184,6 @@ export default function Profile() {
                       <button
                         style={styles.emailRegistrantsBtn}
                         onClick={() => collectRegistrations(post.post_id || post._id)}
-                        disabled={!profile?.is_email_verified}
                       >
                         Collect Registrations
                       </button>
