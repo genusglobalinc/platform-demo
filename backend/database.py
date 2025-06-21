@@ -10,6 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from typing import Optional  
 import pyotp  
 from backend.sanity_client import SanityClient
+from fastapi import HTTPException
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb', region_name='us-east-2')
@@ -529,6 +530,45 @@ def verify_2fa_code(user_id: str, code: str) -> bool:
     except Exception as e:
         logger.error(f"[verify_2fa_code] 2FA verification failed for user {user_id}: {e}")
         return False
+
+# Steam User Management
+
+def get_user_by_steam_id(steam_id: str) -> Optional[dict]:
+    """Find user by Steam ID"""
+    try:
+        response = users_table.scan(
+            FilterExpression=Attr('external_ids.steam').eq(steam_id)
+        )
+        items = response.get('Items', [])
+        return items[0] if items else None
+    except ClientError as e:
+        logger.error(f"[get_user_by_steam_id] Error finding user by Steam ID: {e}")
+        return None
+
+def create_user_from_steam(steam_profile: dict) -> dict:
+    """Create new user from Steam profile"""
+    try:
+        user_id = str(uuid.uuid4())
+        user_data = {
+            "user_id": user_id,
+            "username": f"steam_{steam_profile['steam_id']}",
+            "email": f"steam_{steam_profile['steam_id']}@steamuser.com",
+            "display_name": steam_profile['persona_name'],
+            "profile_picture": steam_profile['avatar'],
+            "is_verified": True,
+            "user_type": "Tester",
+            "external_ids": {"steam": steam_profile['steam_id']},
+            "steam_profile": steam_profile,
+            "created_at": str(datetime.utcnow()),
+            "updated_at": str(datetime.utcnow())
+        }
+        
+        users_table.put_item(Item=user_data)
+        logger.info(f"Created new user from Steam profile: {user_id}")
+        return user_data
+    except Exception as e:
+        logger.error(f"[create_user_from_steam] Error creating user: {e}")
+        raise HTTPException(status_code=500, detail="Error creating user from Steam profile")
 
 # ---------------------------------------------------------------------
 # Pending Posts

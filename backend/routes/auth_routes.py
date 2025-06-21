@@ -1,7 +1,7 @@
 # backend/routes/auth_routes.py
 
 from jose import jwt, JWTError
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -11,7 +11,7 @@ import pyotp
 import qrcode
 import io
 import base64
-from backend.utils.security import create_access_token, verify_access_token, verify_password
+from backend.utils.security import create_access_token, verify_access_token, verify_password, create_refresh_token
 from backend.models import (
     TwoFactorLoginResponse,
     TwoFactorSetupResponse,
@@ -33,7 +33,9 @@ from backend.database import (
     update_reset_token,
     update_user_password,
     update_user_2fa,
-    verify_2fa_code
+    verify_2fa_code,
+    get_user_by_steam_id,
+    create_user_from_steam
 )
 import pyotp
 import qrcode
@@ -407,3 +409,72 @@ async def verify_2fa_login(request: TwoFactorVerifyRequest, token: str = Depends
     except Exception as e:
         logging.exception("Reset password flow failed")
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+
+@router.get("/steam/callback")
+async def steam_callback(request: Request):
+    """Handle Steam OpenID callback"""
+    try:
+        # Extract SteamID from OpenID response
+        params = dict(request.query_params)
+        if 'openid.claimed_id' not in params:
+            raise HTTPException(status_code=400, detail="Invalid OpenID response")
+            
+        steam_id = params['openid.claimed_id'].split('/')[-1]
+        
+        # Fetch Steam profile
+        steam_profile = _fetch_steam_profile(steam_id)
+        if not steam_profile:
+            raise HTTPException(status_code=400, detail="Could not fetch Steam profile")
+            
+        # Find or create user
+        user = get_user_by_steam_id(steam_id) or create_user_from_steam(steam_profile)
+        
+        # Generate tokens
+        access_token = create_access_token({"sub": user["user_id"]})
+        refresh_token = create_refresh_token({"sub": user["user_id"]})
+        
+        response = RedirectResponse(url="/")
+        response.set_cookie("access_token", access_token, httponly=True, secure=True)
+        response.set_cookie("refresh_token", refresh_token, httponly=True, secure=True)
+        
+        return response
+    except Exception as e:
+        logging.error(f"Steam auth failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Steam authentication failed")
+
+
+@router.post("/refresh")
+async def refresh_token(request: Request):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+    
+    try:
+        payload = verify_access_token(refresh_token)
+        user = get_user_from_db(payload["sub"])
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+            
+        new_access_token = create_access_token({"sub": user["user_id"]})
+        
+        response = JSONResponse(content={"access_token": new_access_token})
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=15 * 60
+        )
+        return response
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+@router.post("/logout")
+async def logout():
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return response

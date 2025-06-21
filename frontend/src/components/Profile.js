@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
 import axios from "axios";
+import SteamAuthButton from './SteamAuthButton';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -67,6 +68,20 @@ export default function Profile() {
     }
   };
 
+  const refreshSteamProfile = async () => {
+    try {
+      const response = await axios.post('/users/refresh-steam', {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(prev => ({
+        ...prev,
+        steam_profile: response.data
+      }));
+    } catch (err) {
+      console.error('Error refreshing Steam profile', err);
+    }
+  };
+
   return (
     <div className="responsive-container" style={styles.container}>
       {/* Left Sidebar */}
@@ -112,18 +127,53 @@ export default function Profile() {
             <p><strong>Email:</strong> {profile.email}</p>
             <p><strong>Email Verified:</strong> {profile.is_email_verified ? "Yes" : "No"}</p>
             <p><strong>Social Links:</strong> {profile.social_links}</p>
-            {profile.steam_profile && (
-              <div style={{marginTop: '1rem'}}>
-                <h3 style={{color:'#66c0f4'}}>Steam Profile</h3>
-                <div style={{display:'flex', alignItems:'center',gap:'1rem'}}>
-                  {profile.steam_profile.avatar && (
-                    <img src={profile.steam_profile.avatar} alt="Steam avatar" style={{width:64,height:64,borderRadius:8}} />
-                  )}
+            {profile.steam_profile ? (
+              <div style={styles.steamSection}>
+                <h3>Steam Profile</h3>
+                <div style={styles.steamHeader}>
+                  <img 
+                    src={profile.steam_profile.avatar} 
+                    alt="Steam Avatar" 
+                    style={styles.steamAvatar}
+                  />
                   <div>
-                    <p><strong>Persona:</strong> {profile.steam_profile.persona_name}</p>
-                    <a href={profile.steam_profile.profile_url} target="_blank" rel="noopener noreferrer" style={{color:'#66c0f4'}}>View on Steam</a>
+                    <h4>{profile.steam_profile.persona_name}</h4>
+                    {profile.steam_profile.real_name && (
+                      <p>{profile.steam_profile.real_name}</p>
+                    )}
                   </div>
                 </div>
+                <div style={styles.steamDetails}>
+                  <p><strong>Steam ID:</strong> {profile.steam_profile.steam_id}</p>
+                  {profile.steam_profile.time_created && (
+                    <p><strong>Member since:</strong> {new Date(profile.steam_profile.time_created * 1000).toLocaleDateString()}</p>
+                  )}
+                  {profile.steam_profile.last_logoff && (
+                    <p><strong>Last online:</strong> {new Date(profile.steam_profile.last_logoff * 1000).toLocaleString()}</p>
+                  )}
+                  {profile.steam_profile.visibility && (
+                    <p>
+                      <strong>Profile status:</strong> {' '}
+                      {profile.steam_profile.visibility === 1 ? 'Private' :
+                        profile.steam_profile.visibility === 2 ? 'Friends Only' :
+                        profile.steam_profile.visibility === 3 ? 'Public' : 'Unknown'}
+                    </p>
+                  )}
+                  {profile.steam_profile.game_extra_info && (
+                    <p><strong>Playing:</strong> {profile.steam_profile.game_extra_info}</p>
+                  )}
+                  <button 
+                    onClick={refreshSteamProfile}
+                    style={styles.refreshButton}
+                  >
+                    Refresh Steam Data
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.steamSection}>
+                <h3>Connect Steam Account</h3>
+                <SteamAuthButton />
               </div>
             )}
             <p><strong>Followers:</strong> {profile.followers}</p>
@@ -301,4 +351,34 @@ const styles = {
     cursor: "pointer",
     marginTop: 4,
   },
+  steamSection: {
+    marginTop: '2rem',
+    background: '#2a2a2a',
+    padding: '1.5rem',
+    borderRadius: '8px',
+    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)',
+  },
+  steamHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '1rem',
+  },
+  steamAvatar: {
+    width: '64px',
+    height: '64px',
+    marginRight: '1rem',
+    borderRadius: '50%',
+  },
+  steamDetails: {
+    lineHeight: '1.7',
+  },
+  refreshButton: {
+    background: '#171a21',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '1rem',
+  }
 };

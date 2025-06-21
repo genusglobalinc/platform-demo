@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 // Use the environment variable if defined; otherwise, fallback to the deployed URL.
 const API_BASE_URL = process.env.REACT_APP_API_BASE || 'https://lost-gates-mvp.onrender.com';
@@ -8,7 +9,47 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true // Enable cookie handling
 });
+
+// Interceptor to handle token refresh
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Handle refresh token failure (logout user)
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Helper functions for token management
+export const setAuthTokens = (accessToken, refreshToken) => {
+  Cookies.set('access_token', accessToken, { 
+    secure: true, 
+    sameSite: 'strict',
+    expires: 1/24 // 1 hour
+  });
+  Cookies.set('refresh_token', refreshToken, {
+    secure: true,
+    sameSite: 'strict',
+    expires: 7 // 7 days
+  });
+};
+
+export const clearAuthTokens = () => {
+  Cookies.remove('access_token');
+  Cookies.remove('refresh_token');
+};
 
 // Authentication endpoints
 export const loginUser = (username, password) =>
@@ -51,21 +92,21 @@ export const resetPassword = (token, new_password) =>
 
 // Profile endpoints (protected)
 export const updateProfile = (profileData) => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   return api.put('/users/profile', profileData, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 };
 
 export const getProfileData = async () => {
-  const token = localStorage.getItem("token");
-  if (!token) {
+  const accessToken = Cookies.get('access_token');
+  if (!accessToken) {
     throw new Error("No token found");
   }
 
   const res = await api.get('/users/profile', {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
@@ -74,19 +115,19 @@ export const getProfileData = async () => {
 
 // ─── NEW ───
 export const getUserPosts = (user_id) => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   return api
     .get(`/users/${user_id}/posts`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     })
     .then((r) => r.data);
 };
 
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData) => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   return api.post('/posts/', postData, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 };
 
@@ -95,32 +136,32 @@ export const getPost = (postId) =>
 
 // Upload user avatar (multipart/form-data)
 export const sendVerificationEmail = async () => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   const res = await api.post('/users/profile/send-verification-email', {}, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
   return res.data;
 };
 
 export const verifyEmailCode = async (code) => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   const res = await api.post('/users/profile/verify-email-code', { code }, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
   return res.data;
 };
 
 export const uploadAvatar = async (file) => {
-  const token = localStorage.getItem("token");
+  const accessToken = Cookies.get('access_token');
   const formData = new FormData();
   formData.append('file', file);
   const res = await api.post('/users/profile/upload-avatar', formData, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'multipart/form-data',
     },
   });

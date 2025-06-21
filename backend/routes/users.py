@@ -1,5 +1,5 @@
 # backend/routes/user.py
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Request, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 import logging
@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from backend.database import get_user_from_db, update_user_profile, _sanity_client, get_posts_by_user, get_user_by_email
 from backend.utils.security import verify_access_token
 from backend.config import get_settings
+from backend.services.background_tasks import sync_steam_profiles
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
@@ -40,46 +41,73 @@ class VerifyEmailCodeRequest(BaseModel):
     code: str
 
 def _fetch_steam_profile(steam_input: str) -> Optional[Dict[str, Any]]:
-    """Return basic Steam profile info or None if not found.
-
-    steam_input can be a 64-bit SteamID or a vanityURL. We first attempt to
-    resolve vanityURLs when the input is not all digits.
-    """
+    """Return complete Steam profile info with debugging"""
     try:
         if not STEAM_API_KEY:
             logger.warning("STEAM_API_KEY not configured; skipping Steam lookup")
             return None
 
+        logger.info(f"Starting Steam profile lookup for: {steam_input}")
+        
         # Resolve vanity URL to steamid64 if needed
         steamid = steam_input
         if not steam_input.isdigit():
+            logger.debug(f"Resolving vanity URL: {steam_input}")
             vanity_resp = requests.get(
                 "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/",
-                params={"key": STEAM_API_KEY, "vanityurl": steam_input}, timeout=10
+                params={"key": STEAM_API_KEY, "vanityurl": steam_input},
+                timeout=10
             ).json()
-            if vanity_resp.get("response", {}).get("success") == 1:
-                steamid = vanity_resp["response"]["steamid"]
-            else:
-                logger.warning("Vanity Steam URL could not be resolved")
+            logger.debug(f"Vanity URL response: {vanity_resp}")
+            
+            if vanity_resp.get("response", {}).get("success") != 1:
+                logger.warning(f"Vanity URL resolution failed for: {steam_input}")
                 return None
+                
+            steamid = vanity_resp["response"]["steamid"]
+            logger.info(f"Resolved vanity URL {steam_input} to SteamID: {steamid}")
 
-        # Fetch player summaries
+        # Get full player summary
+        logger.debug(f"Fetching player summary for SteamID: {steamid}")
         summ_resp = requests.get(
             "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/",
-            params={"key": STEAM_API_KEY, "steamids": steamid}, timeout=10
+            params={"key": STEAM_API_KEY, "steamids": steamid},
+            timeout=10
         ).json()
+        logger.debug(f"Player summary response: {summ_resp}")
+        
         players = summ_resp.get("response", {}).get("players", [])
         if not players:
+            logger.warning(f"No player data found for SteamID: {steamid}")
             return None
+            
         p = players[0]
+        logger.info(f"Successfully fetched Steam profile for: {p.get('personaname')}")
+        
+        # Return comprehensive profile data
         return {
             "steam_id": steamid,
             "persona_name": p.get("personaname"),
             "avatar": p.get("avatarfull"),
             "profile_url": p.get("profileurl"),
+            "time_created": p.get("timecreated"),
+            "last_logoff": p.get("lastlogoff"),
+            "visibility": p.get("communityvisibilitystate"),
+            "profile_state": p.get("profilestate"),
+            "real_name": p.get("realname"),
+            "primary_clan_id": p.get("primaryclanid"),
+            "game_extra_info": p.get("gameextrainfo"),
+            "game_id": p.get("gameid"),
+            "loc_country_code": p.get("loccountrycode"),
+            "loc_state_code": p.get("locstatecode"),
+            "loc_city_id": p.get("loccityid"),
+            "debug": {
+                "vanity_input": steam_input,
+                "api_response": summ_resp
+            }
         }
     except Exception as e:
-        logger.error(f"Steam API lookup failed: {e}")
+        logger.error(f"Steam API lookup failed: {e}", exc_info=True)
         return None
 
 @router.get("/profile")
@@ -101,11 +129,25 @@ async def update_profile(
     user_id = payload.get("sub")
     updates = update_data.dict(exclude_unset=True)
 
-    # Handle Steam integration
+    # Enhanced Steam integration with debugging
     if "steam_id" in updates:
+        logger.info(f"Processing Steam integration for user {user_id}")
         steam_profile = _fetch_steam_profile(updates["steam_id"])
         if steam_profile:
+            logger.debug(f"Steam profile data: {steam_profile}")
             updates["steam_profile"] = steam_profile
+            
+            # Store additional Steam metadata
+            updates["external_ids"] = updates.get("external_ids", {})
+            updates["external_ids"]["steam"] = steam_profile["steam_id"]
+            
+            logger.info(f"Successfully integrated Steam profile for user {user_id}")
+        else:
+            logger.warning(f"Failed to fetch Steam profile for {updates['steam_id']}")
+            raise HTTPException(
+                status_code=400,
+                detail="Could not validate Steam profile. Please check your Steam ID or URL."
+            )
 
     # Handle email change
     if "email" in updates:
@@ -308,6 +350,40 @@ async def verify_email_code(
         raise HTTPException(status_code=500, detail="Error updating verification status")
     
     return {"message": "Email verified successfully"}
+
+@router.post("/profile/refresh-steam")
+async def refresh_steam_profile(
+    request: Request,
+    token: str = Depends(oauth2_scheme)
+):
+    """Refresh Steam profile data for current user"""
+    try:
+        payload = verify_access_token(token)
+        user_id = payload["sub"]
+        
+        # Get user from DB
+        user = get_user_from_db(user_id)
+        if not user or "steam_profile" not in user:
+            raise HTTPException(status_code=400, detail="No Steam profile linked")
+            
+        # Refresh Steam data
+        steam_id = user["steam_profile"]["steam_id"]
+        steam_profile = _fetch_steam_profile(steam_id)
+        if not steam_profile:
+            raise HTTPException(status_code=400, detail="Could not refresh Steam profile")
+            
+        # Update user in DB
+        updates = {
+            "steam_profile": steam_profile,
+            "updated_at": str(datetime.utcnow())
+        }
+        update_user_profile(user_id, updates)
+        
+        return steam_profile
+        
+    except Exception as e:
+        logger.error(f"Steam profile refresh failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error refreshing Steam profile")
 
 @router.post("/profile/upload-avatar")
 async def upload_avatar(
