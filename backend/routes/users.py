@@ -17,6 +17,7 @@ from backend.database import get_user_from_db, update_user_profile, _sanity_clie
 from backend.utils.security import verify_access_token
 from backend.config import get_settings
 from backend.services.background_tasks import sync_steam_profiles
+from backend.services.steam_utils import fetch_steam_profile
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
@@ -40,7 +41,7 @@ class EmailVerificationRequest(BaseModel):
 class VerifyEmailCodeRequest(BaseModel):
     code: str
 
-def _fetch_steam_profile(steam_input: str) -> Optional[Dict[str, Any]]:
+def fetch_steam_profile(steam_input: str) -> Optional[Dict[str, Any]]:
     """Return complete Steam profile info with debugging"""
     try:
         if not STEAM_API_KEY:
@@ -132,7 +133,7 @@ async def update_profile(
     # Enhanced Steam integration with debugging
     if "steam_id" in updates:
         logger.info(f"Processing Steam integration for user {user_id}")
-        steam_profile = _fetch_steam_profile(updates["steam_id"])
+        steam_profile = fetch_steam_profile(updates["steam_id"])
         if steam_profile:
             logger.debug(f"Steam profile data: {steam_profile}")
             updates["steam_profile"] = steam_profile
@@ -368,7 +369,7 @@ async def refresh_steam_profile(
             
         # Refresh Steam data
         steam_id = user["steam_profile"]["steam_id"]
-        steam_profile = _fetch_steam_profile(steam_id)
+        steam_profile = fetch_steam_profile(steam_id)
         if not steam_profile:
             raise HTTPException(status_code=400, detail="Could not refresh Steam profile")
             

@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 # Import these functions later after implementation
 from backend.database import get_users_with_steam, update_user_profile
-from backend.routes.users import _fetch_steam_profile
+from backend.services.steam_utils import fetch_steam_profile
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ async def _sync_all_steam_profiles():
                 steam_id = user["steam_profile"]["steam_id"]
                 
                 logger.debug(f"Syncing Steam profile for user {user_id}")
-                steam_profile = _fetch_steam_profile(steam_id)
+                steam_profile = fetch_steam_profile(steam_id)
                 
                 if steam_profile:
                     updates = {
