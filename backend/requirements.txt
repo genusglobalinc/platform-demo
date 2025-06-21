@@ -41,3 +41,6 @@ pyotp
 qrcode
 email-validator
 pillow
+
+# Background task scheduling
+apscheduler
