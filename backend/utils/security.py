@@ -36,6 +36,20 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
         logging.error(f"JWT creation error: {e}")
         raise HTTPException(status_code=500, detail="Error creating token")
 
+def create_refresh_token(data: dict, expires_delta: Union[timedelta, None] = None) -> str:
+    """Generate a JWT refresh token with longer expiration."""
+    try:
+        to_encode = data.copy()
+        # Refresh tokens typically last longer than access tokens
+        # Default to 7 days if no expiration is specified
+        expire = datetime.utcnow() + (expires_delta or timedelta(days=7))
+        to_encode.update({"exp": expire, "token_type": "refresh"})
+        token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return token
+    except Exception as e:
+        logging.error(f"Refresh token creation error: {e}")
+        raise HTTPException(status_code=500, detail="Error creating refresh token")
+
 def verify_access_token(token: str, required_role: str = None) -> dict:
     """Verify and decode a JWT token."""
     try:
