@@ -570,6 +570,19 @@ def create_user_from_steam(steam_profile: dict) -> dict:
         logger.error(f"[create_user_from_steam] Error creating user: {e}")
         raise HTTPException(status_code=500, detail="Error creating user from Steam profile")
 
+def get_users_with_steam() -> List[Dict[str, Any]]:
+    """Get all users with Steam profiles"""
+    try:
+        response = users_table.scan(
+            FilterExpression=Attr('steam_profile').exists()
+        )
+        items = response.get('Items', [])
+        logger.info(f"Found {len(items)} users with Steam profiles")
+        return items
+    except ClientError as e:
+        logger.error(f"[get_users_with_steam] Error: {e}")
+        return []
+
 # ---------------------------------------------------------------------
 # Pending Posts
 # ---------------------------------------------------------------------
