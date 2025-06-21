@@ -1,7 +1,8 @@
 # backend/routes/auth_routes.py
 
 from jose import jwt, JWTError
-from fastapi import APIRouter, HTTPException, Depends, Request, JSONResponse, RedirectResponse
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -37,6 +38,7 @@ from backend.database import (
     get_user_by_steam_id,
     create_user_from_steam
 )
+from backend.services.steam_utils import fetch_steam_profile
 import pyotp
 import qrcode
 import io
@@ -423,7 +425,7 @@ async def steam_callback(request: Request):
         steam_id = params['openid.claimed_id'].split('/')[-1]
         
         # Fetch Steam profile
-        steam_profile = _fetch_steam_profile(steam_id)
+        steam_profile = fetch_steam_profile(steam_id)
         if not steam_profile:
             raise HTTPException(status_code=400, detail="Could not fetch Steam profile")
             
