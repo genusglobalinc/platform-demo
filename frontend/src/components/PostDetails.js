@@ -31,11 +31,27 @@ export default function PostDetails() {
         const res = await fetch(`/posts/${postId}`);
         if (!res.ok) throw new Error("Failed to fetch post");
         const data = await res.json();
-        setPost(data);
+        console.log("Post data:", data); // Debug post data structure
+        
+        // Extract developer ID from various possible locations in data structure
+        const devId = data.dev_id || data.user_id || 
+                    (data.post_data && (data.post_data.dev_id || data.post_data.user_id)) || 
+                    data.author_id;
+        
+        // Update post with developer ID if found but not in the original structure
+        const enhancedData = {
+          ...data,
+          dev_id: devId
+        };
+        
+        setPost(enhancedData);
         
         // If we have dev/studio info, fetch their profile data
-        if (data.dev_id || data.user_id) {
-          await fetchDevProfile(data.dev_id || data.user_id);
+        if (devId) {
+          console.log("Found developer ID:", devId);
+          await fetchDevProfile(devId);
+        } else {
+          console.warn("No developer ID found for post", postId);
         }
       } catch (e) {
         console.error(e);
@@ -194,16 +210,23 @@ export default function PostDetails() {
         {post.studio && (
           <p style={styles.metaText}>
             <strong>Studio:</strong>{" "}
-            {post.dev_id || post.user_id ? (
-              <span 
-                style={styles.studioLink}
-                onClick={() => navigate(`/dev-profile/${post.dev_id || post.user_id}`)}
-              >
-                {post.studio}
-              </span>
-            ) : (
-              post.studio
-            )}
+            <span 
+              style={styles.studioLink}
+              onClick={() => {
+                const devId = post.dev_id || post.user_id || 
+                            (post.post_data && (post.post_data.dev_id || post.post_data.user_id)) ||
+                            post.author_id;
+                if (devId) {
+                  console.log("Navigating to dev profile with ID:", devId);
+                  navigate(`/dev-profile/${devId}`);
+                } else {
+                  console.warn("Cannot navigate: No developer ID associated with studio name");
+                  alert("Developer profile not available for this studio");
+                }
+              }}
+            >
+              {post.studio}
+            </span>
           </p>
         )}
         {(post.created_at || post.date || post._createdAt) && (
