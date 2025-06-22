@@ -88,7 +88,25 @@ const PostCard = ({ post }) => {
         {/* Studio */}
         {post.studio && (
           <p style={styles.labelText}>
-            <strong>Studio:</strong> {post.studio}
+            <strong>Studio:</strong>{" "}
+            <span
+              style={styles.studioLink}
+              onClick={(e) => {
+                e.stopPropagation();
+                const devId =
+                  post.user_id ||
+                  post.dev_id ||
+                  (post.author && post.author._ref) ||
+                  post.testerId;
+                if (devId) {
+                  navigate(`/dev-profile/${devId}`);
+                } else {
+                  alert("Developer profile not available for this studio");
+                }
+              }}
+            >
+              {post.studio}
+            </span>
           </p>
         )}
 
@@ -179,6 +197,11 @@ const styles = {
     fontSize: '1.1rem',
     fontWeight: 'bold',
     color: '#B388EB',
+  },
+  studioLink: {
+    color: '#B388EB',
+    cursor: 'pointer',
+    textDecoration: 'underline',
   },
   labelText: {
     margin: "0.25rem 0",

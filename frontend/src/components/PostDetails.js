@@ -44,22 +44,10 @@ export default function PostDetails() {
         } else if (data.dev_id) {
           userId = data.dev_id;
         } else if (data.author && data.author._ref) {
-          // Sanity format reference e.g. "user-abc123"
+          // Sanity format - extract the ID from reference string "user-abc123"
           userId = data.author._ref.replace('user-', '');
-        } else if (typeof data.author === 'string') {
-          userId = data.author.replace('user-', '');
         } else if (data.author_id) {
           userId = data.author_id;
-        } else if (data.user && typeof data.user === 'string') {
-          userId = data.user;
-        } else if (data.user && data.user._id) {
-          userId = data.user._id;
-        } else if (data.owner_id) {
-          userId = data.owner_id;
-        } else if (data.created_by) {
-          userId = data.created_by;
-        } else if (data.createdBy) {
-          userId = data.createdBy;
         } else if (data.testerId) {
           userId = data.testerId;
         }
@@ -94,41 +82,15 @@ export default function PostDetails() {
   const fetchDevProfile = async (developerId) => {
     try {
       console.log("Fetching profile for developer ID:", developerId);
-      let profileRes;
-      try {
-        // Prefer new public endpoint first (no auth needed)
-        profileRes = await api.get(`/users/${developerId}`);
-      } catch (err) {
-        console.warn('Public profile endpoint failed, trying legacy', err?.response?.status);
-        try {
-          profileRes = await api.get(`/users/profile/${developerId}`);
-        } catch (subErr) {
-          console.warn('No backend profile found, will fall back to studio-only view');
-        }
-      }
-      if (profileRes?.data) {
-        console.log("Developer profile:", profileRes.data);
-        setDevProfile(profileRes.data);
-      }
+      const profileRes = await api.get(`/users/profile/${developerId}`);
+      console.log("Developer profile:", profileRes.data);
+      setDevProfile(profileRes.data);
 
-      // Fetch posts by this developer with graceful fallback
+      // Also fetch other posts by this developer
       console.log("Fetching posts for developer ID:", developerId);
-      let postsRes;
-      try {
-        postsRes = await api.get(`/users/${developerId}/posts-public`);
-      } catch {
-        try {
-          postsRes = await api.get(`/posts?user_id=${developerId}`);
-        } catch {
-          if (post.studio) {
-            postsRes = await api.get(`/posts?user_id=${developerId}`); // fallback unchanged
-          }
-        }
-      }
-      if (postsRes) {
-        const arr = Array.isArray(postsRes.data) ? postsRes.data : postsRes.data?.posts || [];
-        setDevPosts(arr);
-      }
+      const postsRes = await api.get(`/users/${developerId}/posts`);
+      console.log("Developer posts:", postsRes.data);
+      setDevPosts(postsRes.data || []);
     } catch (e) {
       console.error("Error fetching developer data:", e);
       // Don't show an error to the user, just log it

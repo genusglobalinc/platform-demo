@@ -11,7 +11,6 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [profile, setProfile] = useState(null);
   const [pendingPosts, setPendingPosts] = useState([]);
-  const [selectedUserPosts, setSelectedUserPosts] = useState([]);
   const [postStatus, setPostStatus] = useState("");
   const [sanityStudioUrl, setSanityStudioUrl] = useState(process.env.REACT_APP_SANITY_STUDIO_URL || "http://localhost:3333");
   const navigate = useNavigate();
@@ -149,26 +148,6 @@ export default function Admin() {
       (user.display_name && user.display_name.toLowerCase().includes(searchLower))
     );
   });
-
-  // Fetch posts when a user is selected
-  useEffect(() => {
-    const loadPosts = async () => {
-      if (!selectedUser) {
-        setSelectedUserPosts([]);
-        return;
-      }
-      try {
-        const uid = selectedUser.user_id || selectedUser._id;
-        const res = await axios.get(`/users/${uid}/posts-public`);
-        const arr = Array.isArray(res.data) ? res.data : res.data?.posts || [];
-        setSelectedUserPosts(arr);
-      } catch (err) {
-        console.error("Failed to load user's posts", err);
-        setSelectedUserPosts([]);
-      }
-    };
-    loadPosts();
-  }, [selectedUser]);
 
   // Toggle single-user selection checkbox
   const toggleSelect = (uid) => {
@@ -357,26 +336,6 @@ export default function Admin() {
             </div>
           )}
         </div>
-
-        {/* User's Posts */}
-        {selectedUserPosts.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <h4 style={styles.demographicTitle}>Posts by User</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {selectedUserPosts.map((p) => (
-                <a
-                  key={p._id || p.post_id}
-                  href={`/posts/${p._id || p.post_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#B388EB", textDecoration: "none" }}
-                >
-                  {p.title || p.post_data?.title || "Untitled Post"}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Selected User Details */}
         {selectedUser && (
