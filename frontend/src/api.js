@@ -1,15 +1,28 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+// Helper function to get token from any source
+const getAuthToken = () => {
+  return Cookies.get('access_token') || localStorage.getItem('token') || '';
+};
+
 // Use the environment variable if defined; otherwise, fallback to the deployed URL.
 const API_BASE_URL = process.env.REACT_APP_API_BASE || 'https://lost-gates-mvp.onrender.com';
 
+// Create an axios instance with default config
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true // Enable cookie handling
+  // Include cookies in requests by default
+  withCredentials: true,
+});
+
+// Add interceptor to automatically add auth token to requests
+api.interceptors.request.use(config => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Interceptor to handle token refresh
@@ -44,11 +57,13 @@ export const setAuthTokens = (accessToken, refreshToken) => {
     sameSite: 'strict',
     expires: 7 // 7 days
   });
+  localStorage.setItem('token', accessToken);
 };
 
 export const clearAuthTokens = () => {
   Cookies.remove('access_token');
   Cookies.remove('refresh_token');
+  localStorage.removeItem('token');
 };
 
 // Authentication endpoints
@@ -92,43 +107,30 @@ export const resetPassword = (token, new_password) =>
 
 // Profile endpoints (protected)
 export const updateProfile = (profileData) => {
-  const accessToken = Cookies.get('access_token');
-  return api.put('/users/profile', profileData, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  return api.put('/users/profile', profileData);
 };
 
 export const getProfileData = async () => {
-  const accessToken = Cookies.get('access_token');
-  if (!accessToken) {
-    throw new Error("No token found");
+  // No need to manually get the token - the interceptor handles it
+  try {
+    const res = await api.get('/users/profile');
+    return res.data;
+  } catch (err) {
+    console.error('Profile fetch error:', err.response?.data || err.message);
+    throw err;
   }
-
-  const res = await api.get('/users/profile', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  return res.data;
 };
 
 // ─── NEW ───
 export const getUserPosts = (user_id) => {
-  const accessToken = Cookies.get('access_token');
   return api
-    .get(`/users/${user_id}/posts`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    .get(`/users/${user_id}/posts`)
     .then((r) => r.data);
 };
 
 // Post endpoints (create and get) (protected for creation)
 export const createPost = (postData) => {
-  const accessToken = Cookies.get('access_token');
-  return api.post('/posts/', postData, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  return api.post('/posts/', postData);
 };
 
 export const getPost = (postId) =>
@@ -136,32 +138,20 @@ export const getPost = (postId) =>
 
 // Upload user avatar (multipart/form-data)
 export const sendVerificationEmail = async () => {
-  const accessToken = Cookies.get('access_token');
-  const res = await api.post('/users/profile/send-verification-email', {}, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const res = await api.post('/users/profile/send-verification-email', {});
   return res.data;
 };
 
 export const verifyEmailCode = async (code) => {
-  const accessToken = Cookies.get('access_token');
-  const res = await api.post('/users/profile/verify-email-code', { code }, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const res = await api.post('/users/profile/verify-email-code', { code });
   return res.data;
 };
 
 export const uploadAvatar = async (file) => {
-  const accessToken = Cookies.get('access_token');
   const formData = new FormData();
   formData.append('file', file);
   const res = await api.post('/users/profile/upload-avatar', formData, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'multipart/form-data',
     },
   });

@@ -11,9 +11,30 @@ export default function Profile() {
   const [posts, setPosts] = useState([]);
   const [postMsgs, setPostMsgs] = useState({}); // per-post feedback
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Sync localStorage token to cookie if needed
+    const syncTokens = () => {
+      const localToken = localStorage.getItem('token');
+      const cookieToken = Cookies.get('access_token');
+      
+      if (localToken && !cookieToken) {
+        // If we have a localStorage token but no cookie, set the cookie
+        Cookies.set('access_token', localToken, { secure: true, sameSite: 'strict' });
+        console.log('Synced token from localStorage to cookie');
+      } else if (!localToken && cookieToken) {
+        // If we have a cookie token but no localStorage, set localStorage
+        localStorage.setItem('token', cookieToken);
+        console.log('Synced token from cookie to localStorage');
+      }
+    };
+
+    syncTokens();
+
+    // Fetch profile data on component mount
     const fetchProfile = async () => {
+      setIsLoading(true);
       try {
         const data = await getProfileData(); // Get profile data
         setProfile(data);
@@ -22,12 +43,17 @@ export default function Profile() {
         setPosts(userPosts);
       } catch (err) {
         console.error("Failed to load profile", err);
-        // Optional: handle errors like redirecting to login
+        // If unauthorized, redirect to login
+        if (err.response && err.response.status === 401) {
+          navigate("/login");
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
-
+    
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
   const fetchUserPosts = async (userId) => {
     try {
@@ -41,9 +67,8 @@ export default function Profile() {
 
   // Determine admin quickly from token so we can show nav immediately
   let userType = "";
-  let token = "";
   try {
-    token = Cookies.get('access_token') || "";
+    const token = Cookies.get('access_token') || localStorage.getItem('token') || "";
     if (token) userType = jwtDecode(token).user_type;
   } catch (err) {
     console.error('Error decoding token:', err);
@@ -111,11 +136,10 @@ export default function Profile() {
           <div style={styles.headerRight}>
             <button
               onClick={() => {
-                // Clear both cookie and localStorage tokens
-                Cookies.remove('access_token');
-                Cookies.remove('refresh_token');
-                localStorage.removeItem("token");
-                navigate("/login");
+                // Use the logout helper from API
+                import('../api').then(api => {
+                  api.logout();
+                });
               }}
               style={styles.logoutButton}
             >

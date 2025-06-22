@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { loginUser, verify2FALogin, setup2FA, verify2FA } from '../api';
+import { loginUser, verify2FALogin, setup2FA, verify2FA, setAuthTokens } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import TwoFactorSetup from './TwoFactorSetup';
+import Cookies from 'js-cookie';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -35,7 +36,8 @@ const Login = () => {
         }
       } else {
         // This shouldn't happen anymore as 2FA is mandatory
-        localStorage.setItem("token", response.data.access_token);
+        // Use our centralized token management
+        setAuthTokens(response.data.access_token, response.data.refresh_token);
         navigate("/feed");
       }
     } catch (err) {
@@ -48,9 +50,11 @@ const Login = () => {
 
   const handle2FASubmit = async () => {
     try {
+      setLoading(true);
       const response = await verify2FALogin(code2FA, tempToken);
       if (response.data.access_token) {
-        localStorage.setItem("token", response.data.access_token);
+        // Use centralized token management
+        setAuthTokens(response.data.access_token, response.data.refresh_token);
         navigate("/feed");
       } else {
         alert("Failed to verify 2FA code. Please try again.");
