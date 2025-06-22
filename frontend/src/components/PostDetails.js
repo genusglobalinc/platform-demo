@@ -44,10 +44,18 @@ export default function PostDetails() {
         } else if (data.dev_id) {
           userId = data.dev_id;
         } else if (data.author && data.author._ref) {
-          // Sanity format - extract the ID from reference string "user-abc123"
+          // Sanity format reference e.g. "user-abc123"
           userId = data.author._ref.replace('user-', '');
+        } else if (typeof data.author === 'string') {
+          userId = data.author.replace('user-', '');
         } else if (data.author_id) {
           userId = data.author_id;
+        } else if (data.user && typeof data.user === 'string') {
+          userId = data.user;
+        } else if (data.user && data.user._id) {
+          userId = data.user._id;
+        } else if (data.owner_id) {
+          userId = data.owner_id;
         } else if (data.testerId) {
           userId = data.testerId;
         }
@@ -82,13 +90,25 @@ export default function PostDetails() {
   const fetchDevProfile = async (developerId) => {
     try {
       console.log("Fetching profile for developer ID:", developerId);
-      const profileRes = await api.get(`/users/profile/${developerId}`);
+      let profileRes;
+      try {
+        profileRes = await api.get(`/users/profile/${developerId}`);
+      } catch (err) {
+        console.warn('Primary profile endpoint failed, trying fallback', err?.response?.status);
+        profileRes = await api.get(`/users/${developerId}`);
+      }
       console.log("Developer profile:", profileRes.data);
       setDevProfile(profileRes.data);
 
-      // Also fetch other posts by this developer
+      // Fetch posts by this developer with graceful fallback
       console.log("Fetching posts for developer ID:", developerId);
-      const postsRes = await api.get(`/users/${developerId}/posts`);
+      let postsRes;
+      try {
+        postsRes = await api.get(`/users/${developerId}/posts`);
+      } catch {
+        // Fallback to generic posts query if user-specific endpoint not available
+        postsRes = await api.get(`/posts?user_id=${developerId}`);
+      }
       console.log("Developer posts:", postsRes.data);
       setDevPosts(postsRes.data || []);
     } catch (e) {

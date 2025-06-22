@@ -15,12 +15,22 @@ const DevProfile = () => {
     const loadDevProfile = async () => {
       try {
         setLoading(true);
-        // Fetch the developer's profile
-        const profileRes = await api.get(`/users/profile/${userId}`);
+        // Fetch the developer's profile with graceful fallback
+        let profileRes;
+        try {
+          profileRes = await api.get(`/users/profile/${userId}`);
+        } catch {
+          profileRes = await api.get(`/users/${userId}`);
+        }
         setProfile(profileRes.data);
         
-        // Fetch all posts by this developer
-        const postsRes = await api.get(`/users/${userId}/posts`);
+        // Fetch all posts by this developer with fallback
+        let postsRes;
+        try {
+          postsRes = await api.get(`/users/${userId}/posts`);
+        } catch {
+          postsRes = await api.get(`/posts?user_id=${userId}`);
+        }
         setPosts(postsRes.data || []);
       } catch (err) {
         console.error('Error loading developer profile:', err);
