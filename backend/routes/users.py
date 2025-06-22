@@ -126,30 +126,61 @@ async def update_profile(
     update_data: UpdateProfileRequest,
     token: str = Depends(oauth2_scheme)
 ):
+    # Decode token to get user_id
     payload = verify_access_token(token)
     user_id = payload.get("sub")
-    updates = update_data.dict(exclude_unset=True)
-
-    # Enhanced Steam integration with debugging
-    if "steam_id" in updates:
-        logger.info(f"Processing Steam integration for user {user_id}")
-        steam_profile = fetch_steam_profile(updates["steam_id"])
-        if steam_profile:
-            logger.debug(f"Steam profile data: {steam_profile}")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+        
+    # Fetch user to verify existence
+    user = get_user_from_db(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    updates = update_data.dict(exclude_unset=True)  # Only include set fields
+    
+    # Handle optional Steam profile fetching
+    if updates.get("steam_id"):
+        try:
+            # Get profile data using the utility function
+            steam_input = updates["steam_id"].strip()
+            logger.debug(f"Attempting to fetch Steam profile for input: {steam_input}")
+            
+            # First check if the Steam API key is configured
+            if not STEAM_API_KEY:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Steam API is not configured on the server"
+                )
+            
+            steam_profile = fetch_steam_profile(steam_input)
+            
+            # Verify the profile was found before proceeding
+            if not steam_profile:
+                logger.warning(f"Could not find Steam profile for: {steam_input}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Could not validate Steam profile. Please check your Steam ID or URL."
+                )
+                
+            logger.info(f"Successfully fetched Steam profile: {steam_profile.get('persona_name')}")
+            
+            # Add fetched profile to updates
             updates["steam_profile"] = steam_profile
+            updates["last_steam_sync"] = str(datetime.utcnow())
             
-            # Store additional Steam metadata
-            updates["external_ids"] = updates.get("external_ids", {})
-            updates["external_ids"]["steam"] = steam_profile["steam_id"]
-            
-            logger.info(f"Successfully integrated Steam profile for user {user_id}")
-        else:
-            logger.warning(f"Failed to fetch Steam profile for {updates['steam_id']}")
+            # Don't need to store the raw ID separately
+            del updates["steam_id"]
+        except HTTPException:
+            # Re-raise HTTP exceptions without modification
+            raise
+        except Exception as e:
+            logger.error(f"Steam profile error: {e}", exc_info=True)
             raise HTTPException(
-                status_code=400,
+                status_code=400, 
                 detail="Could not validate Steam profile. Please check your Steam ID or URL."
             )
-
+            
     # Handle email change
     if "email" in updates:
         new_email = updates["email"].lower()

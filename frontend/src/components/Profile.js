@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProfileData, getUserPosts } from "../api"; // Your existing API helper for fetching profile
+import { getProfileData, getUserPosts, api } from "../api"; // Your existing API helper for fetching profile
 import jwtDecode from "jwt-decode";
 import axios from "axios";
+import Cookies from 'js-cookie';
 import SteamAuthButton from './SteamAuthButton';
 
 export default function Profile() {
@@ -42,9 +43,11 @@ export default function Profile() {
   let userType = "";
   let token = "";
   try {
-    token = localStorage.getItem("token") || "";
+    token = Cookies.get('access_token') || "";
     if (token) userType = jwtDecode(token).user_type;
-  } catch {}
+  } catch (err) {
+    console.error('Error decoding token:', err);
+  }
   const isDev = userType === "Dev";
 
   // --- Helpers ---
@@ -70,9 +73,7 @@ export default function Profile() {
 
   const refreshSteamProfile = async () => {
     try {
-      const response = await axios.post('/users/refresh-steam', {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.post('/users/refresh-steam', {});
       setProfile(prev => ({
         ...prev,
         steam_profile: response.data
@@ -110,6 +111,9 @@ export default function Profile() {
           <div style={styles.headerRight}>
             <button
               onClick={() => {
+                // Clear both cookie and localStorage tokens
+                Cookies.remove('access_token');
+                Cookies.remove('refresh_token');
                 localStorage.removeItem("token");
                 navigate("/login");
               }}
