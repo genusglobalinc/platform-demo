@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import jwtDecode from "jwt-decode";
 import { api } from "../api";
+import Layout, { sectionStyles } from "./Layout";
 
 // Helper to build Sanity asset URLs similar to PostCard
 const buildSanityUrl = (ref, projectId = process.env.REACT_APP_SANITY_PROJECT_ID || "jpgxw2o8") => {
@@ -25,31 +26,45 @@ export default function PostDetails() {
   const [devPosts, setDevPosts] = useState([]);
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
+        // Fetch the post
         const res = await fetch(`/posts/${postId}`);
         if (!res.ok) throw new Error("Failed to fetch post");
         const data = await res.json();
         console.log("Post data:", data); // Debug post data structure
         
-        // Extract developer ID from various possible locations in data structure
-        const devId = data.dev_id || data.user_id || 
-                    (data.post_data && (data.post_data.dev_id || data.post_data.user_id)) || 
-                    data.author_id;
+        // Extract user ID from possible locations
+        // For older posts in DynamoDB we look for user_id, for Sanity we might have author._ref
+        let userId;
         
-        // Update post with developer ID if found but not in the original structure
+        if (data.user_id) {
+          userId = data.user_id;
+        } else if (data.dev_id) {
+          userId = data.dev_id;
+        } else if (data.author && data.author._ref) {
+          // Sanity format - extract the ID from reference string "user-abc123"
+          userId = data.author._ref.replace('user-', '');
+        } else if (data.author_id) {
+          userId = data.author_id;
+        } else if (data.testerId) {
+          userId = data.testerId;
+        }
+        
+        console.log("Determined user ID for post:", userId);
+        
+        // Ensure post has a consistent dev_id field
         const enhancedData = {
           ...data,
-          dev_id: devId
+          dev_id: userId
         };
         
         setPost(enhancedData);
         
-        // If we have dev/studio info, fetch their profile data
-        if (devId) {
-          console.log("Found developer ID:", devId);
-          await fetchDevProfile(devId);
+        // Always attempt to fetch developer profile if we have any ID
+        if (userId) {
+          await fetchDevProfile(userId);
         } else {
           console.warn("No developer ID found for post", postId);
         }
@@ -60,20 +75,25 @@ export default function PostDetails() {
         setLoading(false);
       }
     };
-    fetchPost();
+    fetchData();
   }, [postId]);
   
-  // Fetch dev profile and their posts
-  const fetchDevProfile = async (userId) => {
+  // Fetch developer profile
+  const fetchDevProfile = async (developerId) => {
     try {
-      const res = await api.get(`/users/profile/${userId}`);
-      setDevProfile(res.data);
-      
-      // Also fetch all posts by this dev
-      const postsRes = await api.get(`/users/${userId}/posts`);
+      console.log("Fetching profile for developer ID:", developerId);
+      const profileRes = await api.get(`/users/profile/${developerId}`);
+      console.log("Developer profile:", profileRes.data);
+      setDevProfile(profileRes.data);
+
+      // Also fetch other posts by this developer
+      console.log("Fetching posts for developer ID:", developerId);
+      const postsRes = await api.get(`/users/${developerId}/posts`);
+      console.log("Developer posts:", postsRes.data);
       setDevPosts(postsRes.data || []);
-    } catch (err) {
-      console.error("Error fetching dev profile:", err);
+    } catch (e) {
+      console.error("Error fetching developer data:", e);
+      // Don't show an error to the user, just log it
     }
   };
 
@@ -164,21 +184,22 @@ export default function PostDetails() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={{ marginTop: "1rem", color: "#B388EB" }}>Loading post...</p>
-      </div>
+      <Layout pageTitle="Loading Post">
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p style={{ marginTop: "1rem", color: "#B388EB" }}>Loading post...</p>
+        </div>
+      </Layout>
     );
   }
 
   if (error || !post) {
     return (
-      <div style={styles.errorContainer}>
-        <p>{error || "Post not found."}</p>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>
-          Go Back
-        </button>
-      </div>
+      <Layout pageTitle="Error" showBackButton={true} onBack={() => navigate(-1)}>
+        <div style={styles.errorContainer}>
+          <p>{error || "Post not found."}</p>
+        </div>
+      </Layout>
     );
   }
 
@@ -196,11 +217,8 @@ export default function PostDetails() {
     null;
 
   return (
-    <div style={styles.container}>
+    <Layout pageTitle="Post Details" showBackButton={true} onBack={() => navigate(-1)}>
       <div style={styles.innerWrapper}>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>
-          ← Back
-        </button>
 
         {/* Banner */}
         {bannerSrc && <img src={bannerSrc} alt="banner" style={styles.banner} />}
@@ -213,14 +231,11 @@ export default function PostDetails() {
             <span 
               style={styles.studioLink}
               onClick={() => {
-                const devId = post.dev_id || post.user_id || 
-                            (post.post_data && (post.post_data.dev_id || post.post_data.user_id)) ||
-                            post.author_id;
-                if (devId) {
-                  console.log("Navigating to dev profile with ID:", devId);
-                  navigate(`/dev-profile/${devId}`);
+                if (post.dev_id) {
+                  console.log("Navigating to dev profile with ID:", post.dev_id);
+                  navigate(`/dev-profile/${post.dev_id}`);
                 } else {
-                  console.warn("Cannot navigate: No developer ID associated with studio name");
+                  console.warn("No dev_id found for this post");
                   alert("Developer profile not available for this studio");
                 }
               }}
@@ -276,7 +291,7 @@ export default function PostDetails() {
 
         {/* Registration Button */}
         <div style={{ marginTop: "2rem" }}>
-          <button onClick={registerForEvent} style={{ ...styles.backBtn, color: "#fff", background: "#B388EB", padding: "8px 16px", borderRadius: 8 }}>
+          <button onClick={registerForEvent} style={sectionStyles.button}>
             Sign Up For Playtest
           </button>
         </div>
@@ -284,31 +299,19 @@ export default function PostDetails() {
         {/* Dev Profile Section */}
         {renderDevProfileSection()}
       </div>
-    </div>
+    </Layout>
   );
 }
 
 const styles = {
   container: {
-    background: "#111",
-    minHeight: "100vh",
     color: "#fff",
     display: "flex",
     justifyContent: "center",
-    padding: "2rem 1rem",
     fontFamily: "sans-serif",
   },
   innerWrapper: {
-    maxWidth: "900px",
     width: "100%",
-  },
-  backBtn: {
-    background: "transparent",
-    border: "none",
-    color: "#B388EB",
-    cursor: "pointer",
-    fontSize: "1rem",
-    marginBottom: "1rem",
   },
   banner: {
     width: "100%",
@@ -384,14 +387,11 @@ const styles = {
     textUnderlineOffset: "2px",
   },
   devProfileSection: {
-    marginTop: "3rem",
-    padding: "1.5rem",
-    background: "rgba(40, 40, 40, 0.5)",
-    borderRadius: "12px",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    marginTop: "2rem",
+    ...sectionStyles.section,
   },
   devProfileTitle: {
-    fontSize: "1.5rem",
+    fontSize: "1.4rem",
     marginBottom: "1.5rem",
     color: "#B388EB",
     borderBottom: "1px solid rgba(179, 136, 235, 0.3)",

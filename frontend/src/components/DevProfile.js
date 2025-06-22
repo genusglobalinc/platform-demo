@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import Layout, { sectionStyles } from './Layout';
 
 const DevProfile = () => {
   const { userId } = useParams();
@@ -45,21 +46,22 @@ const DevProfile = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Loading developer profile...</p>
-      </div>
+      <Layout pageTitle="Loading Profile">
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p style={styles.loadingText}>Loading developer profile...</p>
+        </div>
+      </Layout>
     );
   }
 
   if (error || !profile) {
     return (
-      <div style={styles.errorContainer}>
-        <p>{error || "Developer profile not found"}</p>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>
-          Go Back
-        </button>
-      </div>
+      <Layout pageTitle="Error" showBackButton={true} onBack={() => navigate(-1)}>
+        <div style={styles.errorContainer}>
+          <p>{error || "Developer profile not found"}</p>
+        </div>
+      </Layout>
     );
   }
   
@@ -71,11 +73,8 @@ const DevProfile = () => {
   const avatarUrl = profile.steam_profile?.avatar || profile.avatar_url || null;
 
   return (
-    <div style={styles.container}>
+    <Layout pageTitle={devName} showBackButton={true} onBack={() => navigate(-1)}>
       <div style={styles.innerWrapper}>
-        <button style={styles.backBtn} onClick={() => navigate(-1)}>
-          ← Back to Post
-        </button>
         
         {/* Developer Header */}
         <div style={styles.devHeader}>
@@ -171,42 +170,28 @@ const DevProfile = () => {
           <p style={styles.noPosts}>No posts available from this developer.</p>
         )}
       </div>
-    </div>
+    </Layout>
   );
 };
 
 const styles = {
   container: {
-    background: "#111",
-    minHeight: "100vh",
     color: "#fff",
     display: "flex",
     justifyContent: "center",
-    padding: "2rem 1rem",
     fontFamily: "sans-serif",
   },
   innerWrapper: {
     maxWidth: "1000px",
     width: "100%",
   },
-  backBtn: {
-    background: "transparent",
-    border: "none",
-    color: "#B388EB",
-    cursor: "pointer",
-    fontSize: "1rem",
-    marginBottom: "2rem",
-    padding: "0",
-    display: "inline-block",
-  },
+
   devHeader: {
     display: "flex",
     alignItems: "center",
     gap: "2rem",
     marginBottom: "2rem",
-    padding: "2rem",
-    backgroundColor: "rgba(30, 30, 30, 0.5)",
-    borderRadius: "12px",
+    ...sectionStyles.section,
   },
   avatar: {
     width: "120px",
@@ -246,7 +231,7 @@ const styles = {
     minWidth: "120px",
     padding: "1.5rem",
     background: "rgba(40, 40, 40, 0.5)",
-    borderRadius: "12px",
+    borderRadius: "8px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -275,8 +260,8 @@ const styles = {
     gap: "1.5rem",
   },
   postCard: {
-    backgroundColor: "rgba(30, 30, 30, 0.5)",
-    borderRadius: "12px",
+    backgroundColor: "rgba(40, 40, 40, 0.5)",
+    borderRadius: "8px",
     overflow: "hidden",
     cursor: "pointer",
     transition: "transform 0.2s, box-shadow 0.2s",
@@ -347,8 +332,7 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    height: "100vh",
-    background: "#111",
+    minHeight: "50vh",
   },
   spinner: {
     width: "50px",
@@ -366,15 +350,13 @@ const styles = {
   errorContainer: {
     color: "#fff",
     textAlign: "center",
-    paddingTop: "4rem",
-    background: "#111",
-    minHeight: "100vh",
+    padding: "2rem",
+    minHeight: "50vh",
   },
   noPosts: {
     textAlign: "center",
     padding: "2rem",
-    backgroundColor: "rgba(30, 30, 30, 0.5)",
-    borderRadius: "12px",
+    ...sectionStyles.section,
     color: "#aaa",
   }
 };

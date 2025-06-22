@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { uploadAvatar, sendVerificationEmail, verifyEmailCode } from "../api";
+import Layout, { sectionStyles } from "./Layout";
 
 // Pre-defined profile pictures configurable by platform admins
 const profilePics = ["default1", "default2", "default3"];
@@ -150,36 +151,10 @@ export default function ProfileSettings() {
   );
 
   return (
-    <div className="responsive-container" style={styles.container}>
+    <Layout pageTitle="Profile Settings">
       {loading && renderLoadingSpinner()}
-
-      {/* Left Sidebar */}
-      <div className="left-sidebar" style={styles.leftSidebar}>
-        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
-        <div style={{ marginBottom: "32px" }}>
-          <div style={styles.navItem} onClick={() => navigate('/feed')}>Home</div>
-          <div style={styles.navItem} onClick={() => navigate('/profile')}>Profile</div>
-          <div style={styles.navItem} onClick={() => navigate('/profile/settings')}>Settings</div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="main-content" style={styles.mainContent}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Profile Settings</h2>
-          <div style={styles.headerRight}>
-            <button
-              onClick={() => {
-                localStorage.removeItem('token');
-                navigate('/login');
-              }}
-              style={styles.logoutButton}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
+      <div style={styles.mainContent}>
+        
         {/* Display Name */}
         <div style={styles.section}>
           <label style={styles.label}>Display Name</label>
@@ -524,10 +499,7 @@ export default function ProfileSettings() {
         
         {status && <p style={styles.status}>{status}</p>}
       </div>
-
-      {/* Right Sidebar */}
-      <div className="right-sidebar" style={styles.rightSidebar}></div>
-    </div>
+    </Layout>
   );
 }
 
@@ -608,65 +580,15 @@ const styles = {
     '0%': { transform: 'translateY(20px)', opacity: 0 },
     '100%': { transform: 'translateY(0)', opacity: 1 },
   },
-  container: {
-    background: '#111',
-    color: '#fff',
-    minHeight: '100vh',
-    fontFamily: 'sans-serif',
-    display: 'flex',
-  },
-  leftSidebar: {
-    width: '250px',
-    padding: '24px 16px',
-    borderRight: '1px solid #333',
-    position: 'sticky',
-    top: 0,
-    height: '100vh',
-    overflowY: 'auto',
-  },
   mainContent: {
-    flex: 1,
-    padding: '24px',
-    maxWidth: '900px',
-    margin: '0 auto',
-  },
-  rightSidebar: {
-    width: '250px',
-    padding: '24px',
-    borderLeft: '1px solid #333',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: { fontSize: 28, margin: 0 },
-  headerRight: { display: 'flex', gap: 16 },
-  logoutButton: {
-    background: '#E57373',
-    padding: '8px 16px',
-    color: '#fff',
-    borderRadius: 8,
-    border: 'none',
-    cursor: 'pointer',
-  },
-  navItem: {
-    padding: '12px 8px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    marginBottom: '8px',
-    transition: 'background 0.2s',
+    width: '100%',
   },
   section: {
     display: 'flex',
     flexDirection: 'column',
     gap: '1rem',
     marginBottom: '2rem',
-    padding: '1.5rem',
-    background: '#1f1f1f',
-    borderRadius: '12px',
-    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)',
+    ...sectionStyles.section,
   },
   label: {
     fontWeight: '600',
@@ -683,14 +605,7 @@ const styles = {
   },
   button: {
     alignSelf: 'flex-start',
-    padding: '0.75rem 1.5rem',
-    borderRadius: '8px',
-    border: 'none',
-    background: '#B388EB',
-    color: '#121212',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    cursor: 'pointer',
+    ...sectionStyles.button,
   },
   picsRow: {
     display: 'flex',

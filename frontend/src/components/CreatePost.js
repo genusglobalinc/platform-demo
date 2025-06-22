@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Layout, { sectionStyles } from "./Layout";
 
 // Gaming sub-genres only
 const SUBGENRE_OPTIONS = [
@@ -14,19 +15,10 @@ const CreatePost = ({ token, onPostCreated }) => {
   const authToken = token || localStorage.getItem("token") || sessionStorage.getItem("token");
 
   const styles = {
-    container: {
-      width: '90%',
-      maxWidth: '800px',
-      margin: '2rem auto',
-      padding: '1.5rem',
-      background: '#1a1a1a',
-      color: '#eee',
-      borderRadius: '12px',
-      boxShadow: '0 0 20px rgba(128,0,128,0.3)',
-      boxSizing: 'border-box',
-      '@media (min-width: 768px)': {
-        padding: '2rem',
-      },
+    formContainer: {
+      width: '100%', 
+      marginBottom: '2rem',
+      ...sectionStyles.section,
     },
     title: {
       color: '#B388EB',
@@ -135,23 +127,8 @@ const CreatePost = ({ token, onPostCreated }) => {
     },
     button: {
       width: '100%',
-      padding: '0.75rem',
       marginTop: '1rem',
-      borderRadius: '8px',
-      border: 'none',
-      background: '#B388EB',
-      color: '#121212',
-      fontSize: '1rem',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      '&:hover': {
-        transform: 'translateY(-1px)',
-        boxShadow: '0 4px 12px rgba(179, 136, 235, 0.3)',
-      },
-      '&:active': {
-        transform: 'translateY(1px)',
-      },
+      ...sectionStyles.button,
     },
   };
   const navigate = useNavigate();
@@ -252,18 +229,18 @@ const CreatePost = ({ token, onPostCreated }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="responsive-container" style={styles.container}>
-      <h2 style={styles.title}>Create Post</h2>
-      {error && <p style={styles.error}>{error}</p>}
+    <Layout pageTitle="Create Post">
+      <form onSubmit={handleSubmit} style={styles.formContainer}>
+        {error && <p style={styles.error}>{error}</p>}
 
-      <input
-        type="text"
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-        style={styles.input}
-      />
+        <input
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          style={styles.input}
+        />
 
       <label style={styles.label}>Genre:</label>
       <select value={genre} onChange={(e) => setGenre(e.target.value)} style={styles.select}>
@@ -338,8 +315,9 @@ const CreatePost = ({ token, onPostCreated }) => {
         style={styles.input}
       />
 
-      <button type="submit" style={styles.button}>Post</button>
-    </form>
+        <button type="submit" style={styles.button}>Post</button>
+      </form>
+    </Layout>
   );
 };
 

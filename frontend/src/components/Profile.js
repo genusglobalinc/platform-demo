@@ -5,6 +5,7 @@ import jwtDecode from "jwt-decode";
 import axios from "axios";
 import Cookies from 'js-cookie';
 import SteamAuthButton from './SteamAuthButton';
+import Layout, { sectionStyles } from "./Layout";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -109,46 +110,41 @@ export default function Profile() {
   };
 
   return (
-    <div className="responsive-container" style={styles.container}>
-      {/* Left Sidebar */}
-      <div className="left-sidebar" style={styles.leftSidebar}>
-        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
-        <div style={{ marginBottom: "32px" }}>
-          <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
-          <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
-          <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
+    <Layout pageTitle="My Profile">
+      {isLoading && (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p style={{ marginTop: "1rem", color: "#B388EB" }}>Loading profile...</p>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="main-content" style={styles.mainContent}>
-        {/* Header */}
-        <div style={styles.header}>
-          <h2 style={styles.title}>My Profile</h2>
-          {(isDev || (profile && profile.user_type === "Admin")) && (
-            <button
-              style={{ ...styles.logoutButton, background: "#B388EB" }}
-              onClick={() => navigate("/admin")}
-            >
-              Go to Admin
-            </button>
-          )}
-          <div style={styles.headerRight}>
-            <button
-              onClick={() => {
-                // Use the logout helper from API
-                import('../api').then(api => {
-                  api.logout();
-                });
-              }}
-              style={styles.logoutButton}
-            >
-              Logout
-            </button>
+      )}
+      {!isLoading && profile && (
+        <div style={styles.mainContent}>
+          {/* Header */}
+          <div style={styles.header}>
+            <h2 style={styles.title}>My Profile</h2>
+            {(isDev || (profile && profile.user_type === "Admin")) && (
+              <button
+                style={{ ...styles.logoutButton, background: "#B388EB" }}
+                onClick={() => navigate("/admin")}
+              >
+                Go to Admin
+              </button>
+            )}
+            <div style={styles.headerRight}>
+              <button
+                onClick={() => {
+                  // Use the logout helper from API
+                  import('../api').then(api => {
+                    api.logout();
+                  });
+                }}
+                style={styles.logoutButton}
+              >
+                Logout
+              </button>
+            </div>
           </div>
-        </div>
 
-        {profile ? (
           <div style={styles.details}>
             {profile.steam_profile?.avatar && (
               <img 
@@ -250,11 +246,8 @@ export default function Profile() {
               </div>
             )}
           </div>
-        ) : (
-          <p style={styles.details}>Loading profile...</p>
-        )}
-
-        <div style={styles.postsContainer}>
+        
+          <div style={styles.postsContainer}>
           {isDev && <h3 style={styles.postsTitle}>My Posts</h3>}
           {isDev && (
             posts.length > 0 ? (
@@ -286,12 +279,10 @@ export default function Profile() {
               <p>No posts available.</p>
             )
           )}
+          </div>
         </div>
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="right-sidebar" style={styles.rightSidebar}></div>
-    </div>
+      )}
+    </Layout>
   );
 }
 
@@ -304,62 +295,23 @@ const styles = {
     border: "2px solid #B388EB",
     marginBottom: "1rem",
   },
-  container: {
-    background: "#111",
-    color: "#fff",
-    minHeight: "100vh",
-    fontFamily: "sans-serif",
+  loadingContainer: {
     display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "50vh",
   },
-  demographicSection: {
-    marginTop: '2rem',
-    background: '#2a2a2a',
-    padding: '1.5rem',
-    borderRadius: '8px',
-    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)',
-  },
-  leftSidebar: {
-    width: "250px",
-    padding: "24px 16px",
-    borderRight: "1px solid #333",
-    position: "sticky",
-    top: 0,
-    height: "100vh",
-    overflowY: "auto",
+  spinner: {
+    width: "50px",
+    height: "50px",
+    border: "5px solid #B388EB",
+    borderTop: "5px solid transparent",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
   },
   mainContent: {
-    flex: 1,
-    padding: "24px",
-    maxWidth: "900px",
-    margin: "0 auto",
-  },
-  rightSidebar: {
-    width: "250px",
-    padding: "24px",
-    borderLeft: "1px solid #333",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  title: { fontSize: 28, margin: 0 },
-  headerRight: { display: "flex", gap: 16 },
-  logoutButton: {
-    background: "#E57373",
-    padding: "8px 16px",
-    color: "#fff",
-    borderRadius: 8,
-    border: "none",
-    cursor: "pointer",
-  },
-  navItem: {
-    padding: "12px 8px",
-    borderRadius: "6px",
-    cursor: "pointer",
-    marginBottom: "8px",
-    transition: "background 0.2s",
+    width: "100%",
   },
   details: {
     fontSize: "1.1rem",
@@ -367,9 +319,7 @@ const styles = {
   },
   postsContainer: {
     marginTop: "2rem",
-    background: "#2a2a2a",
-    padding: "1rem",
-    borderRadius: "8px",
+    ...sectionStyles.section,
   },
   postsTitle: {
     fontSize: "1.5rem",
@@ -397,10 +347,7 @@ const styles = {
   },
   steamSection: {
     marginTop: '2rem',
-    background: '#2a2a2a',
-    padding: '1.5rem',
-    borderRadius: '8px',
-    boxShadow: '0 1px 6px rgba(0, 0, 0, 0.3)',
+    ...sectionStyles.section,
   },
   steamHeader: {
     display: 'flex',

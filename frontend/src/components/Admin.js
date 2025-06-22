@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Layout, { sectionStyles } from "./Layout";
 
 export default function Admin() {
   const [loading, setLoading] = useState(false);
@@ -182,22 +183,8 @@ export default function Admin() {
   };
 
   return (
-    <div className="responsive-container" style={styles.container}>
-      {loading && renderLoadingSpinner()}
-
-      {/* Left Sidebar */}
-      <div className="left-sidebar" style={styles.leftSidebar}>
-        <h3 style={{ marginBottom: "24px" }}>Lost Gates</h3>
-        <div style={{ marginBottom: "32px" }}>
-          <div style={styles.navItem} onClick={() => navigate("/feed")}>Home</div>
-          <div style={styles.navItem} onClick={() => navigate("/profile")}>Profile</div>
-          <div style={styles.navItem} onClick={() => navigate("/profile/settings")}>Settings</div>
-          <div style={{...styles.navItem, background: "#333"}} onClick={() => navigate("/admin")}>Admin</div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="main-content" style={styles.mainContent}>
+    <Layout pageTitle="Admin Panel" hideBackButton>
+      <div style={styles.mainContent}>
         <div style={styles.header}>
           <h2 style={styles.title}>Admin Dashboard</h2>
           <div style={styles.headerRight}>
@@ -451,10 +438,7 @@ export default function Admin() {
           </div>
         )}
       </div>
-
-      {/* Right Sidebar */}
-      <div className="right-sidebar" style={styles.rightSidebar}></div>
-    </div>
+    </Layout>
   );
 }
 
