@@ -29,9 +29,15 @@ const DevProfile = () => {
         try {
           postsRes = await api.get(`/users/${userId}/posts`);
         } catch {
-          postsRes = await api.get(`/posts?user_id=${userId}`);
+          try {
+            postsRes = await api.get(`/posts?user_id=${userId}`);
+          } catch {
+            if (profileRes.data?.studio_name) {
+              postsRes = await api.get(`/posts?studio=${encodeURIComponent(profileRes.data.studio_name)}`);
+            }
+          }
         }
-        setPosts(postsRes.data || []);
+        setPosts(postsRes?.data || []);
       } catch (err) {
         console.error('Error loading developer profile:', err);
         setError('Failed to load developer profile');

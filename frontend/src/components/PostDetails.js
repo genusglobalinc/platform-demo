@@ -56,6 +56,10 @@ export default function PostDetails() {
           userId = data.user._id;
         } else if (data.owner_id) {
           userId = data.owner_id;
+        } else if (data.created_by) {
+          userId = data.created_by;
+        } else if (data.createdBy) {
+          userId = data.createdBy;
         } else if (data.testerId) {
           userId = data.testerId;
         }
@@ -95,10 +99,16 @@ export default function PostDetails() {
         profileRes = await api.get(`/users/profile/${developerId}`);
       } catch (err) {
         console.warn('Primary profile endpoint failed, trying fallback', err?.response?.status);
-        profileRes = await api.get(`/users/${developerId}`);
+        try {
+          profileRes = await api.get(`/users/${developerId}`);
+        } catch (subErr) {
+          console.warn('No backend profile found, will fall back to studio-only view');
+        }
       }
-      console.log("Developer profile:", profileRes.data);
-      setDevProfile(profileRes.data);
+      if (profileRes?.data) {
+        console.log("Developer profile:", profileRes.data);
+        setDevProfile(profileRes.data);
+      }
 
       // Fetch posts by this developer with graceful fallback
       console.log("Fetching posts for developer ID:", developerId);
@@ -106,11 +116,18 @@ export default function PostDetails() {
       try {
         postsRes = await api.get(`/users/${developerId}/posts`);
       } catch {
-        // Fallback to generic posts query if user-specific endpoint not available
-        postsRes = await api.get(`/posts?user_id=${developerId}`);
+        try {
+          postsRes = await api.get(`/posts?user_id=${developerId}`);
+        } catch {
+          if (post.studio) {
+            postsRes = await api.get(`/posts?studio=${encodeURIComponent(post.studio)}`);
+          }
+        }
       }
-      console.log("Developer posts:", postsRes.data);
-      setDevPosts(postsRes.data || []);
+      if (postsRes?.data) {
+        console.log("Developer posts:", postsRes.data);
+        setDevPosts(postsRes.data || []);
+      }
     } catch (e) {
       console.error("Error fetching developer data:", e);
       // Don't show an error to the user, just log it
