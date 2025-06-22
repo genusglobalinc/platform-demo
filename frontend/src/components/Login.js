@@ -51,17 +51,24 @@ const Login = () => {
   const handle2FASubmit = async () => {
     try {
       setLoading(true);
+      console.log('Submitting 2FA code...');
+      
       const response = await verify2FALogin(code2FA, tempToken);
+      
+      console.log('2FA response:', response.data); // For debugging
+      
       if (response.data.access_token) {
-        // Use centralized token management
-        setAuthTokens(response.data.access_token, response.data.refresh_token);
-        navigate("/feed");
+        console.log('2FA authentication successful, redirecting to feed');
+        // Tokens are now set in the API function directly
+        // Add a slight delay before redirecting to make sure tokens are saved
+        setTimeout(() => navigate("/feed"), 500);
       } else {
+        console.error('2FA response missing access token:', response.data);
         alert("Failed to verify 2FA code. Please try again.");
       }
     } catch (err) {
-      setErrorMsg("Invalid verification code. Please try again.");
-      console.error("2FA verification error:", err);
+      console.error("2FA verification error:", err.response?.data || err.message || err);
+      setErrorMsg(err.response?.data?.detail || "Invalid verification code. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { setup2FA, verify2FA, verify2FALogin } from '../api';
+import { setup2FA, verify2FA, verify2FALogin, setAuthTokens } from '../api';
 
 const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) => {
   const [loading, setLoading] = useState(false);
@@ -30,18 +30,21 @@ const TwoFactorSetup = ({ setupData: initialSetupData, onComplete, tempToken }) 
       // Then do the 2FA login to get the actual access token
       const loginResponse = await verify2FALogin(verificationCode, tempToken);
       
-      // Store the actual access token and clear the temp token
-      localStorage.setItem('token', loginResponse.data.access_token);
-      localStorage.removeItem('temp_token');
-      
-      // Clear any errors
-      setError('');
-      
-      // Navigate to feed
-      window.location.href = '/feed';
+      // Token is set by the verify2FALogin function now, but add a fallback just in case
+      if (loginResponse.data.access_token) {
+        console.log('2FA setup verified successfully');
+        
+        // Add a slight delay before redirecting to ensure tokens are properly saved
+        setTimeout(() => {
+          window.location.href = '/feed';
+        }, 500);
+      } else {
+        console.error('Missing token in 2FA response', loginResponse.data);
+        setError('Authentication failed. Please try again.');
+      }
     } catch (err) {
-      setError("Invalid verification code. Please try again.");
-      console.error("2FA verification error:", err);
+      console.error("2FA verification error:", err.response?.data || err.message || err);
+      setError(err.response?.data?.detail || "Invalid verification code. Please try again.");
     } finally {
       setLoading(false);
     }

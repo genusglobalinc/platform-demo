@@ -84,9 +84,25 @@ export const verify2FA = (code, tempToken) => {
 };
 
 export const verify2FALogin = async (code, tempToken) => {
-  return await api.post('/auth/2fa/login', { code }, {
-    headers: { Authorization: `Bearer ${tempToken}` },
-  });
+  try {
+    // Don't use the api instance for this since it would use our interceptor
+    // Instead use a fresh axios instance since we need to use the tempToken
+    const response = await axios.post(`${API_BASE_URL}/auth/2fa/login`, { code }, {
+      headers: { Authorization: `Bearer ${tempToken}` },
+      withCredentials: true
+    });
+    
+    // If successful, store the tokens immediately
+    if (response?.data?.access_token) {
+      setAuthTokens(response.data.access_token, response.data.refresh_token || '');
+      console.log('2FA login successful, tokens saved');
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('2FA verification failed:', error);
+    throw error;
+  }
 };
 
 export const registerUser = async (username, email, password, displayName, userType) => {
