@@ -213,6 +213,28 @@ async def update_profile(
 
     return {"message": "Profile updated successfully"}
 
+# ─── NEW PUBLIC USER ENDPOINTS ───
+@router.get("/{user_id}", summary="Public user profile", tags=["Users"])
+async def public_user_profile(user_id: str):
+    """Return a public-safe view of a user profile (no email, password, secrets)."""
+    user = get_user_from_db(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Exclude sensitive keys
+    sensitive_keys = {
+        "password", "two_factor_secret", "email_verification_code",
+        "email_verification_expiry", "liked_posts", "followers", "following",
+    }
+    public_profile = {k: v for k, v in user.items() if k not in sensitive_keys}
+    return public_profile
+
+# Existing auth-protected /{user_id}/posts route forbids other viewers.
+# Provide a public read-only variant instead.
+@router.get("/{user_id}/posts-public", summary="Public posts by user", tags=["Users"])
+async def public_user_posts(user_id: str):
+    posts = get_posts_by_user(user_id) or []
+    return {"posts": posts}
+
 # ─── NEW ───
 @router.get("/{user_id}/posts")
 async def get_user_posts(

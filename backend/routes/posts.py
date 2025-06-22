@@ -132,9 +132,13 @@ async def get_filtered_posts(
 async def get_all_posts_alias(
     genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
     tags: Optional[str] = Query(None, description="Comma-separated list of tags"),
+    user_id: Optional[str] = Query(None, description="Filter by owner user_id"),
 ):
     tag_list = tags.split(",") if tags else []
     posts = get_all_posts_from_db(post_type=genre, tags=tag_list if tags else None)
+    # Filter by user_id if provided
+    if user_id:
+        posts = [p for p in posts if p.get("user_id") == user_id or p.get("testerId") == user_id or p.get("dev_id") == user_id]
 
     # Ensure that all posts are serialized correctly before returning
     serialized_posts = json.dumps(posts, default=str)
@@ -147,9 +151,12 @@ async def get_all_posts_alias(
 async def get_all_posts(
     genre: Optional[str] = Query(None, description="Filter by genre/post_type"),
     tags: Optional[List[str]] = Query(None, description="List of tags"),
+    user_id: Optional[str] = Query(None, description="Filter by owner user_id"),
 ):
     # tags will automatically be a list if passed multiple times
     posts = get_all_posts_from_db(post_type=genre, tags=tags)
+    if user_id:
+        posts = [p for p in posts if p.get("user_id") == user_id or p.get("testerId") == user_id or p.get("dev_id") == user_id]
     serialized_posts = json.dumps(posts, default=str)
     return {"posts": json.loads(serialized_posts)}
 

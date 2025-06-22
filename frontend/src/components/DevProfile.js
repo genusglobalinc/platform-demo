@@ -18,22 +18,22 @@ const DevProfile = () => {
         // Fetch the developer's profile with graceful fallback
         let profileRes;
         try {
-          profileRes = await api.get(`/users/profile/${userId}`);
-        } catch {
           profileRes = await api.get(`/users/${userId}`);
+        } catch {
+          profileRes = await api.get(`/users/profile/${userId}`);
         }
         setProfile(profileRes.data);
         
         // Fetch all posts by this developer with fallback
         let postsRes;
         try {
-          postsRes = await api.get(`/users/${userId}/posts`);
+          postsRes = await api.get(`/users/${userId}/posts-public`);
         } catch {
           try {
             postsRes = await api.get(`/posts?user_id=${userId}`);
           } catch {
             if (profileRes.data?.studio_name) {
-              postsRes = await api.get(`/posts?studio=${encodeURIComponent(profileRes.data.studio_name)}`);
+              postsRes = await api.get(`/posts?user_id=${userId}`);
             }
           }
         }

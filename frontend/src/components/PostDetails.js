@@ -96,11 +96,12 @@ export default function PostDetails() {
       console.log("Fetching profile for developer ID:", developerId);
       let profileRes;
       try {
-        profileRes = await api.get(`/users/profile/${developerId}`);
+        // Prefer new public endpoint first (no auth needed)
+        profileRes = await api.get(`/users/${developerId}`);
       } catch (err) {
-        console.warn('Primary profile endpoint failed, trying fallback', err?.response?.status);
+        console.warn('Public profile endpoint failed, trying legacy', err?.response?.status);
         try {
-          profileRes = await api.get(`/users/${developerId}`);
+          profileRes = await api.get(`/users/profile/${developerId}`);
         } catch (subErr) {
           console.warn('No backend profile found, will fall back to studio-only view');
         }
@@ -114,13 +115,13 @@ export default function PostDetails() {
       console.log("Fetching posts for developer ID:", developerId);
       let postsRes;
       try {
-        postsRes = await api.get(`/users/${developerId}/posts`);
+        postsRes = await api.get(`/users/${developerId}/posts-public`);
       } catch {
         try {
           postsRes = await api.get(`/posts?user_id=${developerId}`);
         } catch {
           if (post.studio) {
-            postsRes = await api.get(`/posts?studio=${encodeURIComponent(post.studio)}`);
+            postsRes = await api.get(`/posts?user_id=${developerId}`); // fallback unchanged
           }
         }
       }
