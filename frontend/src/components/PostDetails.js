@@ -94,6 +94,58 @@ export default function PostDetails() {
     }
   };
 
+  // Render dev profile section
+  const renderDevProfileSection = () => {
+    if (!devProfile) return null;
+    
+    return (
+      <div style={styles.devProfileSection}>
+        <h3 style={styles.devProfileTitle}>About {post.studio || devProfile.display_name || 'Developer'}</h3>
+        
+        <div style={styles.devProfileContent}>
+          {/* Dev avatar and info */}
+          <div style={styles.devProfileHeader}>
+            {devProfile.steam_profile?.avatar && (
+              <img 
+                src={devProfile.steam_profile.avatar} 
+                alt="Developer" 
+                style={styles.devAvatar}
+              />
+            )}
+            <div>
+              <h4 style={styles.devName}>{devProfile.display_name}</h4>
+              {devProfile.bio && <p style={styles.devBio}>{devProfile.bio}</p>}
+            </div>
+          </div>
+          
+          {/* More posts by this dev */}
+          {devPosts.length > 0 && (
+            <div style={styles.morePostsSection}>
+              <h4 style={styles.morePostsTitle}>More posts by this developer</h4>
+              <div style={styles.morePostsGrid}>
+                {devPosts
+                  .filter(devPost => devPost.post_id !== postId && devPost._id !== postId) // Don't show current post
+                  .slice(0, 4) // Limit to 4 posts
+                  .map((devPost, idx) => (
+                    <div 
+                      key={idx} 
+                      style={styles.morePostCard}
+                      onClick={() => navigate(`/posts/${devPost.post_id || devPost._id}`)}
+                    >
+                      <h5 style={styles.morePostTitle}>{devPost.title}</h5>
+                      <p style={styles.morePostDescription}>
+                        {devPost.description?.substring(0, 100)}...
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -142,7 +194,7 @@ export default function PostDetails() {
         {post.studio && (
           <p style={styles.metaText}>
             <strong>Studio:</strong>{" "}
-            {devProfile ? (
+            {post.dev_id || post.user_id ? (
               <span 
                 style={styles.studioLink}
                 onClick={() => navigate(`/dev-profile/${post.dev_id || post.user_id}`)}
@@ -212,58 +264,6 @@ export default function PostDetails() {
     </div>
   );
 }
-
-  // Render dev profile section
-  const renderDevProfileSection = () => {
-    if (!devProfile) return null;
-    
-    return (
-      <div style={styles.devProfileSection}>
-        <h3 style={styles.devProfileTitle}>About {post.studio || devProfile.display_name || 'Developer'}</h3>
-        
-        <div style={styles.devProfileContent}>
-          {/* Dev avatar and info */}
-          <div style={styles.devProfileHeader}>
-            {devProfile.steam_profile?.avatar && (
-              <img 
-                src={devProfile.steam_profile.avatar} 
-                alt="Developer" 
-                style={styles.devAvatar}
-              />
-            )}
-            <div>
-              <h4 style={styles.devName}>{devProfile.display_name}</h4>
-              {devProfile.bio && <p style={styles.devBio}>{devProfile.bio}</p>}
-            </div>
-          </div>
-          
-          {/* More posts by this dev */}
-          {devPosts.length > 0 && (
-            <div style={styles.morePostsSection}>
-              <h4 style={styles.morePostsTitle}>More posts by this developer</h4>
-              <div style={styles.morePostsGrid}>
-                {devPosts
-                  .filter(devPost => devPost.post_id !== postId && devPost._id !== postId) // Don't show current post
-                  .slice(0, 4) // Limit to 4 posts
-                  .map((devPost, idx) => (
-                    <div 
-                      key={idx} 
-                      style={styles.morePostCard}
-                      onClick={() => navigate(`/posts/${devPost.post_id || devPost._id}`)}
-                    >
-                      <h5 style={styles.morePostTitle}>{devPost.title}</h5>
-                      <p style={styles.morePostDescription}>
-                        {devPost.description?.substring(0, 100)}...
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
 const styles = {
   container: {
