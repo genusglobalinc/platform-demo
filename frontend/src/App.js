@@ -10,6 +10,7 @@ import CreatePost from './components/CreatePost';
 import ProfileSettings from './components/ProfileSettings';
 import Admin from './components/Admin';
 import PostDetails from './components/PostDetails';
+import DevProfile from './components/DevProfile';
 import './styles/responsive.css';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/posts/:postId" element={<PostDetails />} />
+        <Route path="/dev-profile/:userId" element={<DevProfile />} />
       </Routes>
     </Router>
   );

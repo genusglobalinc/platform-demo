@@ -11,6 +11,7 @@ export default function Admin() {
   const [profile, setProfile] = useState(null);
   const [pendingPosts, setPendingPosts] = useState([]);
   const [postStatus, setPostStatus] = useState("");
+  const [sanityStudioUrl, setSanityStudioUrl] = useState(process.env.REACT_APP_SANITY_STUDIO_URL || "http://localhost:3333");
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -19,6 +20,11 @@ export default function Admin() {
   const pageSize = 10;
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Open Sanity Studio in a new tab
+  const openSanityStudio = () => {
+    window.open(sanityStudioUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Helper to safely access title/description regardless of nesting
   const getPostField = (post, field) => {
@@ -528,6 +534,36 @@ const styles = {
     cursor: "pointer",
     marginBottom: "8px",
     transition: "background 0.2s",
+  },
+  sanityPortalContainer: {
+    marginTop: "24px",
+    marginBottom: "24px",
+    padding: "16px",
+    background: "rgba(179, 136, 235, 0.1)",
+    borderRadius: "8px",
+    border: "1px solid rgba(179, 136, 235, 0.3)",
+  },
+  sanityPortalButton: {
+    width: "100%",
+    padding: "12px 16px",
+    background: "#B388EB",
+    color: "#121212",
+    border: "none",
+    borderRadius: "6px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    fontSize: "1rem",
+    transition: "all 0.2s ease",
+    '&:hover': {
+      background: "#9d74d4",
+      transform: "translateY(-2px)",
+    },
+  },
+  sanityPortalText: {
+    fontSize: "0.85rem",
+    marginTop: "8px",
+    opacity: 0.7,
+    textAlign: "center",
   },
   searchBar: {
     marginBottom: "24px",

@@ -150,6 +150,14 @@ export default function Profile() {
 
         {profile ? (
           <div style={styles.details}>
+            {profile.steam_profile?.avatar && (
+              <img 
+                src={profile.steam_profile.avatar} 
+                alt="Profile" 
+                style={styles.profileAvatar}
+              />
+            )}
+            <h3>Your Profile</h3>
             <p><strong>Username:</strong> {profile.username}</p>
             <p><strong>Display Name:</strong> {profile.display_name}</p>
             <p><strong>Email:</strong> {profile.email}</p>
@@ -288,6 +296,14 @@ export default function Profile() {
 }
 
 const styles = {
+  profileAvatar: {
+    width: "100px",
+    height: "100px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    border: "2px solid #B388EB",
+    marginBottom: "1rem",
+  },
   container: {
     background: "#111",
     color: "#fff",
