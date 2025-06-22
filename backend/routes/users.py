@@ -232,8 +232,8 @@ async def public_user_profile(user_id: str):
 # Provide a public read-only variant instead.
 @router.get("/{user_id}/posts-public", summary="Public posts by user", tags=["Users"])
 async def public_user_posts(user_id: str):
-    posts = get_posts_by_user(user_id) or []
-    return {"posts": posts}
+    """Return list of posts authored by the user (no auth required)."""
+    return get_posts_by_user(user_id) or []
 
 # ─── NEW ───
 @router.get("/{user_id}/posts")

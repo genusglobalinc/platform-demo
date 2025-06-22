@@ -37,7 +37,8 @@ const DevProfile = () => {
             }
           }
         }
-        setPosts(postsRes?.data || []);
+        const arr = Array.isArray(postsRes.data) ? postsRes.data : postsRes.data?.posts || [];
+        setPosts(arr);
       } catch (err) {
         console.error('Error loading developer profile:', err);
         setError('Failed to load developer profile');

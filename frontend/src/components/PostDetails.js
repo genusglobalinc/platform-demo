@@ -125,9 +125,9 @@ export default function PostDetails() {
           }
         }
       }
-      if (postsRes?.data) {
-        console.log("Developer posts:", postsRes.data);
-        setDevPosts(postsRes.data || []);
+      if (postsRes) {
+        const arr = Array.isArray(postsRes.data) ? postsRes.data : postsRes.data?.posts || [];
+        setDevPosts(arr);
       }
     } catch (e) {
       console.error("Error fetching developer data:", e);
