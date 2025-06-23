@@ -76,6 +76,27 @@ export default function Profile() {
   }
   const isDev = userType === "Dev";
 
+  // Helper to render a label/value row with consistent styling
+  const renderRow = (label, value) => {
+    if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return null;
+    const renderedValue = Array.isArray(value) ? (
+      <div style={styles.tagContainer}>
+        {value.map((v) => (
+          <span key={v} style={styles.tag}>{v}</span>
+        ))}
+      </div>
+    ) : (
+      <span>{value}</span>
+    );
+
+    return (
+      <div style={styles.infoRow}>
+        <span style={styles.infoLabel}>{label}</span>
+        {renderedValue}
+      </div>
+    );
+  };
+
   // --- Helpers ---
   const collectRegistrations = async (postId) => {
     // Must have verified email first
@@ -154,11 +175,11 @@ export default function Profile() {
               />
             )}
             <h3>Your Profile</h3>
-            <p><strong>Username:</strong> {profile.username}</p>
-            <p><strong>Display Name:</strong> {profile.display_name}</p>
-            <p><strong>Email:</strong> {profile.email}</p>
-            <p><strong>Email Verified:</strong> {profile.is_email_verified ? "Yes" : "No"}</p>
-            <p><strong>Social Links:</strong> {profile.social_links}</p>
+            {renderRow("Username", profile.username)}
+            {renderRow("Display Name", profile.display_name)}
+            {renderRow("Email", profile.email)}
+            {renderRow("Email Verified", profile.is_email_verified ? "Yes" : "No")}
+            {renderRow("Social Links", profile.social_links)}
             {profile.steam_profile ? (
               <div style={styles.steamSection}>
                 <h3>Steam Profile</h3>
@@ -208,10 +229,10 @@ export default function Profile() {
                 <SteamAuthButton />
               </div>
             )}
-            <p><strong>Followers:</strong> {profile.followers}</p>
-            <p><strong>Following:</strong> {profile.following}</p>
-            <p><strong>Liked Posts:</strong> {profile.liked_posts?.length || 0}</p>
-            <p><strong>Profile Pic:</strong> {profile.profile_pic}</p>
+            {renderRow("Followers", profile.followers)}
+            {renderRow("Following", profile.following)}
+            {renderRow("Liked Posts", profile.liked_posts?.length || 0)}
+            {renderRow("Profile Pic", profile.profile_pic)}
             
             {profile.demographic_info && Object.keys(profile.demographic_info).length > 0 && (
               <div style={styles.demographicSection}>
@@ -228,19 +249,13 @@ export default function Profile() {
                 {profile.demographic_info.preferred_platforms && (
                   <p><strong>Preferred Platforms:</strong> {profile.demographic_info.preferred_platforms}</p>
                 )}
-                {profile.demographic_info.gaming_experience && (
-                  <p><strong>Gaming Experience:</strong> {profile.demographic_info.gaming_experience}</p>
-                )}
-                {profile.demographic_info.favorite_genres && (
-                  <p><strong>Favorite Genres:</strong> {profile.demographic_info.favorite_genres}</p>
-                )}
-                {profile.demographic_info.weekly_playtime && (
-                  <p><strong>Weekly Playtime:</strong> {profile.demographic_info.weekly_playtime}</p>
-                )}
+                {profile.demographic_info.gaming_experience && renderRow("Gaming Experience", profile.demographic_info.gaming_experience)}
+                {profile.demographic_info.favorite_genres && renderRow("Favorite Genres", profile.demographic_info.favorite_genres)}
+                {profile.demographic_info.weekly_playtime && renderRow("Weekly Playtime", profile.demographic_info.weekly_playtime)}
                 {profile.demographic_info.previous_playtest_experience && (
-                  <div>
-                    <p><strong>Previous Playtest Experience:</strong></p>
-                    <p style={{marginLeft: '1rem'}}>{profile.demographic_info.previous_playtest_experience}</p>
+                  <div style={styles.infoRow}>
+                    <span style={styles.infoLabel}>Previous Playtest Experience</span>
+                    <span>{profile.demographic_info.previous_playtest_experience}</span>
                   </div>
                 )}
               </div>
@@ -371,5 +386,27 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     marginTop: '1rem',
+  },
+  infoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: '4px 0',
+    borderBottom: '1px solid #444',
+  },
+  infoLabel: {
+    color: '#B388EB',
+    marginRight: '1rem',
+  },
+  tagContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+  },
+  tag: {
+    background: '#555',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '0.8rem',
   }
 };

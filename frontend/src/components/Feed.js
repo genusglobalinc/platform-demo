@@ -49,7 +49,14 @@ export default function Feed() {
       try {
         const data = await getProfileData();
         setUserType(data.user_type);
-        setFavoriteGames(Array.isArray(data.favorite_games) ? data.favorite_games : []);
+        const favGenres = Array.isArray(data.favorite_games)
+          ? data.favorite_games
+          : Array.isArray(data.favorite_genres)
+            ? data.favorite_genres
+            : Array.isArray(data.demographic_info?.favorite_genres)
+              ? data.demographic_info.favorite_genres
+              : [];
+        setFavoriteGames(favGenres);
       } catch (e) {
         console.error("Failed loading profile", e);
       }
@@ -81,7 +88,7 @@ export default function Feed() {
       const queryParams = new URLSearchParams();
       if (activeTab === "For You") {
         // personalised feed based on favourite games
-        favoriteGames.forEach((g) => queryParams.append("tags", g));
+        favoriteGames.forEach((g) => queryParams.append("tags", g.toLowerCase()));
       } else {
         if (selectedMain) {
           queryParams.append("genre", selectedMain.toLowerCase());
