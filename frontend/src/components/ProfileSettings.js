@@ -16,7 +16,8 @@ const usStates = [
 const platformOptions = ["PC","PlayStation","Xbox","Switch","Mobile"];
 
 const genreOptions = [
-  "Action","Adventure","RPG","Shooter","Strategy","Sports","Puzzle","Simulation","Horror","Racing"
+  "Action","Adventure","RPG","Shooter","Strategy","Sports","Puzzle","Simulation","Horror","Racing",
+  "MMO","Hero Battler","First Person Shooter"
 ];
 
 export default function ProfileSettings() {
@@ -59,6 +60,7 @@ export default function ProfileSettings() {
       })
       .then((res) => {
         const data = res.data;
+        console.log("Profile settings data:", data);
         setProfile(data);
         setDisplayName(data.display_name || "");
         setEmail(data.email || "");
@@ -70,17 +72,38 @@ export default function ProfileSettings() {
         setIsEmailVerified(data.is_email_verified || false);
         
         // Set demographic information if available
-        setAge(data.age || "");
-        setGender(data.gender || "");
-        setLocationCity(data.location_city || "");
-        setLocationState(data.location_state || "");
-        setSelectedPlatforms(Array.isArray(data.preferred_platforms) ? data.preferred_platforms : (data.preferred_platforms || "").split(',').map(s=>s.trim()).filter(Boolean));
-        setGamingExperience(data.gaming_experience || "");
-        setSelectedGenres(Array.isArray(data.favorite_genres) ? data.favorite_genres : (data.favorite_genres || "").split(',').map(s=>s.trim()).filter(Boolean));
-        setWeeklyPlaytime(data.weekly_playtime || "");
-        setPreviousPlaytestExperience(data.previous_playtest_experience || "");
+        if (data.demographic_info) {
+          setAge(data.demographic_info.age || "");
+          setGender(data.demographic_info.gender || "");
+          setLocationCity(data.demographic_info.location_city || "");
+          setLocationState(data.demographic_info.location_state || "");
+          
+          // Handle platforms as either array or comma-separated string
+          const platforms = data.demographic_info.preferred_platforms;
+          setSelectedPlatforms(
+            Array.isArray(platforms) ? platforms : 
+            (platforms || "").split(',').map(s => s.trim()).filter(Boolean)
+          );
+          
+          // Handle genres as either array or comma-separated string
+          const genres = data.demographic_info.favorite_genres;
+          console.log("Raw genres data:", genres);
+          setSelectedGenres(
+            Array.isArray(genres) ? genres :
+            (genres || "").split(',').map(s => s.trim()).filter(Boolean)
+          );
+          console.log("Processed genres:", 
+            Array.isArray(genres) ? genres : 
+            (genres || "").split(',').map(s => s.trim()).filter(Boolean)
+          );
+          
+          setGamingExperience(data.demographic_info.gaming_experience || "");
+          setWeeklyPlaytime(data.demographic_info.weekly_playtime || "");
+          setPreviousPlaytestExperience(data.demographic_info.previous_playtest_experience || "");
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to load profile:", err);
         setStatus("Failed to load profile.");
       });
   }, [token]);
@@ -401,6 +424,35 @@ export default function ProfileSettings() {
             </div>
           </div>
           
+          {/* Favorite Genres */}
+          <div style={styles.demoField}>
+            <label style={styles.label}>Favorite Genres:</label>
+            <div style={styles.checkboxGrid}>
+              {genreOptions.map((genre) => (
+                <span key={genre} style={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    id={`genre_${genre}`}
+                    checked={selectedGenres.includes(genre)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedGenres([...selectedGenres, genre]);
+                      } else {
+                        setSelectedGenres(
+                          selectedGenres.filter((g) => g !== genre)
+                        );
+                      }
+                    }}
+                  />
+                  <label htmlFor={`genre_${genre}`} style={styles.checkboxLabel}>{genre}</label>
+                </span>
+              ))}
+            </div>
+            <div style={{marginTop: '8px', fontSize: '0.9rem'}}>
+              Selected: {selectedGenres.join(', ') || 'None'}
+            </div>
+          </div>
+          
           {/* Preferred Platforms */}
           <div style={styles.demoField}>
             <label style={styles.label}>Preferred Gaming Platforms (Ctrl/Cmd+Click to multi-select)</label>
@@ -479,7 +531,11 @@ export default function ProfileSettings() {
           <button
             style={styles.button}
             onClick={() => {
+              // Preserve existing data that's not being updated
+              const existingDemographicInfo = profile?.demographic_info || {};
+              
               const demographicData = {
+                ...existingDemographicInfo,
                 age,
                 gender,
                 location_city: locationCity,
@@ -490,6 +546,8 @@ export default function ProfileSettings() {
                 weekly_playtime: weeklyPlaytime,
                 previous_playtest_experience: previousPlaytestExperience,
               };
+              
+              console.log("Saving demographic data with genres:", selectedGenres);
               saveField("demographic_info", demographicData);
             }}
           >
@@ -516,6 +574,24 @@ const styles = {
     justifyContent: 'center',
     background: 'rgba(0, 0, 0, 0.8)',
     zIndex: 1000,
+  },
+  checkboxGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '8px',
+    marginTop: '8px',
+  },
+  checkboxItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '4px 8px',
+    background: '#2a2a2a',
+    borderRadius: '4px',
+  },
+  checkboxLabel: {
+    marginLeft: '8px',
+    cursor: 'pointer',
+    userSelect: 'none',
   },
   demoField: {
     marginBottom: '1rem',
