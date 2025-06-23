@@ -38,6 +38,21 @@ export default function Profile() {
       setIsLoading(true);
       try {
         const data = await getProfileData(); // Get profile data
+        
+        // Log profile data for debugging
+        console.log("Profile data:", data);
+        console.log("Profile demographic_info:", data.demographic_info);
+        console.log("Favorite genres:", data.demographic_info?.favorite_genres);
+        
+        // Normalize demographic info if needed
+        if (data.demographic_info) {
+          // Make sure favorite_genres is always an array if it exists
+          if (data.demographic_info.favorite_genres && !Array.isArray(data.demographic_info.favorite_genres)) {
+            data.demographic_info.favorite_genres = data.demographic_info.favorite_genres
+              .split(',').map(g => g.trim()).filter(Boolean);
+          }
+        }
+        
         setProfile(data);
         // Fetch posts for the user once the profile is fetched
         const userPosts = await fetchUserPosts(data.user_id);
@@ -79,14 +94,21 @@ export default function Profile() {
   // Helper to render a label/value row with consistent styling
   const renderRow = (label, value) => {
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return null;
-    const renderedValue = Array.isArray(value) ? (
+    
+    // Handle string values that should be arrays
+    let processedValue = value;
+    if (!Array.isArray(value) && typeof value === 'string' && (label === "Favorite Genres" || label === "Preferred Platforms")) {
+      processedValue = value.split(',').map(v => v.trim()).filter(Boolean);
+    }
+    
+    const renderedValue = Array.isArray(processedValue) ? (
       <div style={styles.tagContainer}>
-        {value.map((v) => (
+        {processedValue.map((v) => (
           <span key={v} style={styles.tag}>{v}</span>
         ))}
       </div>
     ) : (
-      <span>{value}</span>
+      <span>{processedValue}</span>
     );
 
     return (
@@ -250,7 +272,17 @@ export default function Profile() {
                   <p><strong>Preferred Platforms:</strong> {profile.demographic_info.preferred_platforms}</p>
                 )}
                 {profile.demographic_info.gaming_experience && renderRow("Gaming Experience", profile.demographic_info.gaming_experience)}
-                {profile.demographic_info.favorite_genres && renderRow("Favorite Genres", profile.demographic_info.favorite_genres)}
+                {profile.demographic_info?.favorite_genres && (
+                  <>
+                    {/* Show how data is stored for debugging */}
+                    <div style={{fontSize: '0.7rem', color: '#666', marginBottom: '5px'}}>
+                      Raw data: {typeof profile.demographic_info.favorite_genres === 'string' ? 
+                        profile.demographic_info.favorite_genres : 
+                        JSON.stringify(profile.demographic_info.favorite_genres)}
+                    </div>
+                    {renderRow("Favorite Genres", profile.demographic_info.favorite_genres)}
+                  </>
+                )}
                 {profile.demographic_info.weekly_playtime && renderRow("Weekly Playtime", profile.demographic_info.weekly_playtime)}
                 {profile.demographic_info.previous_playtest_experience && (
                   <div style={styles.infoRow}>
