@@ -455,17 +455,31 @@ export default function ProfileSettings() {
           
           {/* Preferred Platforms */}
           <div style={styles.demoField}>
-            <label style={styles.label}>Preferred Gaming Platforms (Ctrl/Cmd+Click to multi-select)</label>
-            <select
-              multiple
-              value={selectedPlatforms}
-              onChange={(e) => setSelectedPlatforms(Array.from(e.target.selectedOptions, (o) => o.value))}
-              style={{ ...styles.input, height: '100px' }}
-            >
-              {platformOptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
+            <label style={styles.label}>Preferred Gaming Platforms</label>
+            <div style={styles.checkboxGrid}>
+              {platformOptions.map((platform) => (
+                <span key={platform} style={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    id={`platform_${platform}`}
+                    checked={selectedPlatforms.includes(platform)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPlatforms([...selectedPlatforms, platform]);
+                      } else {
+                        setSelectedPlatforms(
+                          selectedPlatforms.filter((p) => p !== platform)
+                        );
+                      }
+                    }}
+                  />
+                  <label htmlFor={`platform_${platform}`} style={styles.checkboxLabel}>{platform}</label>
+                </span>
               ))}
-            </select>
+            </div>
+            <div style={{marginTop: '8px', fontSize: '0.9rem'}}>
+              Selected: {selectedPlatforms.join(', ') || 'None'}
+            </div>
           </div>
           
           {/* Gaming Experience */}
@@ -485,20 +499,7 @@ export default function ProfileSettings() {
             </select>
           </div>
           
-          {/* Favorite Genres */}
-          <div style={styles.demoField}>
-            <label style={styles.label}>Favorite Genres (Ctrl/Cmd+Click to multi-select)</label>
-            <select
-              multiple
-              value={selectedGenres}
-              onChange={(e) => setSelectedGenres(Array.from(e.target.selectedOptions, (o) => o.value))}
-              style={{ ...styles.input, height: '120px' }}
-            >
-              {genreOptions.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
+          {/* Weekly Playtime section follows */}
           
           {/* Weekly Playtime */}
           <div style={styles.demoField}>
