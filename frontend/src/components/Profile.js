@@ -107,14 +107,16 @@ export default function Profile() {
           <span key={v} style={styles.tag}>{v}</span>
         ))}
       </div>
+    ) : typeof processedValue === 'boolean' ? (
+      processedValue ? "Yes" : "No"
     ) : (
-      <span>{processedValue}</span>
+      processedValue
     );
 
     return (
       <div style={styles.infoRow}>
-        <span style={styles.infoLabel}>{label}</span>
-        {renderedValue}
+        <span style={styles.infoLabel}>{`${label}:`}</span>
+        <span>{renderedValue}</span>
       </div>
     );
   };
@@ -251,9 +253,6 @@ export default function Profile() {
                 <SteamAuthButton />
               </div>
             )}
-            {renderRow("Followers", profile.followers)}
-            {renderRow("Following", profile.following)}
-            {renderRow("Liked Posts", profile.liked_posts?.length || 0)}
             {renderRow("Profile Pic", profile.profile_pic)}
             
             {profile.demographic_info && Object.keys(profile.demographic_info).length > 0 && (

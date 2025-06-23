@@ -143,6 +143,18 @@ export default function PostDetails() {
   const renderDevProfileSection = () => {
     if (!devProfile) return null;
     
+    // Helper function to render a row with label and value (similar to Profile.js)
+    const renderRow = (label, value) => {
+      if (value === undefined || value === null || value === "") return null;
+      
+      return (
+        <div style={styles.devInfoRow}>
+          <span style={styles.devInfoLabel}>{`${label}:`}</span>
+          <span>{value}</span>
+        </div>
+      );
+    };
+    
     return (
       <div style={styles.devProfileSection}>
         <h3 style={styles.devProfileTitle}>About {post.studio || devProfile.display_name || 'Developer'}</h3>
@@ -157,9 +169,11 @@ export default function PostDetails() {
                 style={styles.devAvatar}
               />
             )}
-            <div>
-              <h4 style={styles.devName}>{devProfile.display_name}</h4>
-              {devProfile.bio && <p style={styles.devBio}>{devProfile.bio}</p>}
+            <div style={styles.devInfo}>
+              {renderRow("Developer Username", devProfile.username)}
+              {renderRow("Display Name", devProfile.display_name)}
+              {renderRow("Studio Name", post.studio)}
+              {devProfile.bio && renderRow("Bio", devProfile.bio)}
             </div>
           </div>
           
@@ -227,16 +241,22 @@ export default function PostDetails() {
 
   return (
     <Layout pageTitle="Post Details" showBackButton={true} onBack={() => navigate(-1)}>
-      <div style={styles.innerWrapper}>
-
+      <div style={sectionStyles.contentSection}>
         {/* Banner */}
         {bannerSrc && <img src={bannerSrc} alt="banner" style={styles.banner} />}
 
-        {/* Title & Meta */}
+        {/* Title */}
         <h1 style={styles.title}>{post.title}</h1>
+        
+        {/* Post Information with clear labels */}
+        <div style={styles.postInfoRow}>
+          <span style={styles.postInfoLabel}>Posted By:</span>
+          <span>{post.developer_username || post.author_display_name || "Unknown"}</span>
+        </div>
+        
         {post.studio && (
-          <p style={styles.metaText}>
-            <strong>Studio:</strong>{" "}
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>Studio Name:</span>
             <span 
               style={styles.studioLink}
               onClick={() => {
@@ -264,32 +284,44 @@ export default function PostDetails() {
             >
               {post.studio}
             </span>
-          </p>
+          </div>
         )}
+
         {(post.created_at || post.date || post._createdAt) && (
-          <p style={styles.metaText}>
-            <strong>Date:</strong> {new Date(post.created_at || post.date || post._createdAt).toLocaleDateString()}
-          </p>
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>Date:</span>
+            <span>{new Date(post.created_at || post.date || post._createdAt).toLocaleDateString()}</span>
+          </div>
         )}
 
         {/* Description */}
-        {post.description && <p style={styles.description}>{post.description}</p>}
+        {post.description && (
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>Description:</span>
+            <span style={{flex: 1}}>{post.description}</span>
+          </div>
+        )}
 
-        {/* Additional Fields */}
+        {/* Additional Fields with updated formatting */}
         {post.access_instructions && (
-          <p style={styles.metaText}>
-            <strong>Access Instructions:</strong> {post.access_instructions}
-          </p>
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>Access Instructions:</span>
+            <span>{post.access_instructions}</span>
+          </div>
         )}
+        
         {post.rewards && (
-          <p style={styles.metaText}>
-            <strong>Rewards:</strong> {post.rewards}
-          </p>
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>Rewards:</span>
+            <span>{post.rewards}</span>
+          </div>
         )}
+        
         {typeof post.has_nda !== "undefined" && (
-          <p style={styles.metaText}>
-            <strong>NDA Required:</strong> {post.has_nda ? "Yes" : "No"}
-          </p>
+          <div style={styles.postInfoRow}>
+            <span style={styles.postInfoLabel}>NDA Required:</span>
+            <span>{post.has_nda ? "Yes" : "No"}</span>
+          </div>
         )}
 
         {/* Images Gallery */}
@@ -426,8 +458,26 @@ const styles = {
   },
   devProfileHeader: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "1rem",
+  },
+  devInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.5rem",
+    flex: 1,
+  },
+  devInfoRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "4px 0",
+    borderBottom: "1px solid #444",
+  },
+  devInfoLabel: {
+    color: "#B388EB",
+    marginRight: "1rem",
+    fontWeight: "500",
   },
   devAvatar: {
     width: "64px",
@@ -481,5 +531,17 @@ const styles = {
     fontSize: "0.8rem",
     color: "#aaa",
     lineHeight: "1.4",
+  },
+  postInfoRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "8px 0",
+    borderBottom: "1px solid #444",
+  },
+  postInfoLabel: {
+    color: "#B388EB",
+    marginRight: "1rem",
+    fontWeight: "500",
   },
 };
