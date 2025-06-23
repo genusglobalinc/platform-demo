@@ -14,12 +14,40 @@ const SteamAuthButton = () => {
     setLoading(true);
     setError('');
     
+    // Basic validation and formatting of Steam ID input
+    let formattedSteamId = steamId.trim();
+    
+    // Try to extract Steam ID or username from common URL patterns
+    if (formattedSteamId.startsWith('http')) {
+      if (formattedSteamId.includes('/id/')) {
+        formattedSteamId = formattedSteamId.split('/id/')[1].split('/')[0];
+      } else if (formattedSteamId.includes('/profiles/')) {
+        formattedSteamId = formattedSteamId.split('/profiles/')[1].split('/')[0];
+      }
+    }
+    
+    if (!formattedSteamId) {
+      setError('Please enter a valid Steam ID or profile URL');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('Submitting Steam ID:', formattedSteamId);
+    
     try {
-      await api.post('/users/profile', { steam_id: steamId });
+      // The profile route uses PUT method for updates
+      await api.put('/users/profile', { steam_id: formattedSteamId });
+      console.log('Steam account connected successfully');
       window.location.reload(); // Refresh to show updated profile
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to link Steam account');
       console.error('Steam connection error:', err);
+      if (err.response?.status === 400) {
+        setError('Could not find your Steam profile. Please check your Steam ID or try using your Steam profile URL instead.');
+      } else if (err.response?.status === 500) {
+        setError('Server error. The Steam API may be unavailable right now. Please try again later.');
+      } else {
+        setError(err.response?.data?.detail || 'Failed to link Steam account');
+      }
     } finally {
       setLoading(false);
     }

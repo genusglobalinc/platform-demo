@@ -155,9 +155,12 @@ export default function PostDetails() {
       );
     };
     
+    // Determine the best name to display in the title - use display_name as priority
+    const developerDisplayName = devProfile.display_name || devProfile.username || 'Developer';
+    
     return (
       <div style={styles.devProfileSection}>
-        <h3 style={styles.devProfileTitle}>About {post.studio || devProfile.display_name || 'Developer'}</h3>
+        <h3 style={styles.devProfileTitle}>About {developerDisplayName}</h3>
         
         <div style={styles.devProfileContent}>
           {/* Dev avatar and info */}
@@ -171,7 +174,6 @@ export default function PostDetails() {
             )}
             <div style={styles.devInfo}>
               {renderRow("Developer Username", devProfile.username)}
-              {renderRow("Display Name", devProfile.display_name)}
               {renderRow("Studio Name", post.studio)}
               {devProfile.bio && renderRow("Bio", devProfile.bio)}
             </div>
