@@ -35,49 +35,34 @@ export default function PostDetails() {
         const data = await res.json();
         console.log("Post data:", data); // Debug post data structure
         
-        // Derive developer username from post data (Sanity-first)
-        let developerUsername = '';
-        if (data.username) {
-          developerUsername = data.username;
-        } else if (data.studio) {
-          developerUsername = data.studio;
-        } else if (data.author && data.author.username) {
-          developerUsername = data.author.username;
-        }
-        console.log("Determined developer username:", developerUsername);
-
-        // Extract user ID from possible locations
-        // For older posts in DynamoDB we look for user_id, for Sanity we might have author._ref
-        let userId;
-        
-        if (data.user_id) {
-          userId = data.user_id;
-        } else if (data.dev_id) {
-          userId = data.dev_id;
+        // Extract developer ID from possible locations
+        let developerId = null;
+        if (data.testerId) {
+          developerId = data.testerId;
+        } else if (data.user_id) {
+          developerId = data.user_id;
+        } else if (data.createdBy && data.createdBy._ref) {
+          developerId = data.createdBy._ref;
         } else if (data.author && data.author._ref) {
-          // Sanity format - extract the ID from reference string "user-abc123"
-          userId = data.author._ref.replace('user-', '');
-        } else if (data.author_id) {
-          userId = data.author_id;
-        } else if (data.testerId) {
-          userId = data.testerId;
+          developerId = data.author._ref.replace('user-', '');
+        } else if (data.dev_id) {
+          developerId = data.dev_id;
         }
-        
-        console.log("Determined user ID for post:", userId);
-        
-        // Store username on post object for easy access later
+        console.log("Determined developer ID:", developerId);
+
+        // Store developer ID on post object for later use
         const enhancedData = {
           ...data,
-          developer_username: developerUsername
+          developer_id: developerId
         };
         
         setPost(enhancedData);
         
         // Always attempt to fetch developer profile if we have any ID
-        if (developerUsername) {
-          await fetchDevProfile(developerUsername);
+        if (developerId) {
+          await fetchDevProfile(developerId);
         } else {
-          console.warn("No developer username found for post", postId);
+          console.warn("No developer ID found for post", postId);
         }
       } catch (e) {
         console.error(e);
@@ -89,17 +74,30 @@ export default function PostDetails() {
     fetchData();
   }, [postId]);
   
-  // Fetch developer profile
-  const fetchDevProfile = async (developerUsername) => {
+  // Fetch developer profile using ID, will lookup username first
+  const fetchDevProfile = async (developerId) => {
     try {
-      console.log("Fetching profile for developer username:", developerUsername);
-      const profileRes = await api.get(`/users/profile/by-username/${developerUsername}`);
+      console.log("Fetching username for developer ID:", developerId);
+      // First get the username for this developer ID
+      const usernameRes = await api.get(`/users/username/${developerId}`);
+      const username = usernameRes.data.username;
+      console.log("Found username:", username);
+      
+      // Then fetch the profile using that username
+      console.log("Fetching profile for username:", username);
+      const profileRes = await api.get(`/users/profile/by-username/${username}`);
       console.log("Developer profile:", profileRes.data);
       setDevProfile(profileRes.data);
+      
+      // Set the username on the post for navigation
+      setPost(prevPost => ({
+        ...prevPost,
+        developer_username: username
+      }));
 
       // Also fetch other posts by this developer
-      console.log("Fetching posts for developer ID:", developerId);
-      const postsRes = await api.get(`/users/by-username/${developerUsername}/posts`);
+      console.log("Fetching posts for username:", username);
+      const postsRes = await api.get(`/users/by-username/${username}/posts`);
       console.log("Developer posts:", postsRes.data);
       setDevPosts(postsRes.data || []);
     } catch (e) {
@@ -245,8 +243,21 @@ export default function PostDetails() {
                 if (post.developer_username) {
                   console.log("Navigating to dev profile with username:", post.developer_username);
                   navigate(`/dev-profile/${post.developer_username}`);
+                } else if (post.developer_id) {
+                  console.log("Looking up username for ID:", post.developer_id);
+                  // Lookup the username first
+                  api.get(`/users/username/${post.developer_id}`)
+                    .then(res => {
+                      const username = res.data.username;
+                      console.log("Got username:", username, "for ID:", post.developer_id);
+                      navigate(`/dev-profile/${username}`);
+                    })
+                    .catch(err => {
+                      console.error("Error looking up username:", err);
+                      alert("Developer profile not available for this studio");
+                    });
                 } else {
-                  console.warn("No developer username found for this post");
+                  console.warn("No developer ID found for this post");
                   alert("Developer profile not available for this studio");
                 }
               }}

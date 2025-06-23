@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import jwtDecode from "jwt-decode";
+import { api } from "../api";
 
 const PostCard = ({ post }) => {
   const getContentPreview = (text, maxLength = 100) => {
@@ -93,13 +94,26 @@ const PostCard = ({ post }) => {
               style={styles.studioLink}
               onClick={(e) => {
                 e.stopPropagation();
-                const devUsername =
-                  post.username ||
-                  post.studio ||
-                  (post.author && post.author.username) ||
-                  "";
-                if (devUsername) {
-                  navigate(`/dev-profile/${devUsername}`);
+                // Find developer ID first (various possible locations)
+                const developerId = 
+                  post.testerId || 
+                  post.user_id || 
+                  (post.createdBy && post.createdBy._ref) ||
+                  (post.author && post.author._ref) ||
+                  post.dev_id;
+                if (developerId) {
+                  console.log("Looking up username for dev ID:", developerId);
+                  // Fetch the username using the ID before navigation
+                  api.get(`/users/username/${developerId}`)
+                    .then(res => {
+                      const username = res.data.username;
+                      console.log("Got username:", username, "for ID:", developerId);
+                      navigate(`/dev-profile/${username}`);
+                    })
+                    .catch(err => {
+                      console.error("Error looking up username:", err);
+                      alert("Developer profile not available for this studio");
+                    });
                 } else {
                   alert("Developer profile not available for this studio");
                 }

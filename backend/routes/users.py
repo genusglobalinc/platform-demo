@@ -245,6 +245,18 @@ async def get_user_posts(
 # PUBLIC profile routes (username-based)
 # ---------------------------------------------------------------------
 
+@router.get("/username/{user_id}", tags=["Public Profiles"])
+async def get_username_by_id(user_id: str):
+    """PUBLIC: Return a user's username when only their ID is known.
+    This is used for navigation to developer profiles.
+    """
+    user = get_user_from_db(user_id)
+    if not user or "username" not in user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"username": user["username"]}
+
+
 @router.get("/profile/by-username/{username}", tags=["Public Profiles"])
 async def get_user_profile_by_username(username: str):
     """PUBLIC: Return a developer profile when only the username is known.
