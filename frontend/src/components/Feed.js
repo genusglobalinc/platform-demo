@@ -48,15 +48,40 @@ export default function Feed() {
     const loadProfile = async () => {
       try {
         const data = await getProfileData();
+        console.log("Profile data in Feed:", data);
         setUserType(data.user_type);
-        const favGenres = Array.isArray(data.favorite_games)
-          ? data.favorite_games
-          : Array.isArray(data.favorite_genres)
-            ? data.favorite_genres
-            : Array.isArray(data.demographic_info?.favorite_genres)
-              ? data.demographic_info.favorite_genres
-              : [];
-        setFavoriteGames(favGenres);
+        
+        // Try all possible locations for favorite genres
+        let favGenres = [];
+        
+        if (Array.isArray(data.favorite_games) && data.favorite_games.length > 0) {
+          console.log("Using favorite_games from profile", data.favorite_games);
+          favGenres = data.favorite_games;
+        } else if (Array.isArray(data.favorite_genres) && data.favorite_genres.length > 0) {
+          console.log("Using favorite_genres from profile", data.favorite_genres);
+          favGenres = data.favorite_genres;
+        } else if (data.demographic_info && Array.isArray(data.demographic_info.favorite_genres) && data.demographic_info.favorite_genres.length > 0) {
+          console.log("Using demographic_info.favorite_genres", data.demographic_info.favorite_genres);
+          favGenres = data.demographic_info.favorite_genres;
+        } else if (data.demographic_info && typeof data.demographic_info.favorite_genres === 'string' && data.demographic_info.favorite_genres.trim()) {
+          // Handle string format (comma-separated)
+          const genreString = data.demographic_info.favorite_genres;
+          console.log("Converting string genres to array:", genreString);
+          favGenres = genreString.split(',').map(g => g.trim()).filter(Boolean);
+        }
+        
+        console.log("Final favorite genres for feed filtering:", favGenres);
+        // Compare with available genres to ensure exact case matching
+        const matchedGenres = favGenres.filter(genre => 
+          GENRES.Gaming.some(g => g === genre || g.toLowerCase() === genre.toLowerCase())
+        );
+        
+        if (matchedGenres.length !== favGenres.length) {
+          console.warn("Some genres did not match exactly with available genres. Original:", 
+            favGenres, "Matched:", matchedGenres);
+        }
+        
+        setFavoriteGames(matchedGenres);
       } catch (e) {
         console.error("Failed loading profile", e);
       }
@@ -88,12 +113,14 @@ export default function Feed() {
       const queryParams = new URLSearchParams();
       if (activeTab === "For You") {
         // personalised feed based on favourite games
-        favoriteGames.forEach((g) => queryParams.append("tags", g.toLowerCase()));
+        console.log("Filtering by favorite genres:", favoriteGames);
+        favoriteGames.forEach((g) => queryParams.append("tags", g));
       } else {
         if (selectedMain) {
           queryParams.append("genre", selectedMain.toLowerCase());
         }
         selectedSub.forEach((tag) => {
+          console.log("Adding tag filter:", tag);
           queryParams.append("tags", tag);
         });
       }
@@ -110,6 +137,8 @@ export default function Feed() {
         const getDate = (p) => new Date(p.created_at || p.date || p._createdAt || 0).getTime();
         return getDate(b) - getDate(a);
       });
+      console.log("Filtered posts:", sorted);
+      console.log("Query parameters used:", queryParams.toString());
       setPosts(sorted);
     } catch (err) {
       console.error("Error loading posts:", err);
