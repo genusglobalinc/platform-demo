@@ -6,7 +6,21 @@ import { getProfileData } from "../api";
 
 const TABS = ["Trending", "Newest", "For You"];
 const GENRES = {
-  Gaming: ["MMO", "First Person Shooter", "Hero Battler"],
+  Gaming: [
+    "MMO",
+    "First Person Shooter",
+    "Hero Battler",
+    "Action",
+    "Adventure",
+    "RPG",
+    "Shooter",
+    "Strategy",
+    "Sports",
+    "Puzzle",
+    "Simulation",
+    "Horror",
+    "Racing",
+  ],
 };
 
 export default function Feed() {
@@ -14,6 +28,7 @@ export default function Feed() {
   const [selectedMain, setSelectedMain] = useState("");
   const [selectedSub, setSelectedSub] = useState([]);
   const [posts, setPosts] = useState([]);
+  const [showSuggestionPrompt, setShowSuggestionPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formFields, setFormFields] = useState({
@@ -44,6 +59,13 @@ export default function Feed() {
 
   // Re-fetch whenever genre, tags, active tab or favourite games change
   useEffect(() => {
+    // For "For You" tab, if no favorite genres set, show prompt and skip fetch.
+    if (activeTab === "For You" && favoriteGames.length === 0) {
+      setShowSuggestionPrompt(true);
+      setPosts([]);
+      return;
+    }
+    setShowSuggestionPrompt(false);
     fetchPosts();
   }, [selectedMain, selectedSub, activeTab, favoriteGames]);
 
@@ -267,8 +289,10 @@ export default function Feed() {
         <div style={styles.feed}>
           {loading ? (
             <p>Loading...</p>
+          ) : showSuggestionPrompt && activeTab === "For You" ? (
+            <p style={{ color: "#B388EB" }}>Update your profile to get the best suggestions.</p>
           ) : posts.length === 0 ? (
-            <p>No posts found</p>
+            <p style={{ color: "#B388EB" }}>No posts to show.</p>
           ) : (
             posts.map((post) => (
               <PostCard key={post.post_id || post._id} post={post} userType={userType} />
@@ -276,7 +300,7 @@ export default function Feed() {
           )}
         </div>
 
-        {/* Create‑Post Modal */}
+        {/* Create-Post Modal */}
         {showCreateModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>

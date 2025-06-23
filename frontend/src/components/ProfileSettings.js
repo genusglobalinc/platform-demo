@@ -290,7 +290,7 @@ export default function ProfileSettings() {
           </div>
         </div>
 
-        {/* Profile Picture */}
+
         <div style={styles.section}>
           <label style={styles.label}>Profile Picture</label>
           <div style={styles.picsRow}>

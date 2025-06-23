@@ -459,9 +459,14 @@ async def refresh_steam_profile(
         if not steam_profile:
             raise HTTPException(status_code=400, detail="Could not refresh Steam profile")
             
+        # Merge Steam profile data into demographic_info
+        demo = user.get("demographic_info", {}) or {}
+        demo.update({k: v for k, v in steam_profile.items() if k not in ("debug",)})
+
         # Update user in DB
         updates = {
             "steam_profile": steam_profile,
+            "demographic_info": demo,
             "updated_at": str(datetime.utcnow())
         }
         update_user_profile(user_id, updates)
