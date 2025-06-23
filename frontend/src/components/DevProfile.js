@@ -4,7 +4,7 @@ import { api } from '../api';
 import Layout, { sectionStyles } from './Layout';
 
 const DevProfile = () => {
-  const { userId } = useParams();
+  const { username } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -16,11 +16,11 @@ const DevProfile = () => {
       try {
         setLoading(true);
         // Fetch the developer's profile
-        const profileRes = await api.get(`/users/profile/${userId}`);
+        const profileRes = await api.get(`/users/profile/by-username/${username}`);
         setProfile(profileRes.data);
         
         // Fetch all posts by this developer
-        const postsRes = await api.get(`/users/${userId}/posts`);
+        const postsRes = await api.get(`/users/by-username/${username}/posts`);
         setPosts(postsRes.data || []);
       } catch (err) {
         console.error('Error loading developer profile:', err);
@@ -31,7 +31,7 @@ const DevProfile = () => {
     };
     
     loadDevProfile();
-  }, [userId]);
+  }, [username]);
   
   // Helper to build Sanity asset URLs
   const buildSanityUrl = (ref, projectId = process.env.REACT_APP_SANITY_PROJECT_ID || "jpgxw2o8") => {

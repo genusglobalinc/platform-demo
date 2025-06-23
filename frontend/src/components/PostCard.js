@@ -93,13 +93,13 @@ const PostCard = ({ post }) => {
               style={styles.studioLink}
               onClick={(e) => {
                 e.stopPropagation();
-                const devId =
-                  post.user_id ||
-                  post.dev_id ||
-                  (post.author && post.author._ref) ||
-                  post.testerId;
-                if (devId) {
-                  navigate(`/dev-profile/${devId}`);
+                const devUsername =
+                  post.username ||
+                  post.studio ||
+                  (post.author && post.author.username) ||
+                  "";
+                if (devUsername) {
+                  navigate(`/dev-profile/${devUsername}`);
                 } else {
                   alert("Developer profile not available for this studio");
                 }

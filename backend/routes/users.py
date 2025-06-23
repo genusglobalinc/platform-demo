@@ -13,7 +13,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
-from backend.database import get_user_from_db, update_user_profile, _sanity_client, get_posts_by_user, get_user_by_email
+from backend.database import (
+    get_user_from_db,
+    update_user_profile,
+    _sanity_client,
+    get_posts_by_user,
+    get_user_by_email,
+    get_user_by_username,
+)
 from backend.utils.security import verify_access_token
 from backend.config import get_settings
 from backend.services.background_tasks import sync_steam_profiles
@@ -233,6 +240,42 @@ async def get_user_posts(
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return get_posts_by_user(user_id)
+
+# ---------------------------------------------------------------------
+# PUBLIC profile routes (username-based)
+# ---------------------------------------------------------------------
+
+@router.get("/profile/by-username/{username}", tags=["Public Profiles"])
+async def get_user_profile_by_username(username: str):
+    """PUBLIC: Return a developer profile when only the username is known.
+
+    Only safe, non-sensitive fields are returned so this endpoint can be
+    consumed by the public website without authentication.
+    """
+    user = get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    for key in [
+        "password",
+        "email_verification_code",
+        "email_verification_expiry",
+        "two_factor_secret",
+        "two_factor_enabled",
+    ]:
+        user.pop(key, None)
+
+    return user
+
+
+@router.get("/by-username/{username}/posts", tags=["Public Profiles"])
+async def get_posts_by_username(username: str):
+    """PUBLIC: Return all posts authored by the given username."""
+    user = get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return get_posts_by_user(user["user_id"])
 
 # ---------------------------------------------------------------------
 # Upload avatar endpoint

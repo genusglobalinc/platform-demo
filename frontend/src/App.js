@@ -30,7 +30,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/posts/:postId" element={<PostDetails />} />
-        <Route path="/dev-profile/:userId" element={<DevProfile />} />
+        <Route path="/dev-profile/:username" element={<DevProfile />} />
       </Routes>
     </Router>
   );
