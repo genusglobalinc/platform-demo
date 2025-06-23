@@ -132,12 +132,35 @@ export default function Feed() {
       if (!Array.isArray(body.posts)) {
         throw new Error("Invalid response");
       }
-      // Sort newest → oldest by created date
-      const sorted = body.posts.slice().sort((a, b) => {
-        const getDate = (p) => new Date(p.created_at || p.date || p._createdAt || 0).getTime();
-        return getDate(b) - getDate(a);
-      });
-      console.log("Filtered posts:", sorted);
+
+      // Create a copy of the posts array for sorting
+      let sorted = body.posts.slice();
+      
+      // Apply different sorting based on active tab
+      if (activeTab === "Trending") {
+        // Sort by number of registrants (highest first)
+        console.log("Sorting by registrants count for Trending tab");
+        sorted = sorted.sort((a, b) => {
+          const aRegistrants = Array.isArray(a.registrants) ? a.registrants.length : 0;
+          const bRegistrants = Array.isArray(b.registrants) ? b.registrants.length : 0;
+          return bRegistrants - aRegistrants; // Highest first
+        });
+      } else if (activeTab === "Newest") {
+        // Sort by creation date (newest first)
+        console.log("Sorting by creation date for Newest tab");
+        sorted = sorted.sort((a, b) => {
+          const getDate = (p) => new Date(p.created_at || p.date || p._createdAt || 0).getTime();
+          return getDate(b) - getDate(a); // Newest first
+        });
+      } else {
+        // For "For You" tab, just use date sorting as fallback
+        sorted = sorted.sort((a, b) => {
+          const getDate = (p) => new Date(p.created_at || p.date || p._createdAt || 0).getTime();
+          return getDate(b) - getDate(a);
+        });
+      }
+      
+      console.log(`Sorted posts for ${activeTab} tab:`, sorted);
       console.log("Query parameters used:", queryParams.toString());
       setPosts(sorted);
     } catch (err) {
@@ -305,7 +328,7 @@ export default function Feed() {
           </div>
         </div>
 
-        {/* Tab buttons */}
+        {/* Tabs and Documentation Button */}
         <div style={styles.tabContainer}>
           {TABS.map((tab) => (
             <button
@@ -313,7 +336,7 @@ export default function Feed() {
               onClick={() => setActiveTab(tab)}
               style={{
                 ...styles.tabButton,
-                ...(activeTab === tab ? styles.activeTab : {}),
+                ...(tab === activeTab ? styles.activeTab : {}),
               }}
             >
               {tab}
@@ -340,67 +363,73 @@ export default function Feed() {
         {showCreateModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
-              <h3>Create a Post</h3>
-
+              <h2>Create New Post</h2>
               <input
+                type="text"
                 style={styles.textInput}
-                placeholder="Title *"
+                placeholder="Title"
                 value={formFields.title}
                 onChange={(e) =>
                   setFormFields({ ...formFields, title: e.target.value })
                 }
               />
+              <input
+                type="text"
+                style={styles.textInput}
+                placeholder="Studio Name"
+                value={formFields.studio}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, studio: e.target.value })
+                }
+              />
               <textarea
-                style={{ ...styles.textInput, height: 80 }}
-                placeholder="Description *"
+                style={{ ...styles.textInput, minHeight: 100 }}
+                placeholder="Description"
                 value={formFields.description}
                 onChange={(e) =>
                   setFormFields({ ...formFields, description: e.target.value })
                 }
               />
-
-              {["studio", "banner_image", "images"].map((fld) => (
-                <input
-                  key={fld}
-                  style={styles.textInput}
-                  placeholder={fld.replace("_", " ").toUpperCase()}
-                  value={formFields[fld]}
-                  onChange={(e) =>
-                    setFormFields({ ...formFields, [fld]: e.target.value })
-                  }
-                />
-              ))}
-
-              {/* Genre and Tag Selectors */}
-              <div style={styles.modalSelectorContainer}>
-                <h4>Genre</h4>
-                {Object.keys(GENRES).map((main) => (
-                  <button
-                    key={main}
-                    onClick={() => setSelectedMain(main)}
-                    style={{
-                      ...styles.modalSelectorButton,
-                      ...(selectedMain === main ? styles.activeSelector : {}),
-                    }}
-                  >
-                    {main}
-                  </button>
-                ))}
-                {selectedMain && (
+              <input
+                type="text"
+                style={styles.textInput}
+                placeholder="Banner Image URL"
+                value={formFields.banner_image}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, banner_image: e.target.value })
+                }
+              />
+              <input
+                type="text"
+                style={styles.textInput}
+                placeholder="Additional Image URLs (comma-separated)"
+                value={formFields.images}
+                onChange={(e) =>
+                  setFormFields({ ...formFields, images: e.target.value })
+                }
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 16,
+                }}
+              >
+                {GENRES[selectedMain] && (
                   <div>
-                    <h4>Tags</h4>
+                    <h4 style={{ marginBottom: "12px" }}>Tags</h4>
                     {GENRES[selectedMain].map((sub) => (
                       <button
                         key={sub}
+                        style={{
+                          ...styles.modalSelectorButton,
+                          ...(selectedSub.includes(sub) ? styles.activeSelector : {}),
+                        }}
                         onClick={() =>
                           setSelectedSub((prev) =>
                             prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
                           )
                         }
-                        style={{
-                          ...styles.modalSelectorButton,
-                          ...(selectedSub.includes(sub) ? styles.activeSelector : {}),
-                        }}
                       >
                         {sub}
                       </button>
@@ -427,6 +456,7 @@ export default function Feed() {
       
       {/* Right Sidebar - Empty for now but provides balanced spacing */}
       <div className="right-sidebar" style={styles.rightSidebar}></div>
+
     </div>
   );
 }
@@ -609,4 +639,5 @@ const styles = {
   activeSelector: {
     background: "#5C6BC0",
   },
+
 };
