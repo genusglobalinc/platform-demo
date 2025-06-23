@@ -71,6 +71,58 @@ const DevProfile = () => {
   
   // Use Steam profile picture if available
   const avatarUrl = profile.steam_profile?.avatar || profile.avatar_url || null;
+  
+  // Helper to render demographic information
+  const renderDemographicInfo = () => {
+    if (!profile.demographic_info || Object.keys(profile.demographic_info).length === 0) {
+      return null;
+    }
+    
+    // Helper to render a row with label and value
+    const renderRow = (label, value) => {
+      if (value === undefined || value === null || value === "" || 
+          (Array.isArray(value) && value.length === 0)) {
+        return null;
+      }
+      
+      // Handle string values that should be arrays
+      let processedValue = value;
+      if (!Array.isArray(value) && typeof value === 'string' && 
+          (label === "Favorite Genres" || label === "Preferred Platforms")) {
+        processedValue = value.split(',').map(v => v.trim()).filter(Boolean);
+      }
+      
+      const renderedValue = Array.isArray(processedValue) ? (
+        <div style={styles.tagContainer}>
+          {processedValue.map((v) => (
+            <span key={v} style={styles.tag}>{v}</span>
+          ))}
+        </div>
+      ) : typeof processedValue === 'boolean' ? (
+        processedValue ? "Yes" : "No"
+      ) : (
+        processedValue
+      );
+      
+      return (
+        <div style={styles.demographicRow}>
+          <span style={styles.demographicLabel}>{`${label}:`}</span>
+          <span>{renderedValue}</span>
+        </div>
+      );
+    };
+    
+    return (
+      <div style={styles.demographicSection}>
+        <h3 style={styles.demographicTitle}>Developer Information</h3>
+        {profile.demographic_info.location && renderRow("Location", profile.demographic_info.location)}
+        {profile.demographic_info.preferred_platforms && renderRow("Preferred Platforms", profile.demographic_info.preferred_platforms)}
+        {profile.demographic_info.gaming_experience && renderRow("Gaming Experience", profile.demographic_info.gaming_experience)}
+        {profile.demographic_info.favorite_genres && renderRow("Favorite Genres", profile.demographic_info.favorite_genres)}
+        {profile.demographic_info.weekly_playtime && renderRow("Weekly Playtime", profile.demographic_info.weekly_playtime)}
+      </div>
+    );
+  };
 
   return (
     <Layout pageTitle={devName} showBackButton={true} onBack={() => navigate(-1)}>
@@ -91,6 +143,9 @@ const DevProfile = () => {
               <h2 style={styles.studioName}>{studioName}</h2>
             )}
             {profile.bio && <p style={styles.bio}>{profile.bio}</p>}
+            
+            {/* Render demographic info rows */}
+            {renderDemographicInfo()}
           </div>
         </div>
         
@@ -184,6 +239,46 @@ const styles = {
   innerWrapper: {
     maxWidth: "1000px",
     width: "100%",
+  },
+  
+  // Demographic section styles
+  demographicSection: {
+    marginTop: "1.5rem",
+    padding: "1rem 0",
+    borderTop: "1px solid rgba(179, 136, 235, 0.3)",
+  },
+  demographicTitle: {
+    fontSize: "1.2rem",
+    marginBottom: "1rem",
+    color: "#B388EB",
+  },
+  demographicRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "4px 0",
+    marginBottom: "0.5rem",
+    borderBottom: "1px solid #444",
+  },
+  demographicLabel: {
+    color: "#B388EB",
+    marginRight: "1rem",
+    fontWeight: "500",
+  },
+  tagContainer: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px",
+    maxWidth: "60%",
+    justifyContent: "flex-end",
+  },
+  tag: {
+    background: "rgba(179,136,235,0.1)",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    fontSize: "0.8rem",
+    color: "#B388EB",
+    marginBottom: "4px",
   },
 
   devHeader: {

@@ -160,17 +160,22 @@ async def update_profile(
                     detail="Steam API is not configured on the server"
                 )
             
+            # Get user type to log for debugging
+            user_type = user.get("user_type", "Unknown")
+            logger.debug(f"User type for Steam connection attempt: {user_type}")
+            
+            # Fetch Steam profile - ensure this works for all account types (Dev, Tester, Admin)
             steam_profile = fetch_steam_profile(steam_input)
             
             # Verify the profile was found before proceeding
             if not steam_profile:
-                logger.warning(f"Could not find Steam profile for: {steam_input}")
+                logger.warning(f"Could not find Steam profile for: {steam_input} (user type: {user_type})")
                 raise HTTPException(
                     status_code=400, 
                     detail="Could not validate Steam profile. Please check your Steam ID or URL."
                 )
                 
-            logger.info(f"Successfully fetched Steam profile: {steam_profile.get('persona_name')}")
+            logger.info(f"Successfully fetched Steam profile: {steam_profile.get('persona_name')} for user type: {user_type}")
             
             # Add fetched profile to updates
             updates["steam_profile"] = steam_profile
