@@ -1,0 +1,117 @@
+Promoted (Gold outline with promoted text in the top left corner), Community Choice (Green outline with Community Choice text in the top left corner), Editor's Choice (Purple outline with Editor's Choice text in the top left corner)
+
+Users "Starring" posts decide who is Community Choice (game must be in active alpha/beta testing, highest in the timeframe of game testing)
+
+BokChoy
+
+ — Yesterday at 10:35 PM
+password lock access to web app,
+[10:37 PM]
+Business address - 2501 Chatham Rd Suite N
+Springfield, IL 62704
+
+-display user account type under "Your Profile"--> dev, admin, player
+-update error messages
+-catalogue error messages under each circumstances
+
+=== USER EXPERIENCE FLOWS & ERROR HANDLING ANALYSIS ===
+
+## EXISTING USER FLOWS:
+1. **Authentication Flow:**
+   - Register → 2FA Setup → Email Verification → Login
+   - Login → 2FA Verification → Feed/Dashboard
+   - Steam OAuth Integration
+   - Password Reset via Email
+   - Username Recovery
+
+2. **Content Management Flow:**
+   - Create Post → Upload Media → Publish
+   - Browse Feed → Filter Posts → View Details
+   - Profile Management → Settings → Steam Integration
+
+3. **User Types & Permissions:**
+   - Dev: Full post creation, profile customization
+   - Tester: Limited permissions, community features
+   - Admin: User management, content moderation
+
+## CURRENTLY HANDLED ERRORS:
+✅ **Authentication Errors:**
+- Invalid credentials (401)
+- Missing 2FA token
+- Expired tokens
+- Rate limiting (10 requests/60s)
+- Redis connection failures
+- Steam API failures
+
+✅ **Validation Errors:**
+- Invalid email format
+- Weak passwords
+- Duplicate usernames/emails
+- Missing required fields
+
+✅ **Database Errors:**
+- User not found (404)
+- Connection timeouts
+- Sanity CMS sync failures
+
+## RECOMMENDED ERROR HANDLING ADDITIONS:
+
+🔴 **Critical Missing Error Handling:**
+
+**File Upload Errors:**
+- File size limits exceeded
+- Invalid file formats
+- Upload timeout/network failures
+- Storage quota exceeded
+- Malware/virus detection
+
+**Session Management:**
+- Concurrent login detection
+- Session hijacking protection
+- Token refresh failures
+- Cross-device session conflicts
+
+**Content Validation:**
+- Inappropriate content detection
+- Spam/duplicate post prevention
+- Image processing failures
+- URL validation for external links
+
+**Network & Infrastructure:**
+- API rate limit exceeded (Steam, external services)
+- Third-party service outages
+- CDN failures for media delivery
+- Database connection pool exhaustion
+
+**User Experience Edge Cases:**
+- Browser compatibility issues
+- JavaScript disabled scenarios
+- Slow network connection handling
+- Mobile responsive breakpoints
+- Accessibility compliance errors
+
+**Security Vulnerabilities:**
+- CSRF token validation
+- XSS prevention in user content
+- SQL injection in search queries
+- Brute force attack protection
+- Account enumeration prevention
+
+**Data Integrity:**
+- Profile sync conflicts (Steam vs local data)
+- Partial form submission recovery
+- Data corruption detection
+- Backup/restore failure handling
+
+**Business Logic Errors:**
+- Post visibility conflicts
+- User type permission escalation
+- Community choice voting manipulation
+- Promoted content validation failures
+
+## PRIORITY IMPLEMENTATION ORDER:
+1. **HIGH:** File upload error handling
+2. **HIGH:** Session security improvements  
+3. **MEDIUM:** Content validation pipeline
+4. **MEDIUM:** Network resilience features
+5. **LOW:** Enhanced UX error recovery

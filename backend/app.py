@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from starlette.requests import Request
 import redis.asyncio as aioredis
 from redis.exceptions import ConnectionError
+from backend.middleware.dev_access import DevAccessMiddleware
 
 # Import routers
 from backend.routes.users import router as users_router
@@ -25,6 +26,9 @@ from backend.database import (
 )
 
 app = FastAPI()
+
+# Add development access middleware FIRST (before CORS)
+app.add_middleware(DevAccessMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
