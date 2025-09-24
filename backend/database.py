@@ -498,6 +498,14 @@ def update_user_password(user_id: str, new_password: str) -> bool:
         logger.error(f"[update_user_password] Password update failed for user {user_id}: {e}")
         return False
 
+def update_user_steam_data(user_id: str, steam_data: dict) -> bool:
+    """Update user's Steam-related data"""
+    try:
+        # Use the existing update_user_profile function which handles None values properly
+        return update_user_profile(user_id, steam_data)
+    except Exception as e:
+        logger.error(f"[update_user_steam_data] Error updating Steam data: {e}")
+        return False
 
 def update_user_2fa(user_id: str, secret: str, enabled: bool = False) -> bool:
     """Update user's 2FA settings"""

@@ -31,6 +31,7 @@ google-auth-httplib2
 # HTTP requests for making API calls (like Apollo)
 httpx
 requests
+aiohttp
 
 # Optional but handy for async file serving and file uploads
 aiofiles

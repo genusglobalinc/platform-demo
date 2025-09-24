@@ -18,6 +18,7 @@ from backend.routes.posts import router as posts_router
 from backend.routes.auth_routes import router as auth_router
 from backend.routes.uploads import router as uploads_router
 from backend.routes.admin_routes import router as admin_router
+from backend.routes.steam_routes import router as steam_router
 from backend.utils.security import create_access_token, verify_access_token
 from backend.database import (
     get_user_from_db,
@@ -75,6 +76,7 @@ app.include_router(posts_router, prefix="/posts")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(uploads_router, prefix="/uploads")
 app.include_router(admin_router)
+app.include_router(steam_router, prefix="/api")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from typing import Dict, Any
 
@@ -84,3 +84,44 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+# Steam-related models
+class SteamGame(BaseModel):
+    appid: int
+    name: str
+    playtime_minutes: int
+    playtime_formatted: str
+    playtime_2weeks: Optional[int] = 0
+    img_icon_url: Optional[str] = ""
+    img_logo_url: Optional[str] = ""
+
+class SteamPlayerInfo(BaseModel):
+    steamid: str
+    personaname: Optional[str] = ""
+    profileurl: Optional[str] = ""
+    avatar: Optional[str] = ""
+    avatarmedium: Optional[str] = ""
+    avatarfull: Optional[str] = ""
+    personastate: Optional[int] = 0
+    communityvisibilitystate: Optional[int] = 1
+    profilestate: Optional[int] = 0
+    lastlogoff: Optional[int] = 0
+    commentpermission: Optional[int] = 0
+
+class SteamProfile(BaseModel):
+    steam_id: str
+    player_info: SteamPlayerInfo
+    steam_level: Optional[int] = None
+    total_games: int
+    total_playtime_minutes: int
+    total_playtime_formatted: str
+    owned_games: List[SteamGame]
+    recent_games: List[Dict[str, Any]]
+    top_games: List[SteamGame]
+    profile_visibility: bool
+
+class SteamLinkRequest(BaseModel):
+    steam_id: str
+
+class SteamUnlinkRequest(BaseModel):
+    confirm: bool = True

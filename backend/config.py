@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     smtp_password: str = os.getenv("SMTP_PASSWORD", "")
     smtp_use_tls: bool = os.getenv("SMTP_USE_TLS", "True").lower() in ("true", "1", "t")
 
+    # Steam API Configuration
+    steam_api_key: str = os.getenv("STEAM_API_KEY", "")
+
     class Config:
         env_file = ".env"
 
@@ -62,3 +65,4 @@ def get_settings():
 AWS_REGION = os.getenv("AWS_REGION")
 SECRET_KEY = os.getenv("SECRET_KEY")
 DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE")
+STEAM_API_KEY = os.getenv("STEAM_API_KEY")
