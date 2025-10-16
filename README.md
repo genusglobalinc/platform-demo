@@ -2,33 +2,23 @@
 
 **UPDATED README DESCRIPTION:**
 
-"**lost-gates-mvp** is a dynamic FastAPI REST API and React web application that empowers users to securely authenticate and seamlessly upload files and images. With a single endpoint, users can effortlessly manage their account and perform file operations. This project not only showcases advanced development skills with features like user authentication and file upload, but also integrates External APIs and Instagram, demonstrating a versatile tech stack suitable for modern web applications."
+"**lost-gates-mvp** is a cutting-edge FastAPI REST API and React web application that simplifies user authentication and streamlines file uploads securely. Users can effortlessly manage their account details and perform file operations through a seamless interface. This project highlights advanced skills in user authentication, file handling, and integration with External APIs like Instagram, showcasing a versatile tech stack for modern web development portfolios."
 
 ![Stars](https://img.shields.io/badge/stars-1-yellow)
 ![Language](https://img.shields.io/badge/language-JavaScript-blue)
 ![Status](https://img.shields.io/badge/status-Portfolio-Ready-green)
 
-## 👤 User Experience
-
-**What users can do:**
-- Users can log in to access their account
-- Users can upload files or images
-
 ## 🎯 Functionality
 
-**Core Capabilities:**
-- User authentication
-- File upload functionality
-
 **API Endpoints:**
-- `post` (FastAPI Router)
+- `/change-password` (FastAPI)
 
 ## ✨ Key Features
 
 - **Application Type:** FastAPI REST API, React Web Application
-- **Integrations:** External API Integration, Instagram Integration
 - **Authentication:** JWT Authentication, OAuth
 - Email Functionality
+- Scheduled Tasks
 
 ## 🛠️ Tech Stack
 
@@ -39,14 +29,10 @@
 - fastapi
 - typing
 
-## 🚀 Deployment
-
-This project is configured for deployment on **Render**.
-
 ## 📊 Project Statistics
 
 - **Total Files:** 65
-- **Lines of Code:** 61,354
+- **Lines of Code:** 61,356
 - **Primary Language:** JavaScript
 - **Development Status:** Portfolio-Ready
 
