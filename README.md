@@ -1,4 +1,4 @@
-# lost-gates-mvp - FastAPI REST API
+# platform-demo - FastAPI REST API
 
 
 This is a **fastapi rest api** that:
@@ -47,8 +47,8 @@ This project exposes **1 API endpoints**:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/lost-gates-mvp.git
-cd lost-gates-mvp
+git clone https://github.com/yourusername/platform-demo.git
+cd platform-demo
 
 # Install dependencies
 npm install
@@ -77,7 +77,7 @@ curl http://localhost:8000/change-password
 ## 📁 Project Structure
 
 ```
-lost-gates-mvp/
+platform-demo/
 ├── src/              # Source code
 ├── public/           # Public assets
 ├── package.json      # Dependencies
@@ -97,7 +97,7 @@ lost-gates-mvp/
 
 - **Language:** JavaScript
 - **Files:** 65
-- **Lines of Code:** 61,340
+- **Lines of Code:** 61,429
 - **Status:** Portfolio-Ready
 
 ## 🚧 Future Enhancements
